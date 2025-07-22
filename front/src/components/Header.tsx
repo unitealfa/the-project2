@@ -32,14 +32,6 @@ const Header: React.FC = () => {
         <Link to={homePath} style={{ color: 'white', textDecoration: 'none' }}>
           Accueil
         </Link>
-        {user.role === 'admin' && (
-          <Link
-            to={`/admin/${user.id}/team`}
-            style={{ color: 'white', textDecoration: 'none' }}
-          >
-            Mon équipe
-          </Link>
-        )}
       </nav>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         <span>
