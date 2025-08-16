@@ -22,7 +22,7 @@ export const login = async (req: Request, res: Response) => {
     const dto: LoginDto = req.body;
     const { user, token } = await service.authenticate(dto);
     const { password, ...rest } = user.toObject();
-    res.json({ ...rest, id: user._id.toString(), token });
+    res.json({ ...rest, id: (user._id as any).toString(), token }); // FIX ligne 25
   } catch (err: any) {
     res.status(401).json({ message: err.message });
   }
@@ -54,7 +54,7 @@ export const getUser = async (req: any, res: Response) => {
     }
     const u = await service.getById(id);
     const { password, ...rest } = u.toObject();
-    res.json({ ...rest, id: u._id.toString() });
+    res.json({ ...rest, id: (u._id as any).toString() }); // FIX ligne 57
   } catch (err: any) {
     res.status(404).json({ message: err.message });
   }

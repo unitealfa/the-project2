@@ -15,7 +15,7 @@ export class UserService {
     const match = await bcrypt.compare(dto.password, user.password);
     if (!match) throw new Error('Mot de passe invalide');
 
-    const payload = { id: user._id.toString(), email: user.email, role: user.role };
+    const payload = { id: (user._id as any).toString(), email: user.email, role: user.role };
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error('JWT_SECRET non défini');
     const token = jwt.sign(payload, secret);
@@ -23,7 +23,7 @@ export class UserService {
     return { user, token };
   }
 
-  /** Création d’utilisateur (admin only) */
+  /** Création d'utilisateur (admin only) */
   async createUser(dto: CreateUserDto): Promise<{
     id: string;
     firstName: string;
@@ -43,7 +43,7 @@ export class UserService {
       role: dto.role,
     });
     return {
-      id:        u._id.toString(),
+      id:        (u._id as any).toString(),
       firstName: u.firstName,
       lastName:  u.lastName,
       email:     u.email,
@@ -68,7 +68,7 @@ export class UserService {
   }>> {
     const users = await User.find().select('firstName lastName email role');
     return users.map(u => ({
-      id:        u._id.toString(),
+      id:        (u._id as any).toString(),
       firstName: u.firstName,
       lastName:  u.lastName,
       email:     u.email,
@@ -76,7 +76,7 @@ export class UserService {
     }));
   }
 
-  /** Mise à jour d’un user (admin only) */
+  /** Mise à jour d'un user (admin only) */
   async updateUser(
     id: string,
     dto: Partial<CreateUserDto> & { password?: string }
@@ -96,7 +96,7 @@ export class UserService {
     if (dto.password)  u.password  = await bcrypt.hash(dto.password, 12);
     await u.save();
     return {
-      id:        u._id.toString(),
+      id:        (u._id as any).toString(),
       firstName: u.firstName,
       lastName:  u.lastName,
       email:     u.email,
@@ -104,11 +104,11 @@ export class UserService {
     };
   }
 
-  /** Suppression d’un user (admin only, sauf admin) */
+  /** Suppression d'un user (admin only, sauf admin) */
   async deleteUser(id: string): Promise<void> {
     const u = await User.findById(id);
     if (!u) throw new Error('Utilisateur non trouvé');
-    if (u.role === 'admin') throw new Error('Suppression de l’admin impossible');
+    if (u.role === 'admin') throw new Error('Suppression de l\'admin impossible'); // FIX: guillemets échappés
     await u.deleteOne();
   }
 }
