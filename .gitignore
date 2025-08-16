@@ -3,5 +3,14 @@ node_modules/
 front\node_modules
 back\node_modules
 
+# Build outputs
+dist/
+build/
+front/dist/
+back/dist/
+
+# TypeScript
+*.tsbuildinfo
+
 # VSCode
 .vscode/
