@@ -16,6 +16,7 @@ import UserDetail   from './pages/UserDetail';
 import EditUser     from './pages/EditUser';
 import Gestionnaire from './pages/Gestionnaire';
 import Confirmateur from './pages/Confirmateur';
+import Orders       from './pages/Orders';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/admin/:id/create-user"         element={<CreateUser />} />
               <Route path="/admin/:id/users/:userId"       element={<UserDetail />} />
               <Route path="/admin/:id/users/:userId/edit"  element={<EditUser />} />
+              <Route path="/admin/:id/orders"              element={<Orders />} />
             </Route>
           </Route>
 
