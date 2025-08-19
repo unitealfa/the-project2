@@ -17,3 +17,13 @@ export interface CreateUserDto {
   password:  string;
   role:      'gestionnaire' | 'confirmateur';
 }
+
+export interface ProductDto {
+  id?: string;
+  code?: string;
+  name: string;
+  costPrice: number; // prix d'achat
+  salePrice: number; // prix de vente
+  image?: string;
+  variants: Array<{ name: string; quantity: number }>;
+}

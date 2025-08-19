@@ -33,11 +33,27 @@ const Header: React.FC = () => {
           Accueil
         </Link>
         {user.role === 'admin' && (
+          <>
+            <Link
+              to={`/admin/${user.id}/orders`}
+              style={{ color: 'white', textDecoration: 'none' }}
+            >
+              Commandes
+            </Link>
+            <Link
+              to={`/admin/${user.id}/products`}
+              style={{ color: 'white', textDecoration: 'none' }}
+            >
+              Produits
+            </Link>
+          </>
+        )}
+        {user.role === 'gestionnaire' && (
           <Link
-            to={`/admin/${user.id}/orders`}
+            to={`/gestionnaire/${user.id}/products`}
             style={{ color: 'white', textDecoration: 'none' }}
           >
-            Commandes
+            Produits
           </Link>
         )}
       </nav>

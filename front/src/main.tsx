@@ -17,6 +17,7 @@ import EditUser     from './pages/EditUser';
 import Gestionnaire from './pages/Gestionnaire';
 import Confirmateur from './pages/Confirmateur';
 import Orders       from './pages/Orders';
+import Products     from './pages/Products';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -35,6 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/admin/:id/users/:userId"       element={<UserDetail />} />
               <Route path="/admin/:id/users/:userId/edit"  element={<EditUser />} />
               <Route path="/admin/:id/orders"              element={<Orders />} />
+              <Route path="/admin/:id/products"            element={<Products />} />
             </Route>
           </Route>
 
@@ -42,6 +44,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<PrivateRoute roles={['gestionnaire']} ownPage />}>
             <Route element={<ProtectedLayout />}>
               <Route path="/gestionnaire/:id" element={<Gestionnaire />} />
+              <Route path="/gestionnaire/:id/products" element={<Products />} />
             </Route>
           </Route>
 
