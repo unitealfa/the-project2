@@ -104,6 +104,18 @@ export class ProductService {
     return updated as IProduct;
   }
 
+  /** Incrémente le stock de façon atomique par ID de produit et nom de variante */
+  async incrementVariantById(id: string, variantName: string, quantity: number): Promise<IProduct> {
+    if (quantity <= 0) throw new Error('Quantité invalide');
+    const updated = await Product.findOneAndUpdate(
+      { _id: id, 'variants.name': variantName },
+      { $inc: { 'variants.$.quantity': quantity } },
+      { new: true }
+    );
+    if (!updated) throw new Error('Variante introuvable');
+    return updated as IProduct;
+  }
+
   // plus de stock global; tout passe par variants
 }
 
