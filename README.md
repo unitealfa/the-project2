@@ -9,6 +9,7 @@ npm install jsonwebtoken
 npm install --save-dev @types/jsonwebtoken
 npm install express cors dotenv mongoose
 npm install --save-dev @types/express @types/cors @types/node typescript ts-node-dev
+npm install axios
 
 
 npm run dev
