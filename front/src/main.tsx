@@ -16,6 +16,7 @@ import UserDetail   from './pages/UserDetail';
 import EditUser     from './pages/EditUser';
 import Gestionnaire from './pages/Gestionnaire';
 import Confirmateur from './pages/Confirmateur';
+import ConfirmateurOrders from './pages/ConfirmateurOrders';
 import Orders       from './pages/Orders';
 import Products     from './pages/Products';
 
@@ -52,6 +53,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<PrivateRoute roles={['confirmateur']} ownPage />}>
             <Route element={<ProtectedLayout />}>
               <Route path="/confirmateur/:id" element={<Confirmateur />} />
+              <Route path="/confirmateur/:id/orders" element={<ConfirmateurOrders />} />
             </Route>
           </Route>
 
