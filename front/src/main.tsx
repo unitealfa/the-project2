@@ -52,6 +52,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<PrivateRoute roles={['confirmateur']} ownPage />}>
             <Route element={<ProtectedLayout />}>
               <Route path="/confirmateur/:id" element={<Confirmateur />} />
+              <Route path="/confirmateur/:id/orders" element={<Orders />} />
             </Route>
           </Route>
 
