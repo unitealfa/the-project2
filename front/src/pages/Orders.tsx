@@ -113,9 +113,87 @@ const WILAYAS = [
   { "wilaya_id": 48, "wilaya_name": "Relizane" }
 ];
 
+// Tableau des tarifs par wilaya (À domicile / Stop desk)
+const DELIVERY_TARIFFS: Record<number, { domicile: number; stop: number }> = {
+  1: { domicile: 1100, stop: 600 },
+  2: { domicile: 700, stop: 400 },
+  3: { domicile: 900, stop: 500 },
+  4: { domicile: 800, stop: 400 },
+  5: { domicile: 800, stop: 400 },
+  6: { domicile: 700, stop: 400 },
+  7: { domicile: 900, stop: 500 },
+  8: { domicile: 1100, stop: 600 },
+  9: { domicile: 500, stop: 250 },
+  10: { domicile: 650, stop: 400 },
+  11: { domicile: 1300, stop: 800 },
+  12: { domicile: 800, stop: 500 },
+  13: { domicile: 800, stop: 400 },
+  14: { domicile: 800, stop: 400 },
+  15: { domicile: 650, stop: 400 },
+  16: { domicile: 400, stop: 200 },
+  17: { domicile: 900, stop: 500 },
+  18: { domicile: 700, stop: 400 },
+  19: { domicile: 700, stop: 400 },
+  20: { domicile: 800, stop: 400 },
+  21: { domicile: 700, stop: 400 },
+  22: { domicile: 700, stop: 400 },
+  23: { domicile: 700, stop: 400 },
+  24: { domicile: 800, stop: 400 },
+  25: { domicile: 700, stop: 400 },
+  26: { domicile: 600, stop: 400 },
+  27: { domicile: 700, stop: 400 },
+  28: { domicile: 800, stop: 500 },
+  29: { domicile: 700, stop: 400 },
+  30: { domicile: 1000, stop: 500 },
+  31: { domicile: 700, stop: 400 },
+  32: { domicile: 1000, stop: 500 },
+  33: { domicile: 1300, stop: 600 },
+  34: { domicile: 700, stop: 400 },
+  35: { domicile: 600, stop: 350 },
+  36: { domicile: 800, stop: 400 },
+  37: { domicile: 1300, stop: 600 },
+  38: { domicile: 800, stop: 400 },
+  39: { domicile: 900, stop: 500 },
+  40: { domicile: 800, stop: 500 },
+  41: { domicile: 800, stop: 500 },
+  42: { domicile: 600, stop: 350 },
+  43: { domicile: 700, stop: 400 },
+  44: { domicile: 600, stop: 400 },
+  45: { domicile: 1000, stop: 500 },
+  46: { domicile: 700, stop: 400 },
+  47: { domicile: 1000, stop: 500 },
+  48: { domicile: 700, stop: 400 },
+  49: { domicile: 1300, stop: 600 },
+  51: { domicile: 900, stop: 500 },
+  52: { domicile: 1300, stop: 0 },
+  53: { domicile: 1300, stop: 600 },
+  55: { domicile: 900, stop: 500 },
+  57: { domicile: 900, stop: 0 },
+  58: { domicile: 1000, stop: 500 },
+};
+
+function getDeliveryTariff(wilayaCode: number | string, stopDeskFlag: string | number): number | null {
+  const code = typeof wilayaCode === 'string' ? parseInt(wilayaCode) : wilayaCode;
+  const isStop = String(stopDeskFlag) === '1';
+  // Si code invalide, fallback 16 (Alger)
+  const safeCode = (!code || Number.isNaN(code)) ? 16 : code;
+  let tariffs = DELIVERY_TARIFFS[safeCode];
+  // Fallback ultime sur 16 si non trouvé
+  if (!tariffs) tariffs = DELIVERY_TARIFFS[16];
+  if (!tariffs) return null;
+  return isStop ? tariffs.stop : tariffs.domicile;
+}
+
 function getWilayaIdByName(name: string) {
-  const found = WILAYAS.find(w => w.wilaya_name.trim().toLowerCase() === (name || '').trim().toLowerCase());
-  return found ? found.wilaya_id : '';
+  const normalize = (s: string) => (s || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+  const target = normalize(name);
+  const found = WILAYAS.find(w => normalize(w.wilaya_name) === target);
+  return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
 }
 
 const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { row: OrderRow; idx: number; headers: string[] }) {
@@ -204,13 +282,12 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
   telephone = normalizePhone(telephone);
   const telephone_2 = telephone;
   // Système intelligent de résolution des communes avec vraies données
-  const smartCommuneResolver = async (
-    communeName: string, 
-    wilayaName: string, 
-    wilayaCode: number,
-    realClientData: any
-  ): Promise<string> => {
-    // Fonction de normalisation universelle
+  const smartCommuneResolver = (
+    communeName: string,
+    wilayaName: string,
+    wilayaCode: number
+  ): string => {
+    // Normalisation locale, sans appels réseau
     const normalizeText = (text: string): string => {
       if (!text) return '';
       return text
@@ -232,74 +309,30 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         .toLowerCase();
     };
 
-    // Stratégies de résolution par ordre de priorité
-    const strategies = [
-      // 1. Utiliser la commune telle quelle (normalisée)
-      () => normalizeText(communeName),
-      
-      // 2. Utiliser la wilaya comme fallback
-      () => normalizeText(wilayaName),
-      
-      // 3. Utiliser le nom de la wilaya depuis le code
-      () => {
-        const wilaya = WILAYAS.find(w => w.wilaya_id === wilayaCode);
-        return wilaya ? normalizeText(wilaya.wilaya_name) : '';
-      },
-      
-      // 4. Fallback sur "alger" (commune la plus commune)
-      () => 'alger'
-    ];
+    const aliasMap: Record<string, string> = {
+      'birtouta': 'bir touta',
+      'khraicia': 'khraissia',
+      'el harrach': 'el harrach',
+      'dar el beida': 'dar el beida',
+    };
 
-    // Tester chaque stratégie avec les VRAIES données du client
-    for (const strategy of strategies) {
-      const candidateCommune = strategy();
-      if (!candidateCommune) continue;
-
-      try {
-        // Utiliser les vraies données du client avec la commune candidate
-        const testData = {
-          ...realClientData,
-          commune: candidateCommune
-        };
-
-        const params = new URLSearchParams();
-        for (const [key, value] of Object.entries(testData)) {
-          params.append(key, String(value));
-        }
-
-        const testUrl = `https://platform.dhd-dz.com/api/v1/create/order?${params.toString()}`;
-        
-        // Test rapide (timeout court pour éviter les blocages)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 secondes max
-
-        const response = await fetch(testUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i`,
-            'Content-Type': 'application/json'
-          },
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        // Si pas d'erreur 422 (commune invalide), cette commune fonctionne
-        if (response.status !== 422) {
-          if (candidateCommune !== normalizeText(communeName)) {
-            console.log(`✅ Commune "${communeName}" → "${candidateCommune}" (fallback réussi avec vraies données)`);
-          }
-          return candidateCommune;
-        }
-      } catch (error) {
-        // En cas d'erreur réseau, continuer avec la stratégie suivante
-        console.log(`⚠️ Test échoué pour "${candidateCommune}":`, error);
-        continue;
-      }
+    const normalizedCommune = normalizeText(communeName);
+    if (normalizedCommune) {
+      return aliasMap[normalizedCommune] || normalizedCommune;
     }
 
-    // Si toutes les stratégies échouent, retourner la commune normalisée
-    return normalizeText(communeName);
+    const normalizedWilaya = normalizeText(wilayaName);
+    if (normalizedWilaya) {
+      return aliasMap[normalizedWilaya] || normalizedWilaya;
+    }
+
+    const wilaya = WILAYAS.find(w => w.wilaya_id === wilayaCode);
+    if (wilaya) {
+      const fromCode = normalizeText(wilaya.wilaya_name);
+      return aliasMap[fromCode] || fromCode || 'alger';
+    }
+
+    return 'alger';
   };
   
   const code_wilaya = getWilayaIdByName(row['Wilaya']);
@@ -322,12 +355,27 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
     return normalized;
   };
   
-  const montant = normalizeAmount(row['Total'] || '1000');
   // stop_desk: 0 = a domicile, 1 = STOP DESK
   let stop_desk = '0';
   if ((row['Type de livraison'] || '').toLowerCase().includes('stop')) stop_desk = '1';
   else stop_desk = '0';
 
+  // Calcul du Net à payer pour l'envoi API: (quantité × total unitaire) + tarif livraison
+  const quantityForNet = (() => {
+    const raw = String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1');
+    const n = parseInt(raw.replace(/[^\d]/g, ''));
+    return Number.isNaN(n) || n <= 0 ? 1 : n;
+  })();
+  const unitPriceForNet = (() => {
+    const raw = String(row['Total'] || '1000');
+    const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
+    return Number.isNaN(n) ? 1000 : n;
+  })();
+  const deliveryTariffForNet = getDeliveryTariff(code_wilaya, stop_desk) || 0;
+  const netToPayForApi = unitPriceForNet * quantityForNet + deliveryTariffForNet;
+
+
+  const [submitting, setSubmitting] = React.useState<boolean>(false);
 
   const handleDownload = useCallback(async () => {
     // Demander confirmation avant l'envoi
@@ -345,19 +393,18 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       telephone_2: telephone_2 || '0000000000',
       adresse: adr,
       code_wilaya: parseInt(String(code_wilaya)) || 16, // Fallback sur Alger
-      montant: montant || '1000',
+      montant: String(netToPayForApi),
       type: '1',
       stop_desk: stop_desk || '0',
       stock: '0',
       fragile: '0',
     };
     
-    // Résolution intelligente de la commune avec les vraies données
-    const commune = await smartCommuneResolver(
-      row['Commune'] || '', 
-      row['Wilaya'] || '', 
-      parseInt(String(code_wilaya)) || 16,
-      realClientData
+    // Résolution intelligente de la commune (locale uniquement)
+    const commune = smartCommuneResolver(
+      row['Commune'] || '',
+      row['Wilaya'] || '',
+      parseInt(String(code_wilaya)) || 16
     );
     
     // Validation finale des données avec la commune résolue
@@ -377,40 +424,37 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       wilaya_code: code_wilaya
     });
     
-    // Appel API DHD
+    // Appel API DHD (POST JSON, timeout, bouton désactivé)
     try {
+      setSubmitting(true);
       const TOKEN = 'FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i';
       const BASE = 'https://platform.dhd-dz.com/api/v1';
       const PATH = '/create/order';
+      const url = `${BASE}${PATH}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Créer les paramètres de requête
-      const params = new URLSearchParams();
-      for (const [key, value] of Object.entries(finalData)) {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      }
-      
-      const url = `${BASE}${PATH}?${params.toString()}`;
-      
-      console.log('Envoi vers DHD:', url);
+      console.log('Envoi vers DHD (POST JSON):', url);
       console.log('Données:', finalData);
       
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const responseText = await response.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        responseData = responseText;
-      }
+      const doPost = async (payload: any) => {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        const text = await resp.text();
+        let data: any;
+        try { data = JSON.parse(text); } catch { data = text; }
+        return { resp, data };
+      };
+
+      let { resp: response, data: responseData } = await doPost(finalData);
+      clearTimeout(timeoutId);
       
       console.log('Réponse DHD:', response);
       console.log('Données de réponse:', responseData);
@@ -420,8 +464,86 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         const tracking = responseData?.tracking || 'N/A';
         alert(`🎉 Création réussie !\n\nClient: ${nom_client}\nTracking: ${tracking}\n\nRéponse complète:\n${JSON.stringify(responseData, null, 2)}`);
       } else if (response.status === 422) {
-        // Erreur de validation
-        alert(`❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}\n\n→ Vérifiez les champs envoyés (commune, code_wilaya, etc.)`);
+        // Erreur de validation: tenter des fallbacks de commune
+        const msg = (responseData && typeof responseData === 'object' && 'message' in responseData) ? String(responseData.message) : '';
+        const isCommuneIssue = msg.toLowerCase().includes('commune');
+
+        if (isCommuneIssue) {
+          const candidates: string[] = [];
+          const seen = new Set<string>();
+          const norm = (s: string) => (s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          const pushCandidate = (c: string) => {
+            const key = norm(c);
+            if (key && !seen.has(key)) {
+              seen.add(key);
+              candidates.push(c);
+            }
+          };
+
+          // 1) commune actuelle
+          pushCandidate(String(finalData.commune || ''));
+          // 2) wilaya comme commune
+          pushCandidate(String(row['Wilaya'] || ''));
+          // 3) alias connus pour Alger (16)
+          const codeNum = parseInt(String(code_wilaya)) || 16;
+          if (codeNum === 16) {
+            ['alger', 'el harrach', 'dar el beida', 'khraissia', 'bir touta', 'bir mourad rais']
+              .forEach(pushCandidate);
+          }
+
+          let success = false;
+          for (const communeCandidate of candidates) {
+            const attemptData = { ...finalData, commune: communeCandidate };
+            console.log('Retry avec commune:', communeCandidate);
+            try {
+              const controllerRetry = new AbortController();
+              const timeoutRetry = setTimeout(() => controllerRetry.abort(), 10000);
+              const { resp: r2, data: d2 } = await (async () => {
+                const r = await fetch(url, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(attemptData),
+                  signal: controllerRetry.signal
+                });
+                const t = await r.text();
+                let d: any; try { d = JSON.parse(t); } catch { d = t; }
+                return { resp: r, data: d };
+              })();
+              clearTimeout(timeoutRetry);
+              if (r2.ok && (r2.status === 200 || r2.status === 201)) {
+                const tracking = d2?.tracking || 'N/A';
+                alert(`🎉 Création réussie (fallback) !\n\nClient: ${nom_client}\nCommune: ${communeCandidate}\nTracking: ${tracking}`);
+                success = true;
+                break;
+              }
+              if (r2.status !== 422) {
+                // autre erreur: afficher et stopper les retries
+                alert(`❌ Erreur API (${r2.status}) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`);
+                break;
+              }
+            } catch (e) {
+              console.log('Erreur retry commune', e);
+              // continuer avec la candidate suivante
+            }
+          }
+
+          if (!success) {
+            alert(`❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}\n\nEssais effectués: ${candidates.join(', ')}`);
+          }
+        } else {
+          // 422 autre que commune
+          alert(`❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}`);
+        }
       } else if (response.status === 429) {
         // Trop de requêtes
         alert(`⚠️ Trop de requêtes (429)\n\nClient: ${nom_client}\n\nVeuillez réessayer plus tard.`);
@@ -434,8 +556,10 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       console.error('Erreur lors de l\'appel API:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       alert(`❌ Erreur réseau\n\nClient: ${nom_client}\n\nErreur: ${errorMessage}`);
+    } finally {
+      setSubmitting(false);
     }
-  }, [nom_client, telephone, telephone_2, code_wilaya, montant, stop_desk, idx, row]);
+  }, [nom_client, telephone, telephone_2, code_wilaya, netToPayForApi, stop_desk, idx, row]);
 
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
@@ -447,12 +571,42 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <span style={{ color: '#666', fontSize: '14px' }}>.</span>
       </td>
+      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+        {(() => {
+          const code = getWilayaIdByName(row['Wilaya']);
+          const stopFlag = (row['Type de livraison'] || '').toLowerCase().includes('stop') ? '1' : '0';
+          const price = getDeliveryTariff(code, stopFlag);
+          if (price == null) return '-';
+          return `${price} DA`;
+        })()}
+      </td>
+      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
+        {(() => {
+          const q = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[^\d]/g, '')) || 1;
+          const unitNum = (() => {
+            const raw = String(row['Total'] || '1000');
+            const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
+            return Number.isNaN(n) ? 1000 : n;
+          })();
+          const code = getWilayaIdByName(row['Wilaya']);
+          const stopFlag = (row['Type de livraison'] || '').toLowerCase().includes('stop') ? '1' : '0';
+          const tariff = getDeliveryTariff(code, stopFlag) || 0;
+          const grand = unitNum * q + tariff;
+          return (
+            <div>
+              <div style={{ color: '#dc3545', fontWeight: 700 }}>{grand} DA</div>
+              <div style={{ fontSize: 12, color: '#666' }}>{q} × {unitNum} + {tariff} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Net à payer</span></div>
+            </div>
+          );
+        })()}
+      </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <button
           onClick={handleDownload}
-          style={{ background: '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: 'pointer' }}
+          disabled={submitting}
+          style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting ? 'not-allowed' : 'pointer' }}
         >
-          Envoyer la validation
+          {submitting ? 'Envoi...' : 'Envoyer la validation'}
         </button>
       </td>
     </tr>
@@ -538,7 +692,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
-              <tr>
+      <tr>
                 {headers.map(h => (
                   <th
                     key={h}
@@ -555,6 +709,8 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
                   </th>
                 ))}
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
+        <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Tarif livraison</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
               </tr>
             </thead>
@@ -573,6 +729,41 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
           </table>
         </div>
       )}
+      <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Revenir en haut de la page"
+          style={{
+            position: 'fixed',
+            right: 20,
+            bottom: 20,
+            width: 48,
+            height: 48,
+            background: 'linear-gradient(180deg, #4c8bf5 0%, #2864dc 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 999,
+            boxShadow: '0 8px 20px rgba(40, 100, 220, 0.35)',
+            cursor: 'pointer',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease',
+            opacity: 0.95
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 10px 24px rgba(40, 100, 220, 0.45)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 20px rgba(40, 100, 220, 0.35)';
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor"/>
+          </svg>
+        </button>
     </div>
   );
 };
