@@ -109,46 +109,6 @@ const Confirmateur: React.FC = () => {
         <p><strong>Email:</strong> {user.email}</p>
         <p><strong>Rôle:</strong> {user.role}</p>
       </div>
-
-      <div style={{ marginTop: '2rem', overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Client</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Produit</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Quantité</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Total unitaire</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#dc3545' }}>Montant total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, 100).map((r, i) => {
-              const q = parseInt((r['Quantité'] || r['Quantite'] || r['Qte'] || '1').toString().replace(/[^\d]/g, '')) || 1;
-              const unitStr = (r['Total'] || '').toString();
-              const unitNum = (parseFloat(unitStr.replace(/[^\d.,]/g, '').replace(',', '.')) || 1000);
-              const grand = parseFloat(r['__MONTANT_TOTAL_CALC__'] || '0') || unitNum * q;
-              const tariff = Math.max(0, Math.round(grand - unitNum * q));
-              return (
-                <tr key={i}>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{r['Nom du client'] || ''}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{r['Produit'] || ''}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{q}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{unitStr}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>
-                    <div style={{ color: '#dc3545', fontWeight: 700 }}>{grand} DA</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{q} × {unitNum} + {tariff} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Net à payer</span></div>
-                  </td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={5} style={{ padding: '0.8rem' }}>Aucune donnée</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };

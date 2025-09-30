@@ -35,6 +35,12 @@ const Header: React.FC = () => {
         {user.role === 'admin' && (
           <>
             <Link
+              to={`/admin/${user.id}/team`}
+              style={{ color: 'white', textDecoration: 'none' }}
+            >
+              Mon équipe
+            </Link>
+            <Link
               to={`/admin/${user.id}/orders`}
               style={{ color: 'white', textDecoration: 'none' }}
             >

@@ -12,6 +12,9 @@ const Admin: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(10);
+  const [showButton, setShowButton] = useState<boolean>(true);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -147,78 +150,21 @@ const Admin: React.FC = () => {
       <h1>
         Bienvenue {adminData.firstName} {adminData.lastName}
       </h1>
-      <div style={{ textAlign: 'center' }}>
-        <p><strong>Email:</strong> {adminData.email}</p>
-        <p><strong>Rôle:</strong> {adminData.role}</p>
-      </div>
-
-      <div style={{ marginTop: "2rem" }}>
-        <Link
-          to={`/admin/${adminData.id}/team`}
-          style={{
-            marginRight: "1rem",
-            textDecoration: "none",
-            background: "#28a745",
-            color: "white",
-            padding: "0.5rem 1rem",
-            borderRadius: 4,
-          }}
-        >
-          Mon équipe
-        </Link>
-        <Link
-          to={`/admin/${adminData.id}/orders`}
-          style={{
-            textDecoration: "none",
-            background: "#007bff",
-            color: "white",
-            padding: "0.5rem 1rem",
-            borderRadius: 4,
-          }}
-        >
-          Envoyer la validation
-        </Link>
-      </div>
 
       {/* Tableau commandes avec montant total en rouge */}
       <div style={{ marginTop: '2rem', overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Client</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Produit</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Quantité</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Total unitaire</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>Tarif livraison</th>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#dc3545' }}>Montant total</th>
             </tr>
           </thead>
           <tbody>
             {rows.slice(0, 100).map((r, i) => {
-              const q = parseInt((r['Quantité'] || r['Quantite'] || r['Qte'] || '1').toString().replace(/[^\d]/g, '')) || 1;
-              const unitStr = (r['Total'] || '').toString();
-              const unitNum = (parseFloat(unitStr.replace(/[^\d.,]/g, '').replace(',', '.')) || 1000);
-              const grand = parseFloat(r['__MONTANT_TOTAL_CALC__'] || '0') || unitNum * q;
-              const tariff = Math.max(0, Math.round(grand - unitNum * q));
               return (
                 <tr key={i}>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{r['Nom du client'] || ''}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{r['Produit'] || ''}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{q}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{unitStr}</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>{tariff} DA</td>
-                  <td style={{ padding: '0.4rem 0.5rem' }}>
-                    <div style={{ color: '#dc3545', fontWeight: 700 }}>{grand} DA</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{q} × {unitNum} + {tariff} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Net à payer</span></div>
-                  </td>
                 </tr>
               );
             })}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} style={{ padding: '0.8rem' }}>Aucune donnée</td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
