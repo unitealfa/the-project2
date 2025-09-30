@@ -34,6 +34,7 @@ function parseCsv(csvText: string): string[][] {
         currentField = '';
       } else if (char === '\r') {
         // ignore CR, will be handled by \n
+
       } else {
         currentField += char;
       }
@@ -189,14 +190,15 @@ function getWilayaIdByName(name: string) {
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ');
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ +/g, ' ');
   const target = normalize(name);
   const found = WILAYAS.find(w => normalize(w.wilaya_name) === target);
   return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
 }
 
-const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { row: OrderRow; idx: number; headers: string[] }) {
+const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpdateStatus }: { row: OrderRow; idx: number; headers: string[]; onUpdateStatus: (rowId: string, status: string) => void; }) {
 
   // Fonction de normalisation des numéros de téléphone
   const normalizePhone = (phone: string): string => {
@@ -238,7 +240,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       .replace(/[ý]/g, 'y')
       .replace(/[æ]/g, 'ae')
       .replace(/[œ]/g, 'oe')
-      .replace(/[''`]/g, '')
+      .replace(/['\'\`]/g, '')
       .replace(/[-_]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -301,7 +303,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         .replace(/[ý]/g, 'y')
         .replace(/[æ]/g, 'ae')
         .replace(/[œ]/g, 'oe')
-        .replace(/[''`]/g, '')
+        .replace(/['\'\`]/g, '')
         .replace(/[-_]/g, ' ')
         .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, '')
         .replace(/\s+/g, ' ')
@@ -363,7 +365,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
   // Calcul du Net à payer pour l'envoi API: (quantité × total unitaire) + tarif livraison
   const quantityForNet = (() => {
     const raw = String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1');
-    const n = parseInt(raw.replace(/[^\d]/g, ''));
+    const n = parseInt(raw.replace(/[\d]/g, ''));
     return Number.isNaN(n) || n <= 0 ? 1 : n;
   })();
   const unitPriceForNet = (() => {
@@ -385,6 +387,9 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
     }
     
     const adr = '.'; // Adresse fixe
+
+    const produit = row['Produit'] || '';
+    const remarque = row['ID'] || '';
     
     // Préparer les vraies données du client
     const realClientData = {
@@ -398,6 +403,8 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       stop_desk: stop_desk || '0',
       stock: '0',
       fragile: '0',
+      produit: produit,
+      remarque: remarque,
     };
     
     // Résolution intelligente de la commune (locale uniquement)
@@ -463,6 +470,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         // Succès
         const tracking = responseData?.tracking || 'N/A';
         alert(`🎉 Création réussie !\n\nClient: ${nom_client}\nTracking: ${tracking}\n\nRéponse complète:\n${JSON.stringify(responseData, null, 2)}`);
+        onUpdateStatus(row['ID'], 'prete_a_expedier');
       } else if (response.status === 422) {
         // Erreur de validation: tenter des fallbacks de commune
         const msg = (responseData && typeof responseData === 'object' && 'message' in responseData) ? String(responseData.message) : '';
@@ -474,7 +482,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
           const norm = (s: string) => (s || '')
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[̀-ͯ]/g, '')
             .replace(/[^a-z\s]/g, '')
             .replace(/\s+/g, ' ')
             .trim();
@@ -524,6 +532,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
                 const tracking = d2?.tracking || 'N/A';
                 alert(`🎉 Création réussie (fallback) !\n\nClient: ${nom_client}\nCommune: ${communeCandidate}\nTracking: ${tracking}`);
                 success = true;
+                onUpdateStatus(row['ID'], 'prete_a_expedier');
                 break;
               }
               if (r2.status !== 422) {
@@ -559,7 +568,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
     } finally {
       setSubmitting(false);
     }
-  }, [nom_client, telephone, telephone_2, code_wilaya, netToPayForApi, stop_desk, idx, row]);
+  }, [nom_client, telephone, telephone_2, code_wilaya, netToPayForApi, stop_desk, row, onUpdateStatus]);
 
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
@@ -582,7 +591,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         {(() => {
-          const q = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[^\d]/g, '')) || 1;
+          const q = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[\d]/g, '')) || 1;
           const unitNum = (() => {
             const raw = String(row['Total'] || '1000');
             const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
@@ -608,6 +617,9 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         >
           {submitting ? 'Envoi...' : 'Envoyer la validation'}
         </button>
+      </td>
+      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
+        {row['etat'] || 'new'}
       </td>
     </tr>
   );
@@ -638,6 +650,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
               headerRow.forEach((h, idx) => {
                 obj[h] = r[idx] ?? '';
               });
+              obj['etat'] = 'new'; // ✅ état initial
               return obj;
             });
           setRows(mapped);
@@ -652,6 +665,12 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const handleUpdateRowStatus = useCallback((rowId: string, status: string) => {
+    setRows(prevRows =>
+      prevRows.map(r => (r['ID'] === rowId ? { ...r, etat: status } : r))
+    );
   }, []);
 
   const filtered = React.useMemo(() => {
@@ -712,11 +731,12 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
         <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Tarif livraison</th>
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((row, idx) => (
-                <OrderRowItem key={idx} row={row} idx={idx} headers={headers} />
+                <OrderRowItem key={row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} />
               ))}
               {filtered.length === 0 && (
                 <tr>
@@ -768,4 +788,4 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers }: { r
   );
 };
 
-export default Orders; 
+export default Orders;
