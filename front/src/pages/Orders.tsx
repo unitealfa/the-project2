@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
 function parseCsv(csvText: string): string[][] {
@@ -56,6 +57,7 @@ const SHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
 const Orders: React.FC = () => {
+  const { token } = useContext(AuthContext);
   const [rows, setRows] = React.useState<OrderRow[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -198,7 +200,7 @@ function getWilayaIdByName(name: string) {
   return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
 }
 
-const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpdateStatus }: { row: OrderRow; idx: number; headers: string[]; onUpdateStatus: (rowId: string, status: string) => void; }) {
+const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpdateStatus, onDelivered }: { row: OrderRow; idx: number; headers: string[]; onUpdateStatus: (rowId: string, status: string) => void; onDelivered: (payload: { code?: string; name?: string; variant: string; quantity: number }, rowId: string) => Promise<void>; }) {
 
   // Fonction de normalisation des numéros de téléphone
   const normalizePhone = (phone: string): string => {
@@ -378,6 +380,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
 
 
   const [submitting, setSubmitting] = React.useState<boolean>(false);
+  const [delivering, setDelivering] = React.useState<boolean>(false);
 
   const handleDownload = useCallback(async () => {
     // Demander confirmation avant l'envoi
@@ -610,13 +613,35 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         })()}
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <button
-          onClick={handleDownload}
-          disabled={submitting}
-          style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting ? 'not-allowed' : 'pointer' }}
-        >
-          {submitting ? 'Envoi...' : 'Envoyer la validation'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleDownload}
+            disabled={submitting}
+            style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting ? 'not-allowed' : 'pointer' }}
+          >
+            {submitting ? 'Envoi...' : 'Envoyer la validation'}
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                setDelivering(true);
+                const quantity = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[^\d]/g, '')) || 1;
+                const name = String(row['Produit'] || '').trim();
+                const variant = String(row['Variante'] || row['Variation'] || row['Taille'] || 'default').trim() || 'default';
+                await onDelivered({ name, variant, quantity }, row['ID']);
+                onUpdateStatus(row['ID'], 'livree');
+              } catch (e: any) {
+                alert(e?.message || 'Erreur lors de la livraison');
+              } finally {
+                setDelivering(false);
+              }
+            }}
+            disabled={delivering}
+            style={{ background: delivering ? '#8bc34a99' : '#28a745', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: delivering ? 'not-allowed' : 'pointer' }}
+          >
+            {delivering ? 'Traitement…' : 'Marquer livrée (décrémenter stock)'}
+          </button>
+        </div>
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         {row['etat'] || 'new'}
@@ -671,6 +696,29 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     setRows(prevRows =>
       prevRows.map(r => (r['ID'] === rowId ? { ...r, etat: status } : r))
     );
+  }, []);
+
+  const handleDelivered = useCallback(async (payload: { code?: string; name?: string; variant: string; quantity: number }, rowId: string) => {
+    // Appelle l'API backend pour décrémenter le stock
+    try {
+      const res = await fetch('/api/products/decrement-bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ items: [payload] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Échec décrémentation');
+      const failures = Array.isArray(data?.results) ? data.results.filter((r: any) => !r.ok) : [];
+      if (failures.length) {
+        const msg = failures.map((f: any) => `${f.name || f.code || ''} / ${f.variant}: ${f.error}`).join('\n');
+        throw new Error(msg || 'Échec partiel');
+      }
+    } catch (e) {
+      throw e;
+    }
   }, []);
 
   const filtered = React.useMemo(() => {
@@ -736,7 +784,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             </thead>
             <tbody>
               {filtered.map((row, idx) => (
-                <OrderRowItem key={row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} />
+                <OrderRowItem key={row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
               ))}
               {filtered.length === 0 && (
                 <tr>

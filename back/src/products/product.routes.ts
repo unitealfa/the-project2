@@ -7,6 +7,7 @@ import {
   getProduct,
   updateProduct,
   deleteProduct,
+  decrementStockBulk,
 } from './product.controller';
 
 const router = Router();
@@ -16,6 +17,9 @@ router
   .route('/')
   .get(authenticateJWT, listProducts)
   .post(authenticateJWT, authorizeRole(['admin', 'gestionnaire']), createProduct);
+
+router
+  .post('/decrement-bulk', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), decrementStockBulk);
 
 router
   .route('/:id')
