@@ -27,3 +27,18 @@ export interface ProductDto {
   image?: string;
   variants: Array<{ name: string; quantity: number }>;
 }
+
+export interface OrderDto {
+  id: string;
+  reference: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  commune: string;
+  wilayaCode: number;
+  amount: number;
+  status: string;
+  carrierPayload: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string;
+}
