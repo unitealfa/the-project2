@@ -598,11 +598,22 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
 
-  React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
+    const isFirstLoadRef = React.useRef(true);
+  const cancelledRef = React.useRef(false);
+  const fetchingRef = React.useRef(false);
+
+  const loadSheetData = React.useCallback(
+    async (withSpinner = false) => {
+      if (fetchingRef.current) return;
+      fetchingRef.current = true;
+
+      const shouldShowSpinner = withSpinner || isFirstLoadRef.current;
+
+      if (shouldShowSpinner) {
+        setLoading(true);
+      }
       setError(null);
+
       try {
         const res = await fetch(buildCsvUrl(), { mode: 'cors' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -612,7 +623,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           throw new Error('CSV vide');
         }
         const [headerRow, ...dataRows] = grid;
-        if (!cancelled) {
+        if (!cancelledRef.current) {
           const cleanedHeaders = headerRow.filter(h => {
             const normalized = (h || '')
               .trim()
@@ -640,16 +651,41 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           setRows(mapped);
         }
       } catch (e: any) {
-        if (!cancelled) setError(e?.message || 'Erreur inconnue');
+        if (!cancelledRef.current) setError(e?.message || 'Erreur inconnue');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelledRef.current && shouldShowSpinner) {
+          setLoading(false);
+        }
+        fetchingRef.current = false;
+        if (!cancelledRef.current) {
+          isFirstLoadRef.current = false;
+        }
+      }
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    cancelledRef.current = false;
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const initialise = async () => {
+      await loadSheetData(true);
+      intervalId = setInterval(() => {
+        loadSheetData(false);
+      }, 10000);
+    };
+
+    initialise();
+
+    return () => {
+      cancelledRef.current = true;
+      if (intervalId) {
+        clearInterval(intervalId);
       }
     };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [loadSheetData]);
 
   const handleUpdateRowStatus = useCallback((rowId: string, status: string) => {
     setRows(prevRows =>
