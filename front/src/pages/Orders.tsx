@@ -279,18 +279,62 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   else stop_desk = '0';
 
   // Calcul du total pour l'envoi API: quantité × total unitaire (sans tarif de livraison)
+    const parseAmount = (value: unknown): number | null => {
+    if (value === undefined || value === null) return null;
+    const cleaned = String(value)
+      .replace(/\s+/g, '')
+      .replace(/[^\d,.-]/g, '')
+      .replace(/,/g, '.');
+    if (!cleaned) return null;
+    const parsed = parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const quantityForTotal = (() => {
     const raw = String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1');
     const sanitized = raw.replace(/[^\d]/g, '');
     const n = parseInt(sanitized, 10);
     return Number.isNaN(n) || n <= 0 ? 1 : n;
   })();
+
   const unitPriceForTotal = (() => {
-    const raw = String(row['Total'] || '1000');
-    const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
-    return Number.isNaN(n) ? 1000 : n;
+     const candidates = ['Prix unitaire', 'Prix', 'PrixU', 'PU', 'Prix U'];
+    for (const key of candidates) {
+      if (key in row) {
+        const parsed = parseAmount(row[key]);
+        if (parsed !== null) return parsed;
+      }
+    }
+    return null;
   })();
-  const totalForApi = unitPriceForTotal * quantityForTotal;
+
+  const amountFromSheet = (() => {
+    const candidates = ['Total', 'total', 'Montant', 'Montant total', 'Prix total'];
+    for (const key of candidates) {
+      if (key in row) {
+        const parsed = parseAmount(row[key]);
+        if (parsed !== null) return parsed;
+      }
+    }
+    return null;
+  })();
+  
+  const computedFromUnit = unitPriceForTotal !== null ? unitPriceForTotal * quantityForTotal : null;
+  const totalForApi = amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
+
+  const netToPay = (() => {
+    const candidates = ['Net à payer', 'Net a payer', 'Net'];
+    for (const key of candidates) {
+      if (key in row) {
+        const parsed = parseAmount(row[key]);
+        if (parsed !== null) return parsed;
+      }
+    }
+    return amountFromSheet ?? computedFromUnit ?? totalForApi;
+  })();
+
+  const formatAmount = (value: number) =>
+    `${Math.round(value).toLocaleString('fr-DZ')} DA`;
 
 
   const [submitting, setSubmitting] = React.useState<boolean>(false);
@@ -315,7 +359,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       telephone_2: telephone_2 || '0000000000',
       adresse: adr,
       code_wilaya: parseInt(String(code_wilaya)) || 16, // Fallback sur Alger
-      montant: String(totalForApi),
+      montant: String(Math.round(totalForApi)),
       type: '1',
       stop_desk: stop_desk || '0',
       stock: '0',
@@ -500,11 +544,16 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
 
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <div>
-          <div style={{ color: '#dc3545', fontWeight: 700 }}>{totalForApi} DA</div>
-          <div style={{ fontSize: 12, color: '#666' }}>
-            {quantityForTotal} × {unitPriceForTotal} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Total</span>
-          </div>
+                    <div style={{ color: '#dc3545', fontWeight: 700 }}>{formatAmount(totalForApi)}</div>
+          {amountFromSheet === null && unitPriceForTotal !== null && (
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {quantityForTotal} × {formatAmount(unitPriceForTotal)}
+            </div>
+          )}
         </div>
+      </td>
+            <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
+        <div style={{ color: '#0d6efd', fontWeight: 600 }}>{formatAmount(netToPay)}</div>
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -665,28 +714,27 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
        <tr>
-                 {headers.map(h => (
-                   <th
-                     key={h}
-                     style={{
-                       textAlign: 'left',
-                       borderBottom: '1px solid #ccc',
-                       padding: '0.5rem',
-                       background: '#f8f9fa',
-                       position: 'sticky',
-                       top: 0,
-                     }}
-                   >
-                     {h}
-                   </th>
-                 ))}
-                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
-         <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Total</th>
-                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
-                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
--                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
-+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
-               </tr>
+                {headers.map(h => (
+                  <th
+                    key={h}
+                    style={{
+                      textAlign: 'left',
+                      borderBottom: '1px solid #ccc',
+                      padding: '0.5rem',
+                      background: '#f8f9fa',
+                      position: 'sticky',
+                      top: 0,
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Total</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#0d6efd' }}>Net à payer</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
+                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
+              </tr>
              </thead>
              <tbody>
               {filtered.map((row, idx) => (
