@@ -57,6 +57,70 @@ const SHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
 const buildCsvUrl = () =>
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
 
+type UpdateStatusContext = {
+  previousStatus?: string;
+  row?: OrderRow;
+  tracking?: string;
+};
+
+type SheetStatus =
+  | 'new'
+  | 'abandoned'
+  | 'ready_to_ship'
+  | 'shipped'
+  | 'delivered'
+  | 'returned'
+  | string;
+
+const SHEET_SYNC_ENDPOINT =
+  import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? '/api/orders/status';
+
+const DEFAULT_DHD_BASE_URL = 'https://platform.dhd-dz.com';
+const DHD_API_BASE_URL = (import.meta.env.VITE_DHD_API_URL ?? DEFAULT_DHD_BASE_URL).replace(/\/$/, '');
+const DHD_API_TOKEN = import.meta.env.VITE_DHD_API_TOKEN ??
+  'FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i';
+const DHD_CREATE_PATH = '/api/v1/create/order';
+const DHD_TRACKING_PATH = '/api/v1/get/tracking/info';
+
+const buildDhdUrl = (path: string) => `${DHD_API_BASE_URL}${path}`;
+
+const normalizeStatus = (status: string) =>
+  status
+    .replace(/_/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const DHD_STATUS_MAP: Record<string, SheetStatus> = {
+  'vers station': 'shipped',
+  'en station': 'shipped',
+  'vers wilaya': 'shipped',
+  'en preparation': 'shipped',
+  'en livraison': 'shipped',
+  'suspendus': 'shipped',
+  livred: 'delivered',
+  delivered: 'delivered',
+  'return asked': 'returned',
+  'return in transit': 'returned',
+  'return received': 'returned',
+};
+
+const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
+  if (typeof status !== 'string') return null;
+  const normalized = normalizeStatus(status);
+  return DHD_STATUS_MAP[normalized] ?? null;
+};
+
+const extractTrackingStatus = (payload: any): string | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  if (typeof payload.status === 'string') return payload.status;
+  if (payload.data && typeof payload.data.status === 'string') return payload.data.status;
+  if (payload.order && typeof payload.order.status === 'string') return payload.order.status;
+  if (payload.tracking && typeof payload.tracking.status === 'string') return payload.tracking.status;
+  return null;
+};
+
 const Orders: React.FC = () => {
   const { token } = useContext(AuthContext);
   const [rows, setRows] = React.useState<OrderRow[]>([]);
@@ -131,8 +195,7 @@ function getWilayaIdByName(name: string) {
   return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
 }
 
-const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpdateStatus, onDelivered }: { row: OrderRow; idx: number; headers: string[]; onUpdateStatus: (rowId: string, status: string) => void; onDelivered: (payload: { code?: string; name?: string; variant: string; quantity: number }, rowId: string) => Promise<void>; }) {
-
+const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpdateStatus, onDelivered }: { row: OrderRow; idx: number; headers: string[]; onUpdateStatus: (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => Promise<void>; onDelivered: (payload: { code?: string; name?: string; variant: string; quantity: number }, rowId: string) => Promise<void>; }) {
   // Fonction de normalisation des numéros de téléphone
   const normalizePhone = (phone: string): string => {
     if (!phone) return '';
@@ -216,6 +279,11 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   }
   telephone = normalizePhone(telephone);
   const telephone_2 = telephone;
+  const initialSheetStatus: SheetStatus = (
+    String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim() || 'new'
+  ) as SheetStatus;
+  const rowId = row['ID'] || '';
+
   // Système intelligent de résolution des communes avec vraies données
   const smartCommuneResolver = (
     communeName: string,
@@ -339,26 +407,24 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
 
   const [submitting, setSubmitting] = React.useState<boolean>(false);
   const [delivering, setDelivering] = React.useState<boolean>(false);
+  const [abandoning, setAbandoning] = React.useState<boolean>(false);
 
   const handleDownload = useCallback(async () => {
-    // Demander confirmation avant l'envoi
     const confirmed = window.confirm(`Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`);
     if (!confirmed) {
       return;
     }
-    
-    const adr = '.'; // Adresse fixe
 
+    const adr = '.'; // Adresse fixe
     const produit = row['Produit'] || '';
     const remarque = row['ID'] || '';
     
-    // Préparer les vraies données du client
     const realClientData = {
       nom_client: nom_client || 'CLIENT_INCONNU',
       telephone: telephone || '0000000000',
       telephone_2: telephone_2 || '0000000000',
       adresse: adr,
-      code_wilaya: parseInt(String(code_wilaya)) || 16, // Fallback sur Alger
+      code_wilaya: parseInt(String(code_wilaya)) || 16,
       montant: String(Math.round(totalForApi)),
       type: '1',
       stop_desk: stop_desk || '0',
@@ -368,20 +434,17 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       remarque: remarque,
     };
     
-    // Résolution intelligente de la commune (locale uniquement)
     const commune = smartCommuneResolver(
       row['Commune'] || '',
       row['Wilaya'] || '',
       parseInt(String(code_wilaya)) || 16
     );
     
-    // Validation finale des données avec la commune résolue
     const finalData = {
       ...realClientData,
-      commune: commune || 'alger', // Fallback final sur Alger
+      commune: commune || 'alger', 
     };
     
-    // Log pour déboguer
     console.log('Données normalisées:', {
       original_commune: row['Commune'],
       resolved_commune: commune,
@@ -389,31 +452,78 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       normalized_phone: telephone,
       original_name: row['Nom du client'],
       normalized_name: nom_client,
-      wilaya_code: code_wilaya
+      wilaya_code: code_wilaya,
     });
+
+    
+    let currentStatus: SheetStatus = initialSheetStatus;
+
+    const applyStatusUpdate = async (nextStatus: SheetStatus, trackingValue: string) => {
+      await onUpdateStatus(rowId, nextStatus, {
+        previousStatus: currentStatus,
+        row: { ...row, etat: nextStatus },
+        tracking: trackingValue || undefined,
+      });
+      currentStatus = nextStatus;
+    };
+
+    const syncTrackingStatus = async (trackingValue: string) => {
+      if (!trackingValue) return;
+      const trackingUrl = `${buildDhdUrl(DHD_TRACKING_PATH)}?tracking=${encodeURIComponent(trackingValue)}`;
+      const controllerTracking = new AbortController();
+      const timeoutTracking = setTimeout(() => controllerTracking.abort(), 10000);
+      try {
+        const respTracking = await fetch(trackingUrl, {
+          method: 'GET',
+          headers: {
+            ...(DHD_API_TOKEN ? { Authorization: `Bearer ${DHD_API_TOKEN}` } : {}),
+          },
+          signal: controllerTracking.signal,
+        });
+        const textTracking = await respTracking.text();
+        let dataTracking: any;
+        try { dataTracking = JSON.parse(textTracking); } catch { dataTracking = textTracking; }
+        if (!respTracking.ok) {
+          throw new Error(`HTTP ${respTracking.status} - ${typeof dataTracking === 'string' ? dataTracking : JSON.stringify(dataTracking)}`);
+        }
+        const mappedStatus = mapDhdStatusToSheet(extractTrackingStatus(dataTracking));
+        if (mappedStatus && mappedStatus !== currentStatus) {
+          await applyStatusUpdate(mappedStatus, trackingValue);
+        }
+      } catch (trackingError) {
+        console.error('Erreur lors de la récupération du statut DHD', trackingError);
+      } finally {
+        clearTimeout(timeoutTracking);
+      }
+    };
+
+    const resolveTracking = (payload: any): string => {
+      if (!payload || typeof payload !== 'object') return '';
+      if (typeof payload.tracking === 'string') return payload.tracking;
+      if (payload.data && typeof payload.data.tracking === 'string') return payload.data.tracking;
+      if (payload.order && typeof payload.order.tracking === 'string') return payload.order.tracking;
+      return '';
+    };
     
     // Appel API DHD (POST JSON, timeout, bouton désactivé)
     try {
       setSubmitting(true);
-      const TOKEN = 'FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i';
-      const BASE = 'https://platform.dhd-dz.com/api/v1';
-      const PATH = '/create/order';
-      const url = `${BASE}${PATH}`;
+      const url = buildDhdUrl(DHD_CREATE_PATH);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
+
       console.log('Envoi vers DHD (POST JSON):', url);
       console.log('Données:', finalData);
-      
+
       const doPost = async (payload: any) => {
         const resp = await fetch(url, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${TOKEN}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(DHD_API_TOKEN ? { Authorization: `Bearer ${DHD_API_TOKEN}` } : {}),
           },
           body: JSON.stringify(payload),
-          signal: controller.signal
+          signal: controller.signal,
         });
         const text = await resp.text();
         let data: any;
@@ -421,19 +531,27 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         return { resp, data };
       };
 
-      let { resp: response, data: responseData } = await doPost(finalData);
-      clearTimeout(timeoutId);
-      
+      let response: Response | undefined;
+      let responseData: any;
+      try {
+        ({ resp: response, data: responseData } = await doPost(finalData));
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      if (!response) {
+        throw new Error('Réponse API vide');
+      }
+
       console.log('Réponse DHD:', response);
       console.log('Données de réponse:', responseData);
-      
+
       if (response.ok && (response.status === 200 || response.status === 201)) {
-        // Succès
-        const tracking = responseData?.tracking || 'N/A';
-        alert(`🎉 Création réussie !\n\nClient: ${nom_client}\nTracking: ${tracking}\n\nRéponse complète:\n${JSON.stringify(responseData, null, 2)}`);
-        onUpdateStatus(row['ID'], 'prete_a_expedier');
+        const trackingValue = resolveTracking(responseData) || 'N/A';
+        alert(`🎉 Création réussie !\n\nClient: ${nom_client}\nTracking: ${trackingValue}\n\nRéponse complète:\n${JSON.stringify(responseData, null, 2)}`);
+        await applyStatusUpdate('ready_to_ship', trackingValue);
+        await syncTrackingStatus(trackingValue === 'N/A' ? '' : trackingValue);
       } else if (response.status === 422) {
-        // Erreur de validation: tenter des fallbacks de commune
         const msg = (responseData && typeof responseData === 'object' && 'message' in responseData) ? String(responseData.message) : '';
         const isCommuneIssue = msg.toLowerCase().includes('commune');
 
@@ -456,11 +574,8 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             }
           };
 
-          // 1) commune actuelle
           pushCandidate(String(finalData.commune || ''));
-          // 2) wilaya comme commune
           pushCandidate(String(row['Wilaya'] || ''));
-          // 3) alias connus pour Alger (16)
           const codeNum = parseInt(String(code_wilaya)) || 16;
           if (codeNum === 16) {
             ['alger', 'el harrach', 'dar el beida', 'khraissia', 'bir touta', 'bir mourad rais']
@@ -474,36 +589,38 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             try {
               const controllerRetry = new AbortController();
               const timeoutRetry = setTimeout(() => controllerRetry.abort(), 10000);
-              const { resp: r2, data: d2 } = await (async () => {
-                const r = await fetch(url, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${TOKEN}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(attemptData),
-                  signal: controllerRetry.signal
-                });
-                const t = await r.text();
-                let d: any; try { d = JSON.parse(t); } catch { d = t; }
-                return { resp: r, data: d };
-              })();
-              clearTimeout(timeoutRetry);
-              if (r2.ok && (r2.status === 200 || r2.status === 201)) {
-                const tracking = d2?.tracking || 'N/A';
-                alert(`🎉 Création réussie (fallback) !\n\nClient: ${nom_client}\nCommune: ${communeCandidate}\nTracking: ${tracking}`);
-                success = true;
-                onUpdateStatus(row['ID'], 'prete_a_expedier');
-                break;
-              }
-              if (r2.status !== 422) {
-                // autre erreur: afficher et stopper les retries
-                alert(`❌ Erreur API (${r2.status}) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`);
-                break;
+              try {
+                const { resp: r2, data: d2 } = await (async () => {
+                  const r = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(DHD_API_TOKEN ? { Authorization: `Bearer ${DHD_API_TOKEN}` } : {}),
+                    },
+                    body: JSON.stringify(attemptData),
+                    signal: controllerRetry.signal,
+                  });
+                  const t = await r.text();
+                  let d: any; try { d = JSON.parse(t); } catch { d = t; }
+                  return { resp: r, data: d };
+                })();
+                if (r2.ok && (r2.status === 200 || r2.status === 201)) {
+                  const trackingValue = resolveTracking(d2) || 'N/A';
+                  alert(`🎉 Création réussie (fallback) !\n\nClient: ${nom_client}\nCommune: ${communeCandidate}\nTracking: ${trackingValue}`);
+                  success = true;
+                  await applyStatusUpdate('ready_to_ship', trackingValue);
+                  await syncTrackingStatus(trackingValue === 'N/A' ? '' : trackingValue);
+                  break;
+                }
+                if (r2.status !== 422) {
+                  alert(`❌ Erreur API (${r2.status}) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`);
+                  break;
+                }
+              } finally {
+                clearTimeout(timeoutRetry);
               }
             } catch (e) {
               console.log('Erreur retry commune', e);
-              // continuer avec la candidate suivante
             }
           }
 
@@ -511,17 +628,14 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             alert(`❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}\n\nEssais effectués: ${candidates.join(', ')}`);
           }
         } else {
-          // 422 autre que commune
           alert(`❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}`);
         }
       } else if (response.status === 429) {
-        // Trop de requêtes
         alert(`⚠️ Trop de requêtes (429)\n\nClient: ${nom_client}\n\nVeuillez réessayer plus tard.`);
       } else {
-        // Autre erreur
         alert(`❌ Erreur API (${response.status})\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(responseData, null, 2)}`);
       }
-      
+
     } catch (error) {
       console.error('Erreur lors de l\'appel API:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -529,7 +643,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     } finally {
       setSubmitting(false);
     }
-  }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus]);
+  }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus, smartCommuneResolver, initialSheetStatus]);
 
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
@@ -556,13 +670,35 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         <div style={{ color: '#0d6efd', fontWeight: 600 }}>{formatAmount(netToPay)}</div>
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={handleDownload}
-            disabled={submitting}
-            style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting ? 'not-allowed' : 'pointer' }}
+            disabled={submitting || abandoning}
+            style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting || abandoning ? 'not-allowed' : 'pointer' }}
           >
             {submitting ? 'Envoi...' : 'Envoyer la validation'}
+          </button>
+          <button
+            onClick={async () => {
+              const confirmed = window.confirm(`Confirmer l'abandon de la commande ${rowId || ''} ?`);
+              if (!confirmed) return;
+              try {
+                setAbandoning(true);
+                await onUpdateStatus(rowId, 'abandoned', {
+                  previousStatus: initialSheetStatus,
+                  row: { ...row, etat: 'abandoned' },
+                });
+              } catch (e: any) {
+                const message = e?.message || 'Erreur lors de la mise à jour du statut abandonné';
+                alert(message);
+              } finally {
+                setAbandoning(false);
+              }
+            }}
+            disabled={abandoning || submitting}
+            style={{ background: abandoning ? '#d9534f99' : '#dc3545', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: abandoning || submitting ? 'not-allowed' : 'pointer' }}
+          >
+            {abandoning ? 'Abandon…' : 'Abandonnée'}
           </button>
           <button
             onClick={async () => {
@@ -571,16 +707,19 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                 const quantity = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[^\d]/g, '')) || 1;
                 const name = String(row['Produit'] || '').trim();
                 const variant = String(row['Variante'] || row['Variation'] || row['Taille'] || 'default').trim() || 'default';
-                await onDelivered({ name, variant, quantity }, row['ID']);
-                onUpdateStatus(row['ID'], 'livree');
+                await onDelivered({ name, variant, quantity }, rowId);
+                await onUpdateStatus(rowId, 'delivered', {
+                  previousStatus: initialSheetStatus,
+                  row: { ...row, etat: 'delivered' },
+                });
               } catch (e: any) {
                 alert(e?.message || 'Erreur lors de la livraison');
               } finally {
                 setDelivering(false);
               }
             }}
-            disabled={delivering}
-            style={{ background: delivering ? '#8bc34a99' : '#28a745', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: delivering ? 'not-allowed' : 'pointer' }}
+            disabled={delivering || submitting || abandoning}
+            style={{ background: delivering ? '#8bc34a99' : '#28a745', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: delivering || submitting || abandoning ? 'not-allowed' : 'pointer' }}
           >
             {delivering ? 'Traitement…' : 'Marquer livrée (décrémenter stock)'}
           </button>
@@ -601,6 +740,41 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     const isFirstLoadRef = React.useRef(true);
   const cancelledRef = React.useRef(false);
   const fetchingRef = React.useRef(false);
+  const syncedToNewRef = React.useRef<Set<string>>(new Set());
+
+  const syncStatus = React.useCallback(
+    async (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
+      if (!rowId) {
+        throw new Error("Identifiant de commande manquant pour la mise à jour du statut");
+      }
+      try {
+        const res = await fetch(SHEET_SYNC_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            rowId,
+            status,
+            tracking: context?.tracking,
+            row: context?.row,
+          }),
+        });
+        const text = await res.text();
+        let data: any;
+        try { data = JSON.parse(text); } catch { data = text; }
+        if (!res.ok) {
+          const message = typeof data === 'string' ? data : data?.message;
+          throw new Error(message || `HTTP ${res.status}`);
+        }
+        return data;
+      } catch (error) {
+        console.error('Erreur lors de la synchronisation du statut avec le Sheet', error);
+        throw error;
+      }
+    },
+    []
+  );
 
   const loadSheetData = React.useCallback(
     async (withSpinner = false) => {
@@ -645,7 +819,23 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                 obj['etat'] ?? obj['État'] ?? obj['Etat'] ?? ''
               ).trim();
 
-              obj['etat'] = sheetStatus || 'new';
+              if (!sheetStatus) {
+                obj['etat'] = 'new';
+                const potentialId = obj['ID'];
+                if (potentialId && !syncedToNewRef.current.has(potentialId)) {
+                  syncedToNewRef.current.add(potentialId);
+                  const payloadRow = { ...obj };
+                  syncStatus(potentialId, 'new', { row: payloadRow }).catch(err => {
+                    console.error('Échec initial de mise à jour du statut new', err);
+                    syncedToNewRef.current.delete(potentialId);
+                  });
+                }
+              } else {
+                obj['etat'] = sheetStatus;
+                if (obj['ID']) {
+                  syncedToNewRef.current.delete(obj['ID']);
+                }
+              }
               return obj;
             });
           setRows(mapped);
@@ -662,7 +852,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         }
       }
     },
-    []
+    [syncStatus]
   );
 
   React.useEffect(() => {
@@ -687,11 +877,36 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     };
   }, [loadSheetData]);
 
-  const handleUpdateRowStatus = useCallback((rowId: string, status: string) => {
-    setRows(prevRows =>
-      prevRows.map(r => (r['ID'] === rowId ? { ...r, etat: status } : r))
-    );
-  }, []);
+  const handleUpdateRowStatus = useCallback(
+    async (rowId: string, status: SheetStatus, context: UpdateStatusContext = {}) => {
+      if (!rowId) {
+        throw new Error('Identifiant de commande manquant');
+      }
+
+      let recordedPrevious: SheetStatus | undefined;
+      setRows(prevRows =>
+        prevRows.map(r => {
+          if (r['ID'] === rowId) {
+            recordedPrevious = (String(r['etat'] ?? '') || 'new') as SheetStatus;
+            return { ...r, etat: status };
+          }
+          return r;
+        })
+      );
+
+      const fallbackStatus: SheetStatus = (context.previousStatus as SheetStatus) ?? recordedPrevious ?? 'new';
+
+      try {
+        await syncStatus(rowId, status, context);
+      } catch (error) {
+        setRows(prevRows =>
+          prevRows.map(r => (r['ID'] === rowId ? { ...r, etat: fallbackStatus } : r))
+        );
+        throw error;
+      }
+    },
+    [syncStatus]
+  );
 
   const handleDelivered = useCallback(async (payload: { code?: string; name?: string; variant: string; quantity: number }, rowId: string) => {
     // Appelle l'API backend pour décrémenter le stock
@@ -714,7 +929,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     } catch (e) {
       throw e;
     }
-  }, []);
+  }, [token]);
 
   const filtered = React.useMemo(() => {
     if (!query.trim()) return rows;
