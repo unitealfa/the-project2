@@ -54,7 +54,8 @@ interface OrderRow {
 }
 
 const SHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
+const buildCsvUrl = () =>
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
 
 const Orders: React.FC = () => {
   const { token } = useContext(AuthContext);
@@ -116,76 +117,6 @@ const WILAYAS = [
   { "wilaya_id": 48, "wilaya_name": "Relizane" }
 ];
 
-// Tableau des tarifs par wilaya (À domicile / Stop desk)
-const DELIVERY_TARIFFS: Record<number, { domicile: number; stop: number }> = {
-  1: { domicile: 1100, stop: 600 },
-  2: { domicile: 700, stop: 400 },
-  3: { domicile: 900, stop: 500 },
-  4: { domicile: 800, stop: 400 },
-  5: { domicile: 800, stop: 400 },
-  6: { domicile: 700, stop: 400 },
-  7: { domicile: 900, stop: 500 },
-  8: { domicile: 1100, stop: 600 },
-  9: { domicile: 500, stop: 250 },
-  10: { domicile: 650, stop: 400 },
-  11: { domicile: 1300, stop: 800 },
-  12: { domicile: 800, stop: 500 },
-  13: { domicile: 800, stop: 400 },
-  14: { domicile: 800, stop: 400 },
-  15: { domicile: 650, stop: 400 },
-  16: { domicile: 400, stop: 200 },
-  17: { domicile: 900, stop: 500 },
-  18: { domicile: 700, stop: 400 },
-  19: { domicile: 700, stop: 400 },
-  20: { domicile: 800, stop: 400 },
-  21: { domicile: 700, stop: 400 },
-  22: { domicile: 700, stop: 400 },
-  23: { domicile: 700, stop: 400 },
-  24: { domicile: 800, stop: 400 },
-  25: { domicile: 700, stop: 400 },
-  26: { domicile: 600, stop: 400 },
-  27: { domicile: 700, stop: 400 },
-  28: { domicile: 800, stop: 500 },
-  29: { domicile: 700, stop: 400 },
-  30: { domicile: 1000, stop: 500 },
-  31: { domicile: 700, stop: 400 },
-  32: { domicile: 1000, stop: 500 },
-  33: { domicile: 1300, stop: 600 },
-  34: { domicile: 700, stop: 400 },
-  35: { domicile: 600, stop: 350 },
-  36: { domicile: 800, stop: 400 },
-  37: { domicile: 1300, stop: 600 },
-  38: { domicile: 800, stop: 400 },
-  39: { domicile: 900, stop: 500 },
-  40: { domicile: 800, stop: 500 },
-  41: { domicile: 800, stop: 500 },
-  42: { domicile: 600, stop: 350 },
-  43: { domicile: 700, stop: 400 },
-  44: { domicile: 600, stop: 400 },
-  45: { domicile: 1000, stop: 500 },
-  46: { domicile: 700, stop: 400 },
-  47: { domicile: 1000, stop: 500 },
-  48: { domicile: 700, stop: 400 },
-  49: { domicile: 1300, stop: 600 },
-  51: { domicile: 900, stop: 500 },
-  52: { domicile: 1300, stop: 0 },
-  53: { domicile: 1300, stop: 600 },
-  55: { domicile: 900, stop: 500 },
-  57: { domicile: 900, stop: 0 },
-  58: { domicile: 1000, stop: 500 },
-};
-
-function getDeliveryTariff(wilayaCode: number | string, stopDeskFlag: string | number): number | null {
-  const code = typeof wilayaCode === 'string' ? parseInt(wilayaCode) : wilayaCode;
-  const isStop = String(stopDeskFlag) === '1';
-  // Si code invalide, fallback 16 (Alger)
-  const safeCode = (!code || Number.isNaN(code)) ? 16 : code;
-  let tariffs = DELIVERY_TARIFFS[safeCode];
-  // Fallback ultime sur 16 si non trouvé
-  if (!tariffs) tariffs = DELIVERY_TARIFFS[16];
-  if (!tariffs) return null;
-  return isStop ? tariffs.stop : tariffs.domicile;
-}
 
 function getWilayaIdByName(name: string) {
   const normalize = (s: string) => (s || '')
@@ -341,42 +272,25 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   
   const code_wilaya = getWilayaIdByName(row['Wilaya']);
   
-  // Normaliser le montant
-  const normalizeAmount = (amount: string): string => {
-    if (!amount) return '1000';
-    
-    // Supprimer tous les caractères non numériques sauf le point et la virgule
-    let normalized = amount.replace(/[^\d.,]/g, '');
-    
-    // Remplacer la virgule par un point
-    normalized = normalized.replace(',', '.');
-    
-    // Si vide ou invalide, retourner 1000 par défaut
-    if (!normalized || isNaN(parseFloat(normalized))) {
-      return '1000';
-    }
-    
-    return normalized;
-  };
   
   // stop_desk: 0 = a domicile, 1 = STOP DESK
   let stop_desk = '0';
   if ((row['Type de livraison'] || '').toLowerCase().includes('stop')) stop_desk = '1';
   else stop_desk = '0';
 
-  // Calcul du Net à payer pour l'envoi API: (quantité × total unitaire) + tarif livraison
-  const quantityForNet = (() => {
+  // Calcul du total pour l'envoi API: quantité × total unitaire (sans tarif de livraison)
+  const quantityForTotal = (() => {
     const raw = String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1');
-    const n = parseInt(raw.replace(/[\d]/g, ''));
+    const sanitized = raw.replace(/[^\d]/g, '');
+    const n = parseInt(sanitized, 10);
     return Number.isNaN(n) || n <= 0 ? 1 : n;
   })();
-  const unitPriceForNet = (() => {
+  const unitPriceForTotal = (() => {
     const raw = String(row['Total'] || '1000');
     const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
     return Number.isNaN(n) ? 1000 : n;
   })();
-  const deliveryTariffForNet = getDeliveryTariff(code_wilaya, stop_desk) || 0;
-  const netToPayForApi = unitPriceForNet * quantityForNet + deliveryTariffForNet;
+  const totalForApi = unitPriceForTotal * quantityForTotal;
 
 
   const [submitting, setSubmitting] = React.useState<boolean>(false);
@@ -401,7 +315,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       telephone_2: telephone_2 || '0000000000',
       adresse: adr,
       code_wilaya: parseInt(String(code_wilaya)) || 16, // Fallback sur Alger
-      montant: String(netToPayForApi),
+      montant: String(totalForApi),
       type: '1',
       stop_desk: stop_desk || '0',
       stock: '0',
@@ -571,7 +485,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     } finally {
       setSubmitting(false);
     }
-  }, [nom_client, telephone, telephone_2, code_wilaya, netToPayForApi, stop_desk, row, onUpdateStatus]);
+  }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus]);
 
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
@@ -583,34 +497,14 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <span style={{ color: '#666', fontSize: '14px' }}>.</span>
       </td>
-      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-        {(() => {
-          const code = getWilayaIdByName(row['Wilaya']);
-          const stopFlag = (row['Type de livraison'] || '').toLowerCase().includes('stop') ? '1' : '0';
-          const price = getDeliveryTariff(code, stopFlag);
-          if (price == null) return '-';
-          return `${price} DA`;
-        })()}
-      </td>
+
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        {(() => {
-          const q = parseInt(String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1').replace(/[\d]/g, '')) || 1;
-          const unitNum = (() => {
-            const raw = String(row['Total'] || '1000');
-            const n = parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'));
-            return Number.isNaN(n) ? 1000 : n;
-          })();
-          const code = getWilayaIdByName(row['Wilaya']);
-          const stopFlag = (row['Type de livraison'] || '').toLowerCase().includes('stop') ? '1' : '0';
-          const tariff = getDeliveryTariff(code, stopFlag) || 0;
-          const grand = unitNum * q + tariff;
-          return (
-            <div>
-              <div style={{ color: '#dc3545', fontWeight: 700 }}>{grand} DA</div>
-              <div style={{ fontSize: 12, color: '#666' }}>{q} × {unitNum} + {tariff} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Net à payer</span></div>
-            </div>
-          );
-        })()}
+        <div>
+          <div style={{ color: '#dc3545', fontWeight: 700 }}>{totalForApi} DA</div>
+          <div style={{ fontSize: 12, color: '#666' }}>
+            {quantityForTotal} × {unitPriceForTotal} = <span style={{ color: '#dc3545', fontWeight: 700 }}>Total</span>
+          </div>
+        </div>
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -655,102 +549,53 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
 
-const isMountedRef = React.useRef(true);
-  const isFirstLoadRef = React.useRef(true);
-  const loadingRef = React.useRef(false);
-
-  const shallowArrayEqual = (a: string[], b: string[]) => {
-    if (a === b) return true;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  };
-
-  const rowsEqual = (a: OrderRow[], b: OrderRow[]) => {
-    if (a === b) return true;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      const rowA = a[i];
-      const rowB = b[i];
-      const keysA = Object.keys(rowA);
-      const keysB = Object.keys(rowB);
-      if (keysA.length !== keysB.length) return false;
-      for (const key of keysA) {
-        if (rowA[key] !== rowB[key]) return false;
-      }
-    }
-    return true;
-  };
-
-  const fetchLatestSheet = React.useCallback(async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    if (isFirstLoadRef.current) setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(buildCsvUrl(), { mode: 'cors', cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const grid = parseCsv(text);
-      if (grid.length === 0) {
-        throw new Error('CSV vide');
-      }
-      if (!isMountedRef.current) return;
-      const [headerRow, ...dataRows] = grid;
-      const cleanedHeaders = headerRow.filter(h => {
-        const normalized = (h || '')
-          .trim()
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '');
-        return normalized !== 'etat';
-      });
-      setHeaders(prev => (shallowArrayEqual(prev, cleanedHeaders) ? prev : cleanedHeaders));
-      const mapped = dataRows
-        .filter(r => r.some(cell => cell && cell.trim() !== ''))
-        .map(r => {
-          const obj: OrderRow = {};
-          headerRow.forEach((h, idx) => {
-            obj[h] = r[idx] ?? '';
-          });
-          return obj;
-        });
-      setRows(prev => (rowsEqual(prev, mapped) ? prev : mapped));
-    } catch (e: any) {
-      if (isMountedRef.current) {
-        setError(e?.message || 'Erreur inconnue');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-        isFirstLoadRef.current = false;
-      }
-      loadingRef.current = false;
-    }
-  }, []);
-
   React.useEffect(() => {
-    isMountedRef.current = true;
-    fetchLatestSheet();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchLatestSheet();
-      }
-    }, 5000);
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        fetchLatestSheet();
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(buildCsvUrl(), { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const grid = parseCsv(text);
+        if (grid.length === 0) {
+          throw new Error('CSV vide');
+        }
+        const [headerRow, ...dataRows] = grid;
+        if (!cancelled) {
+          const cleanedHeaders = headerRow.filter(h => {
+            const normalized = (h || '')
+              .trim()
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '');
+            return normalized !== 'etat';
+          });
+          setHeaders(cleanedHeaders);
+          const mapped = dataRows
+            .filter(r => r.some(cell => cell && cell.trim() !== ''))
+            .map(r => {
+              const obj: OrderRow = {};
+              headerRow.forEach((h, idx) => {
+                obj[h] = r[idx] ?? '';
+              });
+              obj['etat'] = 'new'; // ✅ état initial
+              return obj;
+            });
+          setRows(mapped);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Erreur inconnue');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
+    load();
     return () => {
-      isMountedRef.current = false;
-      window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
+      cancelled = true;
     };
-  }, [fetchLatestSheet]);
+  }, []);
 
   const handleUpdateRowStatus = useCallback((rowId: string, status: string) => {
     setRows(prevRows =>
@@ -836,11 +681,11 @@ const isMountedRef = React.useRef(true);
                    </th>
                  ))}
                  <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
-         <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Tarif livraison</th>
+         <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Total</th>
                  <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
                  <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
-                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
-                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
+-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
++                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
                </tr>
              </thead>
              <tbody>
@@ -849,7 +694,7 @@ const isMountedRef = React.useRef(true);
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={headers.length + 2} style={{ padding: '0.8rem' }}>
+                  <td colSpan={headers.length + 5} style={{ padding: '0.8rem' }}>
                     Aucune commande trouvée.
                   </td>
                 </tr>
