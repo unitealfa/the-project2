@@ -27,9 +27,11 @@ class SheetSyncRequestError extends Error {
 
 class SheetSyncService {
   private readonly endpoint: string | undefined;
+  private readonly timeoutMs: number;
 
   constructor() {
     this.endpoint = process.env.GOOGLE_SHEET_SYNC_URL || process.env.SHEET_SYNC_URL;
+    this.timeoutMs = this.resolveTimeout();
   }
 
   private ensureEndpoint(): string {
@@ -38,7 +40,23 @@ class SheetSyncService {
     }
     return this.endpoint;
   }
+private resolveTimeout(): number {
+    const rawTimeout =
+      process.env.GOOGLE_SHEET_SYNC_TIMEOUT_MS || process.env.SHEET_SYNC_TIMEOUT_MS;
 
+    if (!rawTimeout) {
+      return 30000;
+    }
+
+    const parsed = Number(rawTimeout);
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 30000;
+    }
+
+    return parsed;
+  }
+  
   async updateStatus(payload: UpdateStatusPayload) {
     const url = this.ensureEndpoint();
     const body = {
@@ -155,9 +173,13 @@ class SheetSyncService {
         });
       });
 
-      request.on('error', reject);
-      request.setTimeout(10000, () => {
-        request.destroy(new Error('Délai dépassé lors de la synchronisation du Sheet'));
+            request.on('error', reject);
+      request.setTimeout(this.timeoutMs, () => {
+        request.destroy(
+          new Error(
+            `Délai dépassé lors de la synchronisation du Sheet (>${this.timeoutMs} ms)`
+          )
+        );
       });
 
       request.write(data);
@@ -255,8 +277,12 @@ class SheetSyncService {
       );
 
       request.on('error', reject);
-      request.setTimeout(10000, () => {
-        request.destroy(new Error('Délai dépassé lors de la synchronisation du Sheet'));
+      request.setTimeout(this.timeoutMs, () => {
+        request.destroy(
+          new Error(
+            `Délai dépassé lors de la synchronisation du Sheet (>${this.timeoutMs} ms)`
+          )
+        );
       });
 
       request.end();
