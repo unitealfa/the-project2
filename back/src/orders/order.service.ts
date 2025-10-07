@@ -44,6 +44,7 @@ class SheetSyncService {
     const body = {
       action: 'updateStatus',
       ...payload,
+      orderId: payload.rowId,
     };
 
     try {
@@ -66,7 +67,7 @@ class SheetSyncService {
     urlString: string,
     body: Record<string, unknown>,
     redirectCount = 0
-  ): Promise<RequestResult<T>> {    
+  ): Promise<RequestResult<T>> {
     return new Promise((resolve, reject) => {
       let parsedUrl: URL;
       try {
@@ -76,13 +77,22 @@ class SheetSyncService {
         return;
       }
 
-      const data = JSON.stringify(body);
+      const formData = new URLSearchParams();
+      for (const [key, value] of Object.entries(body)) {
+        if (value === undefined || value === null) continue;
+        if (typeof value === 'object') {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
+        }
+      }
+      const data = formData.toString();
       const transport = parsedUrl.protocol === 'https:' ? https : http;
 
       const options: https.RequestOptions = {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Content-Length': Buffer.byteLength(data),
         },
       };
