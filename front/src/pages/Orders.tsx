@@ -629,7 +629,12 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               headerRow.forEach((h, idx) => {
                 obj[h] = r[idx] ?? '';
               });
-              obj['etat'] = 'new'; // ✅ état initial
+              
+              const sheetStatus = String(
+                obj['etat'] ?? obj['État'] ?? obj['Etat'] ?? ''
+              ).trim();
+
+              obj['etat'] = sheetStatus || 'new';
               return obj;
             });
           setRows(mapped);
