@@ -54,7 +54,7 @@ interface OrderRow {
 }
 
 const SHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
 
 const Orders: React.FC = () => {
   const { token } = useContext(AuthContext);
@@ -644,7 +644,10 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         </div>
       </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        {row['etat'] || 'new'}
+        {(() => {
+          const fromSheet = String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim();
+          return fromSheet ? fromSheet : 'vide';
+        })()}
       </td>
     </tr>
   );
@@ -652,45 +655,102 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
 
+const isMountedRef = React.useRef(true);
+  const isFirstLoadRef = React.useRef(true);
+  const loadingRef = React.useRef(false);
+
+  const shallowArrayEqual = (a: string[], b: string[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  };
+
+  const rowsEqual = (a: OrderRow[], b: OrderRow[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      const rowA = a[i];
+      const rowB = b[i];
+      const keysA = Object.keys(rowA);
+      const keysB = Object.keys(rowB);
+      if (keysA.length !== keysB.length) return false;
+      for (const key of keysA) {
+        if (rowA[key] !== rowB[key]) return false;
+      }
+    }
+    return true;
+  };
+
+  const fetchLatestSheet = React.useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (isFirstLoadRef.current) setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(buildCsvUrl(), { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const grid = parseCsv(text);
+      if (grid.length === 0) {
+        throw new Error('CSV vide');
+      }
+      if (!isMountedRef.current) return;
+      const [headerRow, ...dataRows] = grid;
+      const cleanedHeaders = headerRow.filter(h => {
+        const normalized = (h || '')
+          .trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        return normalized !== 'etat';
+      });
+      setHeaders(prev => (shallowArrayEqual(prev, cleanedHeaders) ? prev : cleanedHeaders));
+      const mapped = dataRows
+        .filter(r => r.some(cell => cell && cell.trim() !== ''))
+        .map(r => {
+          const obj: OrderRow = {};
+          headerRow.forEach((h, idx) => {
+            obj[h] = r[idx] ?? '';
+          });
+          return obj;
+        });
+      setRows(prev => (rowsEqual(prev, mapped) ? prev : mapped));
+    } catch (e: any) {
+      if (isMountedRef.current) {
+        setError(e?.message || 'Erreur inconnue');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+        isFirstLoadRef.current = false;
+      }
+      loadingRef.current = false;
+    }
+  }, []);
+
   React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(CSV_URL, { mode: 'cors' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const grid = parseCsv(text);
-        if (grid.length === 0) {
-          throw new Error('CSV vide');
-        }
-        const [headerRow, ...dataRows] = grid;
-        if (!cancelled) {
-          setHeaders(headerRow);
-          const mapped = dataRows
-            .filter(r => r.some(cell => cell && cell.trim() !== ''))
-            .map(r => {
-              const obj: OrderRow = {};
-              headerRow.forEach((h, idx) => {
-                obj[h] = r[idx] ?? '';
-              });
-              obj['etat'] = 'new'; // ✅ état initial
-              return obj;
-            });
-          setRows(mapped);
-        }
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || 'Erreur inconnue');
-      } finally {
-        if (!cancelled) setLoading(false);
+    isMountedRef.current = true;
+    fetchLatestSheet();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchLatestSheet();
+      }
+    }, 5000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchLatestSheet();
       }
     };
-    load();
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
-      cancelled = true;
+      isMountedRef.current = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, []);
+  }, [fetchLatestSheet]);
 
   const handleUpdateRowStatus = useCallback((rowId: string, status: string) => {
     setRows(prevRows =>
@@ -759,30 +819,31 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
-      <tr>
-                {headers.map(h => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: 'left',
-                      borderBottom: '1px solid #ccc',
-                      padding: '0.5rem',
-                      background: '#f8f9fa',
-                      position: 'sticky',
-                      top: 0,
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
-        <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Tarif livraison</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
-              </tr>
-            </thead>
-            <tbody>
+       <tr>
+                 {headers.map(h => (
+                   <th
+                     key={h}
+                     style={{
+                       textAlign: 'left',
+                       borderBottom: '1px solid #ccc',
+                       padding: '0.5rem',
+                       background: '#f8f9fa',
+                       position: 'sticky',
+                       top: 0,
+                     }}
+                   >
+                     {h}
+                   </th>
+                 ))}
+                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
+         <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Tarif livraison</th>
+                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Net à payer</th>
+                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
+                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>État</th>
+                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
+               </tr>
+             </thead>
+             <tbody>
               {filtered.map((row, idx) => (
                 <OrderRowItem key={row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
               ))}
