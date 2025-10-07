@@ -37,7 +37,11 @@ class SheetSyncService {
     return response.data;
   }
 
-  private postJson<T = unknown>(urlString: string, body: Record<string, unknown>): Promise<RequestResult<T>> {
+    private postJson<T = unknown>(
+    urlString: string,
+    body: Record<string, unknown>,
+    redirectCount = 0
+  ): Promise<RequestResult<T>> {    
     return new Promise((resolve, reject) => {
       let parsedUrl: URL;
       try {
@@ -59,6 +63,32 @@ class SheetSyncService {
       };
 
       const request = transport.request(parsedUrl, options, response => {
+                const statusCode = response.statusCode ?? 0;
+
+        if (statusCode >= 300 && statusCode < 400 && response.headers.location) {
+          if (redirectCount >= 5) {
+            response.resume();
+            reject(new Error('Trop de redirections lors de la synchronisation du Sheet.'));
+            return;
+          }
+
+          let nextUrl: URL;
+          try {
+            nextUrl = new URL(response.headers.location, parsedUrl);
+          } catch {
+            response.resume();
+            reject(new Error('Redirection invalide retournée par Google Sheet.'));
+            return;
+          }
+
+          response.resume();
+
+          this.postJson<T>(nextUrl.toString(), body, redirectCount + 1)
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+
         const chunks: Buffer[] = [];
 
         response.on('data', chunk => {
