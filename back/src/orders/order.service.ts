@@ -25,9 +25,16 @@ class SheetSyncRequestError extends Error {
   }
 }
 
+class SheetSyncTimeoutError extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`Délai dépassé lors de la synchronisation du Sheet (>${timeoutMs} ms)`);
+    this.name = 'SheetSyncTimeoutError';
+  }
+}
+
 class SheetSyncService {
   private readonly endpoint: string | undefined;
-  private readonly timeoutMs: number;
+  private readonly timeoutMs: number | null;
 
   constructor() {
     this.endpoint = process.env.GOOGLE_SHEET_SYNC_URL || process.env.SHEET_SYNC_URL;
@@ -40,24 +47,51 @@ class SheetSyncService {
     }
     return this.endpoint;
   }
-private resolveTimeout(): number {
+private resolveTimeout(): number | null {
     const rawTimeout =
       process.env.GOOGLE_SHEET_SYNC_TIMEOUT_MS || process.env.SHEET_SYNC_TIMEOUT_MS;
 
     if (!rawTimeout) {
-      return 30000;
+            return 120_000;
     }
 
-    const parsed = Number(rawTimeout);
+    const normalized = rawTimeout.trim().toLowerCase();
+    if (normalized === '0' || normalized === 'off' || normalized === 'disable' || normalized === 'disabled') {
+      return null;
+    }
+
+    const parsed = Number(normalized);
 
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      return 30000;
+      return 120_000;
     }
 
     return parsed;
   }
   
-    async updateStatus(payload: UpdateStatusPayload) {
+    
+  private isTimeoutError(error: unknown): error is Error {
+    if (!error) {
+      return false;
+    }
+
+    if (error instanceof SheetSyncTimeoutError) {
+      return true;
+    }
+
+    if (error instanceof Error) {
+      const nodeError = error as NodeJS.ErrnoException;
+      if (nodeError.code === 'ETIMEDOUT') {
+        return true;
+      }
+
+      return /timeout/i.test(error.message) || error.message.includes('Délai dépassé');
+    }
+
+    return false;
+  }
+
+  async updateStatus(payload: UpdateStatusPayload) {
     const url = this.ensureEndpoint();
     const body = {
       action: 'updateStatus',
@@ -76,6 +110,10 @@ private resolveTimeout(): number {
         const fallbackResponse = await this.getJson(url, body);
         return fallbackResponse.data;
       }
+            if (this.isTimeoutError(error)) {
+        const fallbackResponse = await this.getJson(url, body);
+        return fallbackResponse.data;
+      }
 
       throw error;
     }
@@ -84,7 +122,8 @@ private resolveTimeout(): number {
   private postJson<T = unknown>(
     urlString: string,
     body: Record<string, unknown>,
-    redirectCount = 0
+    redirectCount = 0,
+    skipTimeoutRetry = false
   ): Promise<RequestResult<T>> {
     return new Promise((resolve, reject) => {
       let parsedUrl: URL;
@@ -173,14 +212,22 @@ private resolveTimeout(): number {
         });
       });
 
-            request.on('error', reject);
-      request.setTimeout(this.timeoutMs, () => {
-        request.destroy(
-          new Error(
-            `Délai dépassé lors de la synchronisation du Sheet (>${this.timeoutMs} ms)`
-          )
-        );
+           request.on('error', error => {
+        if (!skipTimeoutRetry && this.isTimeoutError(error)) {
+          this.postJson<T>(urlString, body, redirectCount, true)
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+        reject(error);
       });
+
+      if (this.timeoutMs !== null) {
+        const timeoutMs = this.timeoutMs;
+        request.setTimeout(timeoutMs, () => {
+          request.destroy(new SheetSyncTimeoutError(timeoutMs));
+        });
+      }
 
       request.write(data);
       request.end();
@@ -277,13 +324,12 @@ private resolveTimeout(): number {
       );
 
       request.on('error', reject);
-      request.setTimeout(this.timeoutMs, () => {
-        request.destroy(
-          new Error(
-            `Délai dépassé lors de la synchronisation du Sheet (>${this.timeoutMs} ms)`
-          )
-        );
-      });
+     if (this.timeoutMs !== null) {
+        const timeoutMs = this.timeoutMs;
+        request.setTimeout(timeoutMs, () => {
+          request.destroy(new SheetSyncTimeoutError(timeoutMs));
+        });
+      }
 
       request.end();
     });
