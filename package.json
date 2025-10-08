@@ -1,0 +1,15 @@
+{
+  "name": "the-project2",
+  "version": "1.0.0",
+  "description": "cd backend\r npm install bcrypt\r npm install --save-dev @types/bcrypt\r npm install --save-dev @types/cors\r npm install jsonwebtoken\r npm install --save-dev @types/jsonwebtoken\r npm install express cors dotenv mongoose\r npm install --save-dev @types/express @types/cors @types/node typescript ts-node-dev\r npm install axios\r npm install node-fetch\r npm init -y\r npm install googleapis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "googleapis": "^161.0.0"
+  }
+}
