@@ -75,6 +75,19 @@ type SheetStatus =
 const SHEET_SYNC_ENDPOINT =
   import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? '/api/orders/status';
 
+  const isNetworkError = (error: unknown) => {
+  if (error instanceof TypeError) return true;
+  if (!error) return false;
+  const message =
+    typeof error === 'string'
+      ? error
+      : typeof error === 'object' && 'message' in error
+      ? String((error as any).message ?? '')
+      : '';
+  if (!message) return false;
+  return /Failed to fetch|NetworkError|ECONNREFUSED|ECONNRESET|ENOTFOUND/i.test(message);
+};
+
 const DEFAULT_DHD_BASE_URL = 'https://platform.dhd-dz.com';
 const DHD_API_BASE_URL = (import.meta.env.VITE_DHD_API_URL ?? DEFAULT_DHD_BASE_URL).replace(/\/$/, '');
 const DHD_API_TOKEN = import.meta.env.VITE_DHD_API_TOKEN ??
@@ -126,6 +139,8 @@ const Orders: React.FC = () => {
   const [rows, setRows] = React.useState<OrderRow[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
+  const [statusSyncDisabled, setStatusSyncDisabled] = React.useState<boolean>(false);
+  const syncDisabledRef = React.useRef<boolean>(false);
   // Adresse saisie par l'utilisateur pour chaque commande (indexée par idx)
 
 // Composant optimisé pour une ligne de commande
@@ -746,8 +761,24 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const syncedToNewRef = React.useRef<Set<string>>(new Set());
   const syncQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
 
+    const disableStatusSync = React.useCallback((reason?: unknown) => {
+    if (!syncDisabledRef.current) {
+      syncDisabledRef.current = true;
+      setStatusSyncDisabled(true);
+      if (reason) {
+        console.warn('Désactivation de la synchronisation du statut (backend injoignable)', reason);
+      }
+    }
+  }, []);
+
   const syncStatus = React.useCallback(
     async (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
+            if (syncDisabledRef.current) {
+        return Promise.resolve();
+      }
+            if (syncDisabledRef.current) {
+        return;
+      }
       if (!rowId) {
         throw new Error("Identifiant de commande manquant pour la mise à jour du statut");
       }
@@ -774,10 +805,14 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         return data;
       } catch (error) {
         console.error('Erreur lors de la synchronisation du statut avec le Sheet', error);
+                if (isNetworkError(error)) {
+          disableStatusSync(error);
+          return;
+        }
         throw error;
       }
     },
-    []
+    [disableStatusSync]
   );
     const enqueueSyncStatus = React.useCallback(
     (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
@@ -1024,6 +1059,13 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           Ouvrir la feuille
         </a>
       </div>
+
+            {statusSyncDisabled && (
+        <p style={{ color: '#a94442', background: '#f2dede', padding: '0.6rem 0.8rem', borderRadius: 4 }}>
+          Synchronisation du statut désactivée : impossible de contacter le service backend{' '}
+          (<code>{SHEET_SYNC_ENDPOINT}</code>). Les changements locaux ne seront pas envoyés.
+        </p>
+      )}
 
       {loading && <p>Chargement...</p>}
       {error && <p style={{ color: 'red' }}>Erreur: {error}</p>}
