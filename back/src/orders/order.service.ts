@@ -8,31 +8,43 @@ interface UpdateStatusPayload {
   row?: Record<string, unknown>;
 }
 
-interface SheetUpdateInstruction {
-  range: string;
-  values: string[][];
-}
+const SERVICE_ACCOUNT_EMAIL =
+  'sheet-bot@sheetbot-474512.iam.gserviceaccount.com';
 
-const normalizeHeader = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
+const PRIVATE_KEY = `
+-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCNrlwBs6WmRxDb
+cy5lv6m/klx9o0UYic4SCxZ26Mr6PGbkHrUftvHUWxaEE9FREGAGK9LZuh+l2sIn
+xW9biXPHKoA/e2oyRkgUN/1MkJw6eISL/iyoVPkf8u1Z1FLIp7qWZMb58Sc1MLgb
+lPujtSn2hcSYQshQKJw3oqVOy8x+Eu/snySAQCbt0x17y44lQ5YaNNjqL5ryitBx
+UJwEOkU4aqpVrkEcUAeTyzqA9ZdHdBWECSRa6Gy6VCkoL3Fcw2AhwplRgSuOgcxt
+LnXVQlYAnWH41go9pvGa1lMSdc703zQQS+IXV+3tU8ouSoZAAsxk0cD3LFfpqfvR
+XhSswtazAgMBAAECggEARjb19AXy/y/TA97WTKiq2H0Rh1ZF5P5OeRSzomSGS3Np
+zn4FZ11EBejKhNRJdPI3lHddfHfIPWrns8wd/vBkx3yhqFRicd3w1MxWpP453qRh
+k/t4aEgMWrAKvu0Bxd2SE/yHu9CujKbDZy/zcdNTo4/xuT/HhCpMGSpq4F0R0ByX
+hFjghGRrj2fcVM1Y0mFPaBMtYDl5wRmaSB+7/kWxf56vB4rSPfmZEhWAiuYP6FR3
+HVGsAJXZ8u/hAun1L6OYnYaeOdvBvQeHySYMit8Z07UFf6JXRb+/syZaJXtYoucB
+kWF4k/+8zpvjgnHubPm1zhJzJvbil++ccl/ddqn72QKBgQDHHdalNoJYTLEsRq6w
+rA3sDwHlLX2pqNnlu4TPGjL1lAU9A0IIHuRA50+Ni+iayNFjM8/1B/ocC1RVjBSu
+aztamVDEeFamnOdkplgT9ywt4YdyUr+5IZls+fY7SSphacScl/BYPuTIuf2Inmew
+jWooZgKS8Kmk2TZDmVZy1FqlrQKBgQC2KAs+QmFP41KLeBS10DXU2RKbz15mtaf3
+vcPCho9bRANyzlpVByIGED3D7BmRScyoKby3qDszNN5sS0BFbvWmi7zMm5uQ/Toc
+vAxaV0BwMC7XeC7/BIZajhWP6tw6PMRwAn1WPP2EALCDGzSCXKBDpbV/l9jERaly
+wz1RYa053wKBgQCRGMhKek8/oxtUpWk1Kxu2EjWSWLUCxh2K0Dv2YyQRWrz6ef5L
+Rp+UQDrzbamh6YbT4HTBHQAAIa1h7YNAmrmUyrZVhU+3eA0ShjkWy35xLLBz+aLm
+eHqCNCBfkXCFrfptFjc5RxOWxhnfzXbH7DUYnUVw6Fjm3LYzSnD5mo83vQKBgDhH
+7RlidyCw0vtGsddvKoLGQyqjCr7fV7ODDW4YF0kSnaImQeDNoGSRNhRH6aprS/GV
+W7q/HvN2XVbGdWg+nWXE/SOW3J0SsJbaP1LWbJF9QavPdW3T3xMxnVXnMf5IckVN
+b55qn8XeVKtdh37T0ay1EXwH1bDm+TD9Q//WFyivAoGBAIt9BewW34woh/WsiHFZ
+sPWlvH29JEi4VK762taEgy26YQ344nLgl7jfehma/1qizL+SYWku2th7DyjgdO1A
+zymbLGlB6zCHKa0LRCWzqgr7aAbyJXxvnAwaermaZGCFoBgSMHN7BD0anfkrYu9m
+kZ+dy+C+CiIcx23bJlr6405X
+-----END PRIVATE KEY-----
+`;
 
-const columnIndexToLetter = (index: number) => {
-  if (index <= 0) {
-    throw new Error(`Indice de colonne invalide: ${index}`);
-  }
-  let letter = '';
-  let current = index;
-  while (current > 0) {
-    const remainder = (current - 1) % 26;
-    letter = String.fromCharCode(65 + remainder) + letter;
-    current = Math.floor((current - 1) / 26);
-  }
-  return letter;
-};
+const SPREADSHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
+const SHEET_NAME = 'Mirocho';
+const STATUS_COLUMN_LETTER = 'L';
 
 const extractRowNumber = (value: unknown): number | null => {
   if (value === undefined || value === null) {
@@ -67,84 +79,13 @@ const extractRowNumber = (value: unknown): number | null => {
 };
 
 export class SheetSyncService {
-  private readonly spreadsheetId?: string;
-  private readonly sheetName: string;
-  private readonly statusColumnLetterEnv?: string;
-  private readonly statusColumnHeaderEnv?: string;
-  private readonly trackingColumnLetterEnv?: string;
-  private readonly trackingColumnHeaderEnv?: string;
-  private readonly headerCacheTtlMs = 5 * 60 * 1000;
-
   private sheetsClientPromise?: Promise<sheets_v4.Sheets>;
-  private headerCache: { values: string[]; expiresAt: number } | null = null;
-
-  constructor() {
-    this.spreadsheetId =
-      process.env.GOOGLE_SHEET_ID ||
-      process.env.SHEET_ID ||
-      process.env.GOOGLE_SPREADSHEET_ID;
-
-    this.sheetName =
-      process.env.GOOGLE_SHEET_TAB_NAME ||
-      process.env.SHEET_TAB_NAME ||
-      process.env.GOOGLE_SHEET_NAME ||
-      'Mirocho';
-
-    this.statusColumnLetterEnv =
-      process.env.GOOGLE_SHEET_STATUS_COLUMN_LETTER ||
-      process.env.GOOGLE_SHEET_STATUS_COLUMN;
-
-    this.statusColumnHeaderEnv =
-      process.env.GOOGLE_SHEET_STATUS_HEADER ||
-      process.env.GOOGLE_SHEET_STATUS_COLUMN_HEADER ||
-      'etat';
-
-    this.trackingColumnLetterEnv =
-      process.env.GOOGLE_SHEET_TRACKING_COLUMN_LETTER ||
-      process.env.GOOGLE_SHEET_TRACKING_COLUMN;
-
-    this.trackingColumnHeaderEnv =
-      process.env.GOOGLE_SHEET_TRACKING_HEADER ||
-      process.env.GOOGLE_SHEET_TRACKING_COLUMN_HEADER;
-  }
-
-  private ensureSpreadsheetId(): string {
-    if (!this.spreadsheetId) {
-      throw new Error(
-        "La variable d'environnement GOOGLE_SHEET_ID (ou SHEET_ID / GOOGLE_SPREADSHEET_ID) est requise pour synchroniser le statut."
-      );
-    }
-    return this.spreadsheetId;
-  }
 
   private async getSheetsClient(): Promise<sheets_v4.Sheets> {
     if (!this.sheetsClientPromise) {
-      const email =
-        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
-        process.env.GOOGLE_SHEET_CLIENT_EMAIL ||
-        process.env.GOOGLE_SHEET_SERVICE_ACCOUNT_EMAIL;
-
-      if (!email) {
-        throw new Error(
-          "La variable d'environnement GOOGLE_SERVICE_ACCOUNT_EMAIL (ou GOOGLE_SHEET_CLIENT_EMAIL / GOOGLE_SHEET_SERVICE_ACCOUNT_EMAIL) est requise."
-        );
-      }
-
-      const rawKey =
-        process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ||
-        process.env.GOOGLE_SHEET_PRIVATE_KEY ||
-        '';
-
-      const privateKey = rawKey.replace(/\\n/g, '\n').trim();
-      if (!privateKey) {
-        throw new Error(
-          "La clé privée du compte de service (GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ou GOOGLE_SHEET_PRIVATE_KEY) est requise."
-        );
-      }
-
       const auth = new JWT({
-        email,
-        key: privateKey,
+        email: SERVICE_ACCOUNT_EMAIL,
+        key: PRIVATE_KEY,
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
       });
 
@@ -156,124 +97,19 @@ export class SheetSyncService {
     return this.sheetsClientPromise;
   }
 
-  private async getHeaderRow(): Promise<string[]> {
-    const now = Date.now();
-    if (this.headerCache && now < this.headerCache.expiresAt) {
-      return this.headerCache.values;
-    }
-
-    const sheets = await this.getSheetsClient();
-    const result = await sheets.spreadsheets.values.get({
-      spreadsheetId: this.ensureSpreadsheetId(),
-      range: `${this.sheetName}!1:1`,
-      majorDimension: 'ROWS',
-    });
-
-    const firstRow = result.data.values?.[0];
-    if (!firstRow || !Array.isArray(firstRow) || firstRow.length === 0) {
-      throw new Error(
-        'Impossible de récupérer la ligne des en-têtes dans le Google Sheet.'
-      );
-    }
-
-    const headers = firstRow.map(cell => (cell === undefined || cell === null ? '' : String(cell)));
-    this.headerCache = {
-      values: headers,
-      expiresAt: now + this.headerCacheTtlMs,
-    };
-
-    return headers;
-  }
-
-  private async resolveColumnLetter(
-    headerName: string | undefined,
-    fallbackLetter: string | undefined,
-    mandatory: boolean
-  ): Promise<string | null> {
-    if (fallbackLetter) {
-      const sanitized = fallbackLetter.trim();
-      if (!/^([A-Za-z]+)$/.test(sanitized)) {
-        throw new Error(
-          `La colonne spécifiée (${fallbackLetter}) n'est pas un identifiant valide.`
-        );
-      }
-      return sanitized.toUpperCase();
-    }
-
-    if (!headerName) {
-      if (mandatory) {
-        throw new Error(
-          "Impossible de déterminer la colonne cible : aucun en-tête n'a été fourni."
-        );
-      }
-      return null;
-    }
-
-    const headers = await this.getHeaderRow();
-    const normalizedTarget = normalizeHeader(headerName);
-    const index = headers.findIndex(h => normalizeHeader(h) === normalizedTarget);
-
-    if (index === -1) {
-      if (mandatory) {
-        throw new Error(
-          `Impossible de trouver la colonne "${headerName}" dans la feuille "${this.sheetName}".`
-        );
-      }
-      return null;
-    }
-
-    return columnIndexToLetter(index + 1);
-  }
-
-  private async getStatusColumnLetter(): Promise<string> {
-    const letter = await this.resolveColumnLetter(
-      this.statusColumnHeaderEnv,
-      this.statusColumnLetterEnv,
-      true
-    );
-
-    if (!letter) {
-      throw new Error('Impossible de déterminer la colonne du statut.');
-    }
-
-    return letter;
-  }
-
-  private async getTrackingColumnLetter(): Promise<string | null> {
-    return this.resolveColumnLetter(
-      this.trackingColumnHeaderEnv,
-      this.trackingColumnLetterEnv,
-      false
-    );
-  }
-
-  private resolveRowTarget(
+  private resolveRowNumber(
     rowId: string,
     row: Record<string, unknown> | undefined
-  ): { rowNumber: number; statusColumnLetterOverride?: string } {
+  ): number {
     const trimmed = rowId.trim();
     if (!trimmed) {
       throw new Error('Identifiant de ligne vide fourni.');
     }
 
     const cleaned = trimmed.replace(/\$/g, '');
-    if (/^[A-Za-z]+\d+$/.test(cleaned)) {
-      const columnPart = cleaned.replace(/\d+/g, '').toUpperCase();
-      const rowPart = cleaned.replace(/\D+/g, '');
-      const parsedRow = Number(rowPart);
-      if (!Number.isFinite(parsedRow) || parsedRow <= 0) {
-        throw new Error(`Numéro de ligne invalide détecté dans l'identifiant: ${rowId}`);
-      }
-
-      return {
-        rowNumber: Math.floor(parsedRow),
-        statusColumnLetterOverride: columnPart,
-      };
-    }
-
     const directRow = extractRowNumber(cleaned);
     if (directRow) {
-      return { rowNumber: directRow };
+      return directRow;
     }
 
     if (row) {
@@ -291,7 +127,7 @@ export class SheetSyncService {
         const value = row[key];
         const extracted = extractRowNumber(value);
         if (extracted) {
-          return { rowNumber: extracted };
+          return extracted;
         }
       }
     }
@@ -311,51 +147,18 @@ export class SheetSyncService {
     }
 
     const sheets = await this.getSheetsClient();
-    const spreadsheetId = this.ensureSpreadsheetId();
-    const target = this.resolveRowTarget(rowId, row);
+    const rowNumber = this.resolveRowNumber(rowId, row);
+    const range = `${SHEET_NAME}!${STATUS_COLUMN_LETTER}${rowNumber}`;
 
-    const updates: SheetUpdateInstruction[] = [];
-
-    const statusColumnLetter =
-      target.statusColumnLetterOverride || (await this.getStatusColumnLetter());
-    updates.push({
-      range: `${this.sheetName}!${statusColumnLetter}${target.rowNumber}`,
-      values: [[status]],
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[status]] },
     });
 
-    if (tracking) {
-      const trackingColumnLetter = await this.getTrackingColumnLetter();
-      if (trackingColumnLetter) {
-        updates.push({
-          range: `${this.sheetName}!${trackingColumnLetter}${target.rowNumber}`,
-          values: [[tracking]],
-        });
-      }
-    }
-
-    if (updates.length === 1) {
-      const [single] = updates;
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: single.range,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: single.values },
-      });
-    } else if (updates.length > 1) {
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          valueInputOption: 'USER_ENTERED',
-          data: updates.map(update => ({
-            range: update.range,
-            values: update.values,
-          })),
-        },
-      });
-    }
-
     return {
-      updatedRanges: updates.map(update => update.range),
+      updatedRanges: [range],
       status,
       tracking: tracking ?? null,
     };
