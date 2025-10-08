@@ -746,7 +746,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         {(() => {
           const fromSheet = String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim();
-          return fromSheet ? fromSheet : 'vide';
+          return fromSheet ? fromSheet : 'new';
         })()}
       </td>
     </tr>
@@ -758,10 +758,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     const isFirstLoadRef = React.useRef(true);
   const cancelledRef = React.useRef(false);
   const fetchingRef = React.useRef(false);
-  const syncedToNewRef = React.useRef<Set<string>>(new Set());
-  const syncQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
-
-    const disableStatusSync = React.useCallback((reason?: unknown) => {
+  const disableStatusSync = React.useCallback((reason?: unknown) => {
     if (!syncDisabledRef.current) {
       syncDisabledRef.current = true;
       setStatusSyncDisabled(true);
@@ -814,20 +811,6 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     },
     [disableStatusSync]
   );
-    const enqueueSyncStatus = React.useCallback(
-    (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
-      if (cancelledRef.current) {
-        return Promise.resolve();
-      }
-
-      const run = () => syncStatus(rowId, status, context);
-      const next = syncQueueRef.current.then(run, run);
-      syncQueueRef.current = next.catch(() => undefined);
-      return next;
-    },
-    [syncStatus]
-  );
-
 
   const loadSheetData = React.useCallback(
     async (withSpinner = false) => {
@@ -907,23 +890,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                 obj['etat'] ?? obj['État'] ?? obj['Etat'] ?? ''
               ).trim();
 
-              if (!sheetStatus) {
-                obj['etat'] = 'new';
-                const potentialId = obj['id-sheet'];
-                if (potentialId && !syncedToNewRef.current.has(potentialId)) {
-                  syncedToNewRef.current.add(potentialId);
-                  const payloadRow = { ...obj };
-                  enqueueSyncStatus(potentialId, 'new', { row: payloadRow }).catch(err => {
-                    console.error('Échec initial de mise à jour du statut new', err);
-                    syncedToNewRef.current.delete(potentialId);
-                  });
-                }
-              } else {
-                obj['etat'] = sheetStatus;
-                if (obj['id-sheet']) {
-                  syncedToNewRef.current.delete(obj['id-sheet']);
-                }
-              }
+              obj['etat'] = sheetStatus;
               return obj;
             })
             .filter((row): row is OrderRow => row !== null);
@@ -941,7 +908,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         }
       }
     },
-    [syncStatus]
+    []
   );
 
   React.useEffect(() => {
