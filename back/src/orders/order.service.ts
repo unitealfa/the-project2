@@ -66,7 +66,7 @@ const extractRowNumber = (value: unknown): number | null => {
   return null;
 };
 
-class SheetSyncService {
+export class SheetSyncService {
   private readonly spreadsheetId?: string;
   private readonly sheetName: string;
   private readonly statusColumnLetterEnv?: string;
@@ -361,3 +361,7 @@ class SheetSyncService {
     };
   }
 }
+
+const sheetService = new SheetSyncService();
+
+export default sheetService;
