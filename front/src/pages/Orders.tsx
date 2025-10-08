@@ -744,6 +744,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const cancelledRef = React.useRef(false);
   const fetchingRef = React.useRef(false);
   const syncedToNewRef = React.useRef<Set<string>>(new Set());
+  const syncQueueRef = React.useRef<Promise<unknown>>(Promise.resolve());
 
   const syncStatus = React.useCallback(
     async (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
@@ -778,6 +779,20 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     },
     []
   );
+    const enqueueSyncStatus = React.useCallback(
+    (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
+      if (cancelledRef.current) {
+        return Promise.resolve();
+      }
+
+      const run = () => syncStatus(rowId, status, context);
+      const next = syncQueueRef.current.then(run, run);
+      syncQueueRef.current = next.catch(() => undefined);
+      return next;
+    },
+    [syncStatus]
+  );
+
 
   const loadSheetData = React.useCallback(
     async (withSpinner = false) => {
@@ -863,7 +878,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                 if (potentialId && !syncedToNewRef.current.has(potentialId)) {
                   syncedToNewRef.current.add(potentialId);
                   const payloadRow = { ...obj };
-                  syncStatus(potentialId, 'new', { row: payloadRow }).catch(err => {
+                  enqueueSyncStatus(potentialId, 'new', { row: payloadRow }).catch(err => {
                     console.error('Échec initial de mise à jour du statut new', err);
                     syncedToNewRef.current.delete(potentialId);
                   });
