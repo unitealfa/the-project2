@@ -282,7 +282,10 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const initialSheetStatus: SheetStatus = (
     String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim() || 'new'
   ) as SheetStatus;
-  const rowId = row['ID'] || '';
+  const sheetRowId = String(row['id-sheet'] ?? '').trim();
+  const fallbackRowId = String(row['ID'] ?? '').trim();
+  const rowId = sheetRowId || fallbackRowId;
+  const displayRowLabel = fallbackRowId || sheetRowId;
 
   // Système intelligent de résolution des communes avec vraies données
   const smartCommuneResolver = (
@@ -680,7 +683,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           </button>
           <button
             onClick={async () => {
-              const confirmed = window.confirm(`Confirmer l'abandon de la commande ${rowId || ''} ?`);
+              const confirmed = window.confirm(`Confirmer l'abandon de la commande ${displayRowLabel || ''} ?`);
               if (!confirmed) return;
               try {
                 setAbandoning(true);
@@ -798,30 +801,65 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         }
         const [headerRow, ...dataRows] = grid;
         if (!cancelledRef.current) {
-          const cleanedHeaders = headerRow.filter(h => {
-            const normalized = (h || '')
+          const normalizeHeader = (h: string) =>
+            (h || '')
               .trim()
               .toLowerCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '');
+          const cleanedHeaders = headerRow.filter(h => {
+            const normalized = normalizeHeader(h || '');
             return normalized !== 'etat';
           });
-          setHeaders(cleanedHeaders);
+          const augmentedHeaders = [...cleanedHeaders];
+          const ensureHeader = (label: string) => {
+            if (!augmentedHeaders.some(h => normalizeHeader(h) === normalizeHeader(label))) {
+              augmentedHeaders.unshift(label);
+            }
+          };
+          ensureHeader('ID');
+          ensureHeader('id-sheet');
+          setHeaders(augmentedHeaders);
           const mapped = dataRows
-            .filter(r => r.some(cell => cell && cell.trim() !== ''))
-            .map(r => {
+            .map((r, dataIndex) => {
+              if (!r.some(cell => cell && cell.trim() !== '')) {
+                return null;
+              }
               const obj: OrderRow = {};
               headerRow.forEach((h, idx) => {
-                obj[h] = r[idx] ?? '';
+                const headerKey = typeof h === 'string' ? h.trim() : '';
+                if (!headerKey) return;
+                obj[headerKey] = r[idx] ?? '';
               });
-              
+
+              const idKey = Object.keys(obj).find(
+                key => key.trim().toLowerCase() === 'id'
+              );
+              const existingIdRaw = idKey ? obj[idKey] : undefined;
+              const normalizedId =
+                typeof existingIdRaw === 'string'
+                  ? existingIdRaw.trim()
+                  : existingIdRaw !== undefined && existingIdRaw !== null
+                  ? String(existingIdRaw).trim()
+                  : '';
+              const sheetRowNumber = dataIndex + 2; // +2 pour inclure la ligne d'en-tête
+              obj['id-sheet'] = String(sheetRowNumber);
+              if (normalizedId) {
+                obj['ID'] = normalizedId;
+              } else {
+                obj['ID'] = String(sheetRowNumber);
+              }
+              if (idKey && idKey !== 'ID') {
+                delete obj[idKey];
+              }
+
               const sheetStatus = String(
                 obj['etat'] ?? obj['État'] ?? obj['Etat'] ?? ''
               ).trim();
 
               if (!sheetStatus) {
                 obj['etat'] = 'new';
-                const potentialId = obj['ID'];
+                const potentialId = obj['id-sheet'];
                 if (potentialId && !syncedToNewRef.current.has(potentialId)) {
                   syncedToNewRef.current.add(potentialId);
                   const payloadRow = { ...obj };
@@ -832,12 +870,13 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                 }
               } else {
                 obj['etat'] = sheetStatus;
-                if (obj['ID']) {
-                  syncedToNewRef.current.delete(obj['ID']);
+                if (obj['id-sheet']) {
+                  syncedToNewRef.current.delete(obj['id-sheet']);
                 }
               }
               return obj;
-            });
+            })
+            .filter((row): row is OrderRow => row !== null);
           setRows(mapped);
         }
       } catch (e: any) {
@@ -884,9 +923,18 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       }
 
       let recordedPrevious: SheetStatus | undefined;
+      const matchesRow = (candidate: OrderRow) => {
+        const candidateSheetId = String(candidate['id-sheet'] ?? '').trim();
+        if (candidateSheetId) {
+          return candidateSheetId === rowId;
+        }
+        const candidateFallbackId = String(candidate['ID'] ?? '').trim();
+        return candidateFallbackId === rowId;
+      };
+
       setRows(prevRows =>
         prevRows.map(r => {
-          if (r['ID'] === rowId) {
+          if (matchesRow(r)) {
             recordedPrevious = (String(r['etat'] ?? '') || 'new') as SheetStatus;
             return { ...r, etat: status };
           }
@@ -900,7 +948,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         await syncStatus(rowId, status, context);
       } catch (error) {
         setRows(prevRows =>
-          prevRows.map(r => (r['ID'] === rowId ? { ...r, etat: fallbackStatus } : r))
+          prevRows.map(r => (matchesRow(r) ? { ...r, etat: fallbackStatus } : r))
         );
         throw error;
       }
@@ -935,7 +983,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     if (!query.trim()) return rows;
     const q = query.toLowerCase();
     return rows.filter(row =>
-      ['Date', 'Produit', 'Nom du client', 'Numero', 'Wilaya', 'Commune', 'ID', 'Type de livraison']
+      ['Date', 'Produit', 'Nom du client', 'Numero', 'Wilaya', 'Commune', 'ID', 'id-sheet', 'Type de livraison']
         .filter(k => k in row)
         .some(key => (row[key] || '').toLowerCase().includes(q))
     );
@@ -994,7 +1042,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
              </thead>
              <tbody>
               {filtered.map((row, idx) => (
-                <OrderRowItem key={row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
+                <OrderRowItem key={row['id-sheet'] || row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
               ))}
               {filtered.length === 0 && (
                 <tr>

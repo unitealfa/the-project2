@@ -57,12 +57,12 @@ private resolveTimeout(): number {
     return parsed;
   }
   
-  async updateStatus(payload: UpdateStatusPayload) {
+    async updateStatus(payload: UpdateStatusPayload) {
     const url = this.ensureEndpoint();
     const body = {
       action: 'updateStatus',
-      ...payload,
       orderId: payload.rowId,
+      ...payload,
     };
 
     try {
