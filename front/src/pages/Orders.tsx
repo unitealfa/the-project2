@@ -780,11 +780,37 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus, smartCommuneResolver, initialSheetStatus]);
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
-      {headers.map(h => (
-        <td key={h} style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-          {row[h] || ''}
-        </td>
-      ))}
+       {headers.map(h => {
+        const normalizedHeader = (h || '')
+          .trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, ' ');
+
+        const displayValue = (() => {
+          if (normalizedHeader.includes('nom') && normalizedHeader.includes('client')) {
+            return nom_client || row[h] || row['Nom du client'] || '';
+          }
+
+          if (
+            normalizedHeader.includes('numero') ||
+            normalizedHeader.includes('telephone') ||
+            normalizedHeader.includes('tel') ||
+            /\b(n|no|num)\b/.test(normalizedHeader)
+          ) {
+            return telephone || row[h] || row['Numero'] || row['Numéro'] || '';
+          }
+
+          return row[h] || '';
+        })();
+
+        return (
+          <td key={h} style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
+            {displayValue}
+          </td>
+        );
+      })}
 
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1184,13 +1210,28 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               ).trim();
 
               obj['etat'] = sheetStatus;
+              const assignCanonicalValue = (targetKey: string, raw: unknown) => {
+                const value = String(raw ?? '').trim();
+                if (!value) return false;
+                obj[targetKey] = value;
+                const normalizedTargetKey = normalizeFieldKey(targetKey);
+                if (normalizedTargetKey) {
+                  for (const key of Object.keys(obj)) {
+                    if (key === targetKey) continue;
+                    if (normalizeFieldKey(key) === normalizedTargetKey) {
+                      obj[key] = value;
+                    }
+                  }
+                }
+                return true;
+              };
+
               const ensureCanonicalField = (
                 targetKey: string,
                 matcher: (normalizedKey: string, tokens: string[]) => boolean
               ) => {
                 const existing = obj[targetKey];
-                if (existing && String(existing).trim()) {
-                  obj[targetKey] = String(existing).trim();
+                if (assignCanonicalValue(targetKey, existing)) {
                   return;
                 }
                 for (const key of Object.keys(obj)) {
@@ -1204,10 +1245,9 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                     .split(/\s+/)
                     .filter(Boolean);
                   if (!matcher(normalizedKey, tokens)) continue;
-                  const value = String(rawValue).trim();
-                  if (!value) continue;
-                  obj[targetKey] = value;
-                  return;
+                  if (assignCanonicalValue(targetKey, rawValue)) {
+                    return;
+                  }
                 }
               };
 
@@ -1583,7 +1623,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             {timeRangeLabel && <span>{timeRangeLabel}</span>}
             {statusFilterLabel && <span>{statusFilterLabel}</span>}
           </div>
-          
+
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
               onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
