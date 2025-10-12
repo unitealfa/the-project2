@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { CreateUserDto } from '../types';
+import { CreateUserDto, User } from '../types';
 import { AuthContext } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -11,7 +11,9 @@ const EditUser: React.FC = () => {
   const navigate = useNavigate();
   const { token, user: currentUser } = useContext(AuthContext);
 
-  const [form, setForm] = useState<CreateUserDto>({
+    type EditUserForm = Omit<CreateUserDto, 'role'> & { role: User['role'] };
+
+  const [form, setForm] = useState<EditUserForm>({
     firstName: '',
     lastName: '',
     email: '',
@@ -19,31 +21,50 @@ const EditUser: React.FC = () => {
     role: 'gestionnaire',
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // Load the user to edit
   useEffect(() => {
+    if (!userId || !token) return;
+
+    let mounted = true;
     (async () => {
       try {
         const res = await fetch(`/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const u = await res.json();
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          const message = body && typeof body === 'object' && 'message' in body
+            ? String((body as any).message)
+            : `Erreur ${res.status}`;
+          throw new Error(message);
+        }
+        if (!body) throw new Error('Réponse invalide du serveur');
+        const u: User = body as User;
+        if (!mounted) return;
         setForm({
           firstName: u.firstName,
           lastName: u.lastName,
           email: u.email,
-          password: '',           // do not prefill with hash
+          password: '', // do not prefill with hash
           role: u.role,
         });
-      } catch {
-        alert('Impossible de charger les données');
-        navigate(`/admin/${adminId}/team`, { replace: true });
+        setError(null);
+      } catch (err: any) {
+        if (mounted) {
+          setError(err.message);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
-  }, [userId, token, navigate, adminId]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId, token]);
 
   // Protect route
   useEffect(() => {
@@ -53,6 +74,16 @@ const EditUser: React.FC = () => {
   }, [currentUser, navigate]);
 
   if (loading) return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Chargement…</p>;
+  if (error) {
+    return (
+      <div style={{ maxWidth: 400, margin: '2rem auto', color: 'red' }}>
+        <p>{error}</p>
+        <p>
+          <Link to={`/admin/${adminId}/team`}>← Retour à l’équipe</Link>
+        </p>
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
