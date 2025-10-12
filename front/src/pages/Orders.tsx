@@ -408,19 +408,6 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const computedFromUnit = unitPriceForTotal !== null ? unitPriceForTotal * quantityForTotal : null;
   const totalForApi = amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
 
-  const netToPay = (() => {
-    const candidates = ['Net à payer', 'Net a payer', 'Net'];
-    for (const key of candidates) {
-      if (key in row) {
-        const parsed = parseAmount(row[key]);
-        if (parsed !== null) return parsed;
-      }
-    }
-    return amountFromSheet ?? computedFromUnit ?? totalForApi;
-  })();
-
-  const formatAmount = (value: number) =>
-    `${Math.round(value).toLocaleString('fr-DZ')} DA`;
 
 
   const [submitting, setSubmitting] = React.useState<boolean>(false);
@@ -662,7 +649,6 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
       setSubmitting(false);
     }
   }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus, smartCommuneResolver, initialSheetStatus]);
-
   return (
     <tr style={{ borderBottom: '1px solid #eee' }}>
       {headers.map(h => (
@@ -670,23 +656,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           {row[h] || ''}
         </td>
       ))}
-      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <span style={{ color: '#666', fontSize: '14px' }}>.</span>
-      </td>
 
-      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <div>
-                    <div style={{ color: '#dc3545', fontWeight: 700 }}>{formatAmount(totalForApi)}</div>
-          {amountFromSheet === null && unitPriceForTotal !== null && (
-            <div style={{ fontSize: 12, color: '#666' }}>
-              {quantityForTotal} × {formatAmount(unitPriceForTotal)}
-            </div>
-          )}
-        </div>
-      </td>
-            <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <div style={{ color: '#0d6efd', fontWeight: 600 }}>{formatAmount(netToPay)}</div>
-      </td>
       <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
@@ -840,19 +810,65 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               .toLowerCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '');
+              const hiddenHeaderSet = new Set([
+            'date',
+            'adresse',
+            'total',
+            'net a payer',
+          ]);
+
+          const originalHeaderByNormalized = new Map<string, string>();
+          headerRow.forEach(h => {
+            const normalized = normalizeHeader(h || '');
+            if (!normalized) return;
+            if (!originalHeaderByNormalized.has(normalized)) {
+              originalHeaderByNormalized.set(normalized, h);
+            }
+          });
+
           const cleanedHeaders = headerRow.filter(h => {
             const normalized = normalizeHeader(h || '');
-            return normalized !== 'etat';
+                        if (!normalized) return false;
+            if (normalized === 'etat') return false;
+            if (hiddenHeaderSet.has(normalized)) return false;
+            return true;
           });
-          const augmentedHeaders = [...cleanedHeaders];
-          const ensureHeader = (label: string) => {
-            if (!augmentedHeaders.some(h => normalizeHeader(h) === normalizeHeader(label))) {
-              augmentedHeaders.unshift(label);
+
+          const uniqueHeaders: string[] = [];
+          const seenHeaders = new Set<string>();
+          cleanedHeaders.forEach(h => {
+            const normalized = normalizeHeader(h || '');
+            if (!normalized || seenHeaders.has(normalized)) {
+              return;
             }
+            seenHeaders.add(normalized);
+            uniqueHeaders.push(h);
+          });
+          
+          const ensureHeader = (label: string) => {
+             const normalized = normalizeHeader(label);
+            if (!normalized || seenHeaders.has(normalized)) {
+              return;
+            }
+                        const original = originalHeaderByNormalized.get(normalized);
+            uniqueHeaders.push(original ?? label);
+            seenHeaders.add(normalized);
           };
-          ensureHeader('ID');
-          ensureHeader('id-sheet');
-          setHeaders(augmentedHeaders);
+                   ['Nom du client', 'Numero', 'ID', 'id-sheet'].forEach(ensureHeader);
+
+          const desiredOrder = ['Nom du client', 'Numero', 'ID', 'id-sheet'];
+          const prioritized = desiredOrder
+            .map(label => {
+              const normalized = normalizeHeader(label);
+              return uniqueHeaders.find(h => normalizeHeader(h) === normalized);
+            })
+            .filter((h): h is string => Boolean(h));
+          const prioritizedSet = new Set(prioritized.map(h => normalizeHeader(h)));
+          const remaining = uniqueHeaders.filter(
+            h => !prioritizedSet.has(normalizeHeader(h))
+          );
+
+          setHeaders([...prioritized, ...remaining]);
           const mapped = dataRows
             .map((r, dataIndex) => {
               if (!r.some(cell => cell && cell.trim() !== '')) {
@@ -996,15 +1012,28 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     }
   }, [token]);
 
+    const searchableHeaders = React.useMemo(() => {
+    const keys: string[] = [];
+    const pushKey = (key: string) => {
+      if (!key) return;
+      if (keys.includes(key)) return;
+      keys.push(key);
+    };
+    ['Nom du client', 'Numero'].forEach(pushKey);
+    headers.forEach(pushKey);
+    ['Wilaya', 'Commune', 'ID', 'id-sheet', 'Type de livraison'].forEach(pushKey);
+    return keys;
+  }, [headers]);
+
   const filtered = React.useMemo(() => {
     if (!query.trim()) return rows;
     const q = query.toLowerCase();
     return rows.filter(row =>
-      ['Date', 'Produit', 'Nom du client', 'Numero', 'Wilaya', 'Commune', 'ID', 'id-sheet', 'Type de livraison']
+      searchableHeaders
         .filter(k => k in row)
         .some(key => (row[key] || '').toLowerCase().includes(q))
     );
-  }, [rows, query]);
+  }, [rows, query, searchableHeaders]);
 
   return (
     <div style={{ padding: '1rem' }}>
@@ -1057,9 +1086,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
                     {h}
                   </th>
                 ))}
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Adresse</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#dc3545' }}>Total</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0, color: '#0d6efd' }}>Net à payer</th>
+                
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
                 <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
               </tr>
@@ -1070,7 +1097,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={headers.length + 5} style={{ padding: '0.8rem' }}>
+                  <td colSpan={headers.length + 2} style={{ padding: '0.8rem' }}>
                     Aucune commande trouvée.
                   </td>
                 </tr>
