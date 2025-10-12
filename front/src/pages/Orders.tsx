@@ -75,6 +75,126 @@ type SheetStatus =
 const SHEET_SYNC_ENDPOINT =
   import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? '/api/orders/status';
 
+type TimeFilter = 'all' | 'day' | 'week' | 'month';
+
+const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
+  { value: 'all', label: 'Tout' },
+  { value: 'day', label: 'Jour' },
+  { value: 'week', label: 'Semaine' },
+  { value: 'month', label: 'Mois' },
+];
+
+const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseSheetDateValue = (value: unknown): Date | null => {
+  if (!value && value !== 0) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(value.getTime());
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const parsedTimestamp = Date.parse(raw);
+  if (!Number.isNaN(parsedTimestamp)) {
+    return new Date(parsedTimestamp);
+  }
+
+  const normalizedNumber = Number(raw.replace(',', '.'));
+  if (!Number.isNaN(normalizedNumber)) {
+    if (normalizedNumber > 30000 && normalizedNumber < 60000) {
+      const millis = Math.round(normalizedNumber * 24 * 60 * 60 * 1000);
+      const date = new Date(EXCEL_EPOCH + millis);
+      return new Date(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        date.getUTCHours(),
+        date.getUTCMinutes(),
+        date.getUTCSeconds(),
+        date.getUTCMilliseconds()
+      );
+    }
+  }
+
+  const isoMatch = raw.match(
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (isoMatch) {
+    const [, yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr] = isoMatch;
+    const year = Number(yearStr);
+    const month = Number(monthStr) - 1;
+    const day = Number(dayStr);
+    const hours = hourStr ? Number(hourStr) : 0;
+    const minutes = minuteStr ? Number(minuteStr) : 0;
+    const seconds = secondStr ? Number(secondStr) : 0;
+    const date = new Date(year, month, day, hours, minutes, seconds);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  const frMatch = raw.match(
+    /^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (frMatch) {
+    const [, dayStr, monthStr, yearStr, hourStr, minuteStr, secondStr] = frMatch;
+    let year = Number(yearStr);
+    if (year < 100) {
+      year += year >= 50 ? 1900 : 2000;
+    }
+    const month = Number(monthStr) - 1;
+    const day = Number(dayStr);
+    const hours = hourStr ? Number(hourStr) : 0;
+    const minutes = minuteStr ? Number(minuteStr) : 0;
+    const seconds = secondStr ? Number(secondStr) : 0;
+    const date = new Date(year, month, day, hours, minutes, seconds);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  return null;
+};
+
+const extractRowDate = (row: OrderRow): Date | null => {
+  const priorityKeys = [
+    'date',
+    'Date',
+    'DATE',
+    'Date de commande',
+    'date de commande',
+    'Created At',
+    'created_at',
+  ];
+
+  for (const key of priorityKeys) {
+    if (key in row) {
+      const parsed = parseSheetDateValue(row[key]);
+      if (parsed) return parsed;
+    }
+  }
+
+  for (const key of Object.keys(row)) {
+    const normalizedKey = normalizeFieldKey(key);
+    if (!normalizedKey) continue;
+    if (!/date|jour|time|heure/.test(normalizedKey)) continue;
+    const parsed = parseSheetDateValue(row[key]);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+const getRowStatus = (row: OrderRow): string => {
+  const rawStatus = row['etat'] ?? row['État'] ?? row['Etat'];
+  const status = typeof rawStatus === 'string' ? rawStatus.trim() : String(rawStatus ?? '').trim();
+  return status || 'new';
+};
+
   const PAGE_SIZE = 100;
 
   const isNetworkError = (error: unknown) => {
@@ -734,6 +854,153 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
    const [currentPage, setCurrentPage] = React.useState<number>(1);
+  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>('all');
+  const [selectedDay, setSelectedDay] = React.useState<string>('');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+
+  const availableDayOptions = React.useMemo(() => {
+    const daySet = new Set<string>();
+    rows.forEach(row => {
+      const date = extractRowDate(row);
+      if (!date) return;
+      const key = toDateKey(date);
+      daySet.add(key);
+    });
+    return Array.from(daySet).sort((a, b) => (a > b ? -1 : 1));
+  }, [rows]);
+
+  React.useEffect(() => {
+    if (availableDayOptions.length === 0) {
+      if (selectedDay) {
+        setSelectedDay('');
+      }
+      return;
+    }
+    if (!selectedDay || !availableDayOptions.includes(selectedDay)) {
+      setSelectedDay(availableDayOptions[0]);
+    }
+  }, [availableDayOptions, selectedDay]);
+
+  const selectedReferenceDate = React.useMemo(() => {
+    if (!selectedDay) return null;
+    const [year, month, day] = selectedDay.split('-').map(Number);
+    if ([year, month, day].some(value => Number.isNaN(value))) return null;
+    return new Date(year, (month ?? 1) - 1, day ?? 1);
+  }, [selectedDay]);
+
+  const activeTimeRange = React.useMemo(() => {
+    if (timeFilter === 'all' || !selectedReferenceDate) {
+      return null;
+    }
+    const start = new Date(selectedReferenceDate);
+    start.setHours(0, 0, 0, 0);
+
+    if (timeFilter === 'day') {
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      end.setMilliseconds(end.getMilliseconds() - 1);
+      return { start, end } as const;
+    }
+
+    if (timeFilter === 'week') {
+      const startOfWeek = new Date(start);
+      const dayIndex = startOfWeek.getDay();
+      const diff = (dayIndex + 6) % 7;
+      startOfWeek.setDate(startOfWeek.getDate() - diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 7);
+      endOfWeek.setMilliseconds(endOfWeek.getMilliseconds() - 1);
+      return { start: startOfWeek, end: endOfWeek } as const;
+    }
+
+    if (timeFilter === 'month') {
+      const startOfMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endOfMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
+      return { start: startOfMonth, end: endOfMonth } as const;
+    }
+
+    return null;
+  }, [selectedReferenceDate, timeFilter]);
+
+  const statusOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach(row => {
+      set.add(getRowStatus(row));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  const dayOptionFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
+    []
+  );
+
+  const dayRangeFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
+    []
+  );
+
+  const monthRangeFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat('fr-FR', {
+        month: 'long',
+        year: 'numeric',
+      }),
+    []
+  );
+
+  const formatDayOptionLabel = React.useCallback(
+    (key: string) => {
+      const [year, month, day] = key.split('-').map(Number);
+      if ([year, month, day].some(value => Number.isNaN(value))) return key;
+      const date = new Date(year, (month ?? 1) - 1, day ?? 1);
+      return dayOptionFormatter.format(date);
+    },
+    [dayOptionFormatter]
+  );
+
+  const timeRangeLabel = React.useMemo(() => {
+    if (timeFilter === 'all') {
+      return 'Période affichée : toutes les commandes (100 par page)';
+    }
+
+    if (!activeTimeRange) {
+      return availableDayOptions.length === 0
+        ? 'Période affichée : aucune date disponible'
+        : 'Période affichée : sélectionnez une date';
+    }
+
+    if (timeFilter === 'day') {
+      return `Période affichée : ${dayRangeFormatter.format(activeTimeRange.start)}`;
+    }
+
+    if (timeFilter === 'week') {
+      return `Période affichée : du ${dayRangeFormatter.format(activeTimeRange.start)} au ${dayRangeFormatter.format(activeTimeRange.end)}`;
+    }
+
+    if (timeFilter === 'month') {
+      return `Période affichée : ${monthRangeFormatter.format(activeTimeRange.start)}`;
+    }
+
+    return '';
+  }, [timeFilter, activeTimeRange, availableDayOptions.length, dayRangeFormatter, monthRangeFormatter]);
+
+  const statusFilterLabel = React.useMemo(() => {
+    if (statusFilter === 'all') return '';
+    return `Statut filtré : ${statusFilter}`;
+  }, [statusFilter]);
 
     const isFirstLoadRef = React.useRef(true);
   const cancelledRef = React.useRef(false);
@@ -1081,17 +1348,51 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   }, [headers]);
 
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return rows;
-    const q = query.toLowerCase();
-    return rows.filter(row =>
-      searchableHeaders
-        .filter(k => k in row)
-        .some(key => (row[key] || '').toLowerCase().includes(q))
-    );
-  }, [rows, query, searchableHeaders]);
+     const trimmedQuery = query.trim().toLowerCase();
+    const normalizedStatus = statusFilter.trim().toLowerCase();
+
+    return rows.filter(row => {
+      if (trimmedQuery) {
+        const matchesQuery = searchableHeaders
+          .filter(k => k in row)
+          .some(key => (row[key] || '').toLowerCase().includes(trimmedQuery));
+        if (!matchesQuery) {
+          return false;
+        }
+      }
+
+      if (statusFilter !== 'all') {
+        const rowStatus = getRowStatus(row).toLowerCase();
+        if (rowStatus !== normalizedStatus) {
+          return false;
+        }
+      }
+
+      if (timeFilter !== 'all') {
+        if (!activeTimeRange) {
+          return false;
+        }
+        const rowDate = extractRowDate(row);
+        if (!rowDate) {
+          return false;
+        }
+        const timestamp = rowDate.getTime();
+        if (timestamp < activeTimeRange.start.getTime() || timestamp > activeTimeRange.end.getTime()) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [rows, query, searchableHeaders, statusFilter, timeFilter, activeTimeRange]);
+
   React.useEffect(() => {
     setCurrentPage(1);
   }, [query]);
+
+    React.useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter, selectedDay, statusFilter]);
 
   React.useEffect(() => {
     setCurrentPage(prev => {
@@ -1119,21 +1420,98 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     <div style={{ padding: '1rem' }}>
       <h2>Commandes (Google Sheet)</h2>
 
-      <div style={{ margin: '0.5rem 0', display: 'flex', gap: '0.5rem' }}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Rechercher (client, wilaya, produit, ... )"
-          style={{ padding: '0.4rem 0.6rem', width: 320 }}
-        />
-        <a
-          href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
-          target="_blank"
-          rel="noreferrer"
-          style={{ alignSelf: 'center' }}
+      <div style={{ margin: '0.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Rechercher (client, wilaya, produit, ... )"
+            style={{ padding: '0.4rem 0.6rem', width: 320 }}
+          />
+          <a
+            href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
+            target="_blank"
+            rel="noreferrer"
+            style={{ alignSelf: 'center' }}
+          >
+            Ouvrir la feuille
+          </a>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center',
+          }}
         >
-          Ouvrir la feuille
-        </a>
+          <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>Filtrer par période :</span>
+          {TIME_FILTER_OPTIONS.map(option => {
+            const isActive = option.value === timeFilter;
+            return (
+              <button
+                key={option.value}
+                onClick={() => setTimeFilter(option.value)}
+                type="button"
+                style={{
+                  padding: '0.35rem 0.7rem',
+                  borderRadius: 4,
+                  border: '1px solid #ced4da',
+                  background: isActive ? '#4c8bf5' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#212529',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+
+          {timeFilter !== 'all' && (
+            <select
+              value={availableDayOptions.length === 0 ? '' : selectedDay}
+              onChange={e => setSelectedDay(e.target.value)}
+              disabled={availableDayOptions.length === 0}
+              style={{
+                padding: '0.35rem 0.55rem',
+                borderRadius: 4,
+                border: '1px solid #ced4da',
+                minWidth: 220,
+              }}
+            >
+              {availableDayOptions.length === 0 ? (
+                <option value="">Aucune date disponible</option>
+              ) : (
+                availableDayOptions.map(option => (
+                  <option key={option} value={option}>
+                    {formatDayOptionLabel(option)}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+
+          <span style={{ fontWeight: 500, fontSize: '0.9rem', marginLeft: '0.5rem' }}>Statut :</span>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{
+              padding: '0.35rem 0.55rem',
+              borderRadius: 4,
+              border: '1px solid #ced4da',
+              minWidth: 160,
+            }}
+          >
+            <option value="all">Tous les statuts</option>
+            {statusOptions.map(option => (
+              <option key={option || 'status-empty'} value={option}>
+                {option || 'Sans statut'}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
             {statusSyncDisabled && (
@@ -1187,7 +1565,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         </div>
       )}
 
- {filtered.length > 0 && (
+      {filtered.length > 0 && (
         <div
           style={{
             display: 'flex',
@@ -1198,9 +1576,14 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontSize: '0.9rem', color: '#555' }}>
-            Affichage des commandes {pageRangeStart} à {pageRangeEnd} sur {filtered.length}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem', color: '#555' }}>
+            <span>
+              Affichage des commandes {pageRangeStart} à {pageRangeEnd} sur {filtered.length}
+            </span>
+            {timeRangeLabel && <span>{timeRangeLabel}</span>}
+            {statusFilterLabel && <span>{statusFilterLabel}</span>}
+          </div>
+          
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
               onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
