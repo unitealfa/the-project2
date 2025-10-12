@@ -1624,7 +1624,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             {statusFilterLabel && <span>{statusFilterLabel}</span>}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem',marginRight: '50rem' }}>
             <button
               onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
               disabled={safeCurrentPage <= 1}
