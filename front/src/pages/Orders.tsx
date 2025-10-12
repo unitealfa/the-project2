@@ -75,6 +75,8 @@ type SheetStatus =
 const SHEET_SYNC_ENDPOINT =
   import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? '/api/orders/status';
 
+  const PAGE_SIZE = 100;
+
   const isNetworkError = (error: unknown) => {
   if (error instanceof TypeError) return true;
   if (!error) return false;
@@ -124,6 +126,13 @@ const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
   const normalized = normalizeStatus(status);
   return DHD_STATUS_MAP[normalized] ?? null;
 };
+
+const normalizeFieldKey = (key: string) =>
+  key
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
 const extractTrackingStatus = (payload: any): string | null => {
   if (!payload || typeof payload !== 'object') return null;
@@ -724,6 +733,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
 });
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
+   const [currentPage, setCurrentPage] = React.useState<number>(1);
 
     const isFirstLoadRef = React.useRef(true);
   const cancelledRef = React.useRef(false);
@@ -907,6 +917,51 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               ).trim();
 
               obj['etat'] = sheetStatus;
+              const ensureCanonicalField = (
+                targetKey: string,
+                matcher: (normalizedKey: string, tokens: string[]) => boolean
+              ) => {
+                const existing = obj[targetKey];
+                if (existing && String(existing).trim()) {
+                  obj[targetKey] = String(existing).trim();
+                  return;
+                }
+                for (const key of Object.keys(obj)) {
+                  const rawValue = obj[key];
+                  if (rawValue === undefined || rawValue === null) continue;
+                  const normalizedKey = normalizeFieldKey(key);
+                  if (!normalizedKey) continue;
+                  const tokens = normalizedKey
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim()
+                    .split(/\s+/)
+                    .filter(Boolean);
+                  if (!matcher(normalizedKey, tokens)) continue;
+                  const value = String(rawValue).trim();
+                  if (!value) continue;
+                  obj[targetKey] = value;
+                  return;
+                }
+              };
+
+              ensureCanonicalField('Nom du client', (normalizedKey, tokens) => {
+                const hasClient = tokens.some(token => token === 'client' || token === 'customer');
+                const hasName = tokens.some(token => token === 'nom' || token === 'name');
+                if (hasClient && hasName) return true;
+                return normalizedKey.includes('client') && (normalizedKey.includes('nom') || normalizedKey.includes('name'));
+              });
+
+              ensureCanonicalField('Numero', (normalizedKey, tokens) => {
+                if (tokens.some(token => token === 'numero')) return true;
+                if (tokens.some(token => token === 'telephone' || token === 'tel' || token === 'phone')) return true;
+                return (
+                  normalizedKey.includes('numero') ||
+                  normalizedKey.includes('telephone') ||
+                  normalizedKey.includes('tel') ||
+                  normalizedKey.includes('phone')
+                );
+              });
+
               return obj;
             })
             .filter((row): row is OrderRow => row !== null);
@@ -1034,6 +1089,31 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
         .some(key => (row[key] || '').toLowerCase().includes(q))
     );
   }, [rows, query, searchableHeaders]);
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
+
+  React.useEffect(() => {
+    setCurrentPage(prev => {
+      const maxPage = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      return Math.min(prev, maxPage);
+    });
+  }, [filtered.length]);
+
+  const totalPages = React.useMemo(
+    () => Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)),
+    [filtered.length]
+  );
+
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+  const paginatedRows = React.useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safeCurrentPage]);
+
+  const pageRangeStart = filtered.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
+  const pageRangeEnd = Math.min(filtered.length, (safeCurrentPage - 1) * PAGE_SIZE + paginatedRows.length);
 
   return (
     <div style={{ padding: '1rem' }}>
@@ -1092,7 +1172,7 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               </tr>
              </thead>
              <tbody>
-              {filtered.map((row, idx) => (
+              {paginatedRows.map((row, idx) => (
                 <OrderRowItem key={row['id-sheet'] || row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
               ))}
               {filtered.length === 0 && (
@@ -1106,6 +1186,57 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
           </table>
         </div>
       )}
+
+ {filtered.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            marginTop: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '0.9rem', color: '#555' }}>
+            Affichage des commandes {pageRangeStart} à {pageRangeEnd} sur {filtered.length}
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
+              disabled={safeCurrentPage <= 1}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: 4,
+                border: '1px solid #ced4da',
+                background: safeCurrentPage <= 1 ? '#f1f3f5' : '#ffffff',
+                color: safeCurrentPage <= 1 ? '#adb5bd' : '#212529',
+                cursor: safeCurrentPage <= 1 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Précédent
+            </button>
+            <span style={{ fontSize: '0.9rem', color: '#555' }}>
+              Page {safeCurrentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
+              disabled={safeCurrentPage >= totalPages}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: 4,
+                border: '1px solid #ced4da',
+                background: safeCurrentPage >= totalPages ? '#f1f3f5' : '#ffffff',
+                color: safeCurrentPage >= totalPages ? '#adb5bd' : '#212529',
+                cursor: safeCurrentPage >= totalPages ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Revenir en haut de la page"
