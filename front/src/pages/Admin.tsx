@@ -1,38 +1,28 @@
 // front/src/pages/Admin.tsx
 
 import React, { useEffect, useState, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
-import { User } from "../types";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 const Admin: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { token, user } = useContext(AuthContext);
-  const [adminData, setAdminData] = useState<User | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [showPopup, setShowPopup] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(10);
   const [showButton, setShowButton] = useState<boolean>(true);
+  const adminUser = user && user.role === "admin" ? user : null;
 
   useEffect(() => {
-    if (!token || !id) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/users/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          throw new Error(`Erreur ${res.status}`);
-        }
-        const data: User = await res.json();
-        setAdminData(data);
-      } catch (err: any) {
-        setError(err.message);
-      }
-    })();
-  }, [id, token]);
+    if (!adminUser) {
+      return;
+    }
+    if (id && adminUser.id !== id) {
+      navigate(`/admin/${adminUser.id}`, { replace: true });
+    }
+  }, [adminUser, id, navigate]);
 
   // Chargement des commandes (Google Sheet) pour calculer le montant total visualisé
   useEffect(() => {
@@ -126,7 +116,7 @@ const Admin: React.FC = () => {
   }, []);
 
   // Si pas connecté ou pas admin
-  if (!user || user.role !== "admin") {
+  if (!adminUser) {
     return (
       <p style={{ textAlign: "center", marginTop: "2rem" }}>
         Accès non autorisé
@@ -134,12 +124,7 @@ const Admin: React.FC = () => {
     );
   }
   // Erreur ou chargement
-  if (error) {
-    return (
-      <p style={{ textAlign: "center", marginTop: "2rem" }}>Erreur : {error}</p>
-    );
-  }
-  if (!adminData) {
+  if (id && adminUser.id !== id) {
     return (
       <p style={{ textAlign: "center", marginTop: "2rem" }}>Chargement…</p>
     );
@@ -148,7 +133,7 @@ const Admin: React.FC = () => {
   return (
     <div style={{ maxWidth: 1000, margin: "2rem auto" }}>
       <h1>
-        Bienvenue {adminData.firstName} {adminData.lastName}
+        Bienvenue {adminUser.firstName} {adminUser.lastName}
       </h1>
 
       {/* Tableau commandes avec montant total en rouge */}
