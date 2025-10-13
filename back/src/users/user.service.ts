@@ -1,5 +1,4 @@
 // back/src/users/user.service.ts
-import axios from 'axios';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -185,21 +184,25 @@ export class UserService {
     }
 
     try {
-      await axios.post(
-        webhookUrl,
-        {
+       const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Key': webhookKey,
+        },
+        body: JSON.stringify({
           to: targetEmail,
           subject: 'Code de vérification - Réinitialisation du mot de passe administrateur',
           message: `Votre code de vérification est : ${code}`,
           sender: 'automatiquexmail@gmail.com',
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Key': webhookKey,
-          },
-        }
-      );
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erreur lors de l\'envoi du webhook Google', response.status, errorText);
+        throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
+      }
     } catch (error) {
       console.error('Erreur lors de l\'envoi du webhook Google', error);
       throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
