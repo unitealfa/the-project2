@@ -180,7 +180,11 @@ export class UserService {
     const webhookKey = process.env.GOOGLE_WEBHOOK_KEY ?? 'wkse ryxm mvwu pjhs';
 
     if (!webhookUrl) {
-      throw new Error('GOOGLE_WEBHOOK_URL non défini. Impossible d\'envoyer le code de vérification.');
+            console.warn(
+        "GOOGLE_WEBHOOK_URL non défini. Envoi du code de vérification ignoré et code affiché dans les logs pour le développement."
+      );
+      console.info(`Code de vérification pour ${targetEmail} : ${code}`);
+      return;
     }
 
     try {
