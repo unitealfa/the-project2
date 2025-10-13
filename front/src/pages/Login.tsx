@@ -9,7 +9,6 @@ const Login: React.FC = () => {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showForgotModal, setShowForgotModal]           = useState(false);
-  const [forgotEmail, setForgotEmail]                   = useState('');
   const [forgotMessage, setForgotMessage]               = useState('');
   const [errorMessage, setErrorMessage]                 = useState('');
   const [requiresVerification, setRequiresVerification] = useState(false);
@@ -54,34 +53,17 @@ const Login: React.FC = () => {
     }
   };
 
-  const openForgotModal = () => {
-    setShowForgotModal(true);
-    setForgotEmail(email);
-    setForgotMessage('');
-    setErrorMessage('');
-    setVerificationCode('');
-    setVerificationMessage('');
-    setMaskedAdminEmail('');
-    setRequiresVerification(false);
-    setVerificationCompleted(false);
-  };
-
-  const closeForgotModal = () => {
-    setShowForgotModal(false);
-  };
-
-  const handleForgotSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const requestAdminReset = async () => {
     setIsSending(true);
     setErrorMessage('');
     setForgotMessage('');
     setVerificationMessage('');
     setVerificationCompleted(false);
+    setVerificationCode('');
     try {
       const res = await fetch('/api/users/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -90,14 +72,27 @@ const Login: React.FC = () => {
       setForgotMessage(data.message ?? '');
       setRequiresVerification(Boolean(data.requiresVerification));
       setMaskedAdminEmail(data.maskedEmail ?? '');
-      if (!data.requiresVerification) {
-        setVerificationCode('');
-      }
     } catch (err: any) {
       setErrorMessage(err.message);
     } finally {
       setIsSending(false);
     }
+  };
+
+    const openForgotModal = () => {
+    setShowForgotModal(true);
+    setForgotMessage('');
+    setErrorMessage('');
+    setVerificationCode('');
+    setVerificationMessage('');
+    setMaskedAdminEmail('');
+    setRequiresVerification(false);
+    setVerificationCompleted(false);
+    void requestAdminReset();
+  };
+
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
   };
 
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -109,7 +104,7 @@ const Login: React.FC = () => {
       const res = await fetch('/api/users/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail, code: verificationCode }),
+         body: JSON.stringify({ code: verificationCode }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -218,45 +213,53 @@ const Login: React.FC = () => {
             )}
 
             {!requiresVerification && (
-              <form onSubmit={handleForgotSubmit} style={{ marginTop: '1rem' }}>
-                <label htmlFor="forgot-email">Adresse email</label><br/>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  value={forgotEmail}
-                  onChange={e => setForgotEmail(e.target.value)}
-                  required
-                  style={{ width: '100%', marginTop: '0.5rem' }}
-                />
-                <button
-                  type="submit"
-                  style={{ marginTop: '1rem', width: '100%' }}
-                  disabled={isSending}
-                >
-                  {isSending ? 'Envoi en cours…' : 'Recevoir le code'}
-                </button>
-              </form>
+              <div style={{ marginTop: '1rem' }}>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  {isSending
+                    ? 'Envoi du code de vérification à l\'administrateur…'
+                    : 'Un email est envoyé automatiquement à l\'administrateur pour lancer la réinitialisation.'}
+                </p>
+                {!isSending && (
+                  <button
+                    type="button"
+                    onClick={requestAdminReset}
+                    style={{ width: '100%' }}
+                  >
+                    Renvoyer le code
+                  </button>
+                )}
+              </div>
             )}
 
             {requiresVerification && !verificationCompleted && (
-              <form onSubmit={handleVerifyCode} style={{ marginTop: '1rem' }}>
-                <label htmlFor="verification-code">Code de vérification</label><br/>
-                <input
-                  id="verification-code"
-                  type="text"
-                  value={verificationCode}
-                  onChange={e => setVerificationCode(e.target.value)}
-                  required
-                  style={{ width: '100%', marginTop: '0.5rem' }}
-                />
+              <>
+                <form onSubmit={handleVerifyCode} style={{ marginTop: '1rem' }}>
+                  <label htmlFor="verification-code">Code de vérification</label><br/>
+                  <input
+                    id="verification-code"
+                    type="text"
+                    value={verificationCode}
+                    onChange={e => setVerificationCode(e.target.value)}
+                    required
+                    style={{ width: '100%', marginTop: '0.5rem' }}
+                  />
+                  <button
+                    type="submit"
+                    style={{ marginTop: '1rem', width: '100%' }}
+                    disabled={isVerifying}
+                  >
+                    {isVerifying ? 'Vérification…' : 'Valider le code'}
+                  </button>
+                </form>
                 <button
-                  type="submit"
-                  style={{ marginTop: '1rem', width: '100%' }}
-                  disabled={isVerifying}
+                  type="button"
+                  onClick={requestAdminReset}
+                  style={{ marginTop: '0.75rem', width: '100%' }}
+                  disabled={isSending}
                 >
-                  {isVerifying ? 'Vérification…' : 'Valider le code'}
+                  {isSending ? 'Renvoi en cours…' : 'Renvoyer le code'}
                 </button>
-              </form>
+              </>
             )}
 
             {verificationCompleted && (

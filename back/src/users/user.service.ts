@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import User, { IUser } from './user.model';
 import VerificationCode from './verificationCode.model';
-import { CreateUserDto, ForgotPasswordDto, LoginDto, VerifyCodeDto } from './user.dto';
+import { CreateUserDto, LoginDto, VerifyCodeDto } from './user.dto';
 
 dotenv.config();
 
@@ -115,18 +115,9 @@ export class UserService {
     await u.deleteOne();
   }
   /** Demande de réinitialisation de mot de passe */
-  async requestPasswordReset(
-    dto: ForgotPasswordDto
-  ): Promise<{ message: string; requiresVerification: boolean; maskedEmail?: string }> {
-    const user = await User.findOne({ email: dto.email });
-    if (!user) throw new Error('Utilisateur non trouvé');
-
-    if (user.role !== 'admin') {
-      return {
-        message: 'Veuillez contacter l\'administrateur pour réinitialiser votre mot de passe.',
-        requiresVerification: false,
-      };
-    }
+  async requestPasswordReset(): Promise<{ message: string; requiresVerification: boolean; maskedEmail?: string }> {
+    const user = await User.findOne({ role: 'admin' });
+    if (!user) throw new Error('Administrateur introuvable');
 
     const code = this.generateVerificationCode();
     const expiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -138,20 +129,15 @@ export class UserService {
 
     return {
       message:
-        'Un code de vérification a été envoyé. Merci de consulter votre boîte mail pour terminer la procédure.',
-      requiresVerification: true,
+        'Un code de vérification a été envoyé à l\'adresse de l\'administrateur. Merci de consulter la boîte mail pour terminer la procédure.',      requiresVerification: true,
       maskedEmail: this.maskEmail(user.email),
     };
   }
 
   /** Vérification du code de réinitialisation */
   async verifyResetCode(dto: VerifyCodeDto): Promise<{ message: string }> {
-    const user = await User.findOne({ email: dto.email });
-    if (!user) throw new Error('Utilisateur non trouvé');
-
-    if (user.role !== 'admin') {
-      throw new Error('Seul l\'administrateur peut réinitialiser son mot de passe via ce processus.');
-    }
+        const user = await User.findOne({ role: 'admin' });
+    if (!user) throw new Error('Administrateur introuvable');
 
     const verification = await VerificationCode.findOne({ userId: user._id, code: dto.code });
     if (!verification) {
@@ -169,7 +155,7 @@ export class UserService {
 
     return {
       message:
-        'Votre mot de passe a été réinitialisé avec succès. Utilisez “adminadmin” pour vous reconnecter.',
+        'Votre mot de passe a été réinitialisé avec succès. Utilisez “adminadmin” pour vous reconnecter et pensez à le modifier depuis votre espace administrateur.',
     };
   }
 

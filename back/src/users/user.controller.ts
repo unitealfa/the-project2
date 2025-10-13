@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { UserService } from './user.service';
-import { CreateUserDto, ForgotPasswordDto, LoginDto, VerifyCodeDto } from './user.dto';
+import { CreateUserDto, LoginDto, VerifyCodeDto } from './user.dto';
 
 const service = new UserService();
 
@@ -29,25 +29,23 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // POST /api/users/forgot-password
-export const forgotPassword = async (req: Request, res: Response) => {
+// POST /api/users/forgot-password
+export const forgotPassword = async (_req: Request, res: Response) => {
   try {
-    const dto: ForgotPasswordDto = req.body;
-    if (!dto.email) {
-      return res.status(400).json({ message: 'Email requis' });
-    }
-    const response = await service.requestPasswordReset(dto);
+    const response = await service.requestPasswordReset();
     res.json(response);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
 };
 
+
 // POST /api/users/verify-code
 export const verifyCode = async (req: Request, res: Response) => {
   try {
     const dto: VerifyCodeDto = req.body;
-    if (!dto.email || !dto.code) {
-      return res.status(400).json({ message: 'Email et code requis' });
+    if (!dto.code) {
+      return res.status(400).json({ message: 'Code requis' });
     }
     const response = await service.verifyResetCode(dto);
     res.json(response);

@@ -11,11 +11,6 @@ export interface CreateUserDto {
   role:      'gestionnaire' | 'confirmateur';
 }
 
-export interface ForgotPasswordDto {
-  email: string;
-}
-
 export interface VerifyCodeDto {
-  email: string;
-  code:  string;
+  code: string;
 }
