@@ -13,6 +13,9 @@ npm install axios
 npm install node-fetch
 npm init -y
 npm install googleapis
+npm install nodemailer
+npm install --save-dev @types/nodemailer
+
 
 
 npm run dev

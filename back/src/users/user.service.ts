@@ -1,6 +1,8 @@
 // back/src/users/user.service.ts
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import dotenv from 'dotenv';
 import User, { IUser } from './user.model';
 import VerificationCode from './verificationCode.model';
@@ -179,37 +181,82 @@ export class UserService {
     const webhookUrl = process.env.GOOGLE_WEBHOOK_URL;
     const webhookKey = process.env.GOOGLE_WEBHOOK_KEY ?? 'wkse ryxm mvwu pjhs';
 
-    if (!webhookUrl) {
-            console.warn(
-        "GOOGLE_WEBHOOK_URL non défini. Envoi du code de vérification ignoré et code affiché dans les logs pour le développement."
-      );
-      console.info(`Code de vérification pour ${targetEmail} : ${code}`);
-      return;
-    }
+        if (webhookUrl) {
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Key': webhookKey,
+          },
+          body: JSON.stringify({
+            to: targetEmail,
+            subject: 'Code de vérification - Réinitialisation du mot de passe administrateur',
+            message: `Votre code de vérification est : ${code}`,
+            sender: 'automatiquexmail@gmail.com',
+          }),
+        });
 
-    try {
-       const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Key': webhookKey,
-        },
-        body: JSON.stringify({
-          to: targetEmail,
-          subject: 'Code de vérification - Réinitialisation du mot de passe administrateur',
-          message: `Votre code de vérification est : ${code}`,
-          sender: 'automatiquexmail@gmail.com',
-        }),
-      });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Erreur lors de l\'envoi du webhook Google', response.status, errorText);
+          throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erreur lors de l\'envoi du webhook Google', response.status, errorText);
+        return;
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi du webhook Google', error);
         throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
       }
+    }
+
+    const transporter = await this.createFallbackTransport();
+
+    const fromAddress =
+      process.env.SMTP_FROM ?? process.env.SMTP_USER ?? 'automatiquexmail@gmail.com';
+
+    try {
+      await transporter.sendMail({
+        from: fromAddress,
+        to: targetEmail,
+        subject: 'Code de vérification - Réinitialisation du mot de passe administrateur',
+        text: `Votre code de vérification est : ${code}`,
+        html: `
+          <p>Bonjour,</p>
+          <p>Votre code de vérification pour la réinitialisation du mot de passe administrateur est :</p>
+          <p style="font-size: 1.5rem; font-weight: bold; letter-spacing: 0.2rem;">${code}</p>
+          <p>Ce code expirera dans 15 minutes.</p>
+        `,
+      });
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du webhook Google', error);
+      console.error('Erreur lors de l\'envoi du courriel de vérification', error);
       throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
     }
+  }
+
+  private async createFallbackTransport(): Promise<nodemailer.Transporter<SMTPTransport.SentMessageInfo>> {
+    const host = process.env.SMTP_HOST ?? 'smtp.gmail.com';
+    const port = Number(process.env.SMTP_PORT ?? '465');
+    const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465;
+    const user = process.env.SMTP_USER ?? 'automatiquexmail@gmail.com';
+    const pass = (process.env.SMTP_PASS ?? 'wkse ryxm mvwu pjhs').replace(/\s+/g, '');
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
+
+    try {
+      await transporter.verify();
+    } catch (error) {
+      console.error('Vérification du transport SMTP échouée', error);
+      throw new Error(
+        "Le service d'envoi de courriels n'est pas correctement configuré. Merci de vérifier les identifiants SMTP."
+      );
+    }
+
+    return transporter;
   }
 }
