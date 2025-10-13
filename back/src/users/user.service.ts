@@ -1,13 +1,16 @@
 // back/src/users/user.service.ts
+import axios from 'axios';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import User, { IUser } from './user.model';
-import { LoginDto, CreateUserDto } from './user.dto';
+import VerificationCode from './verificationCode.model';
+import { CreateUserDto, ForgotPasswordDto, LoginDto, VerifyCodeDto } from './user.dto';
 
 dotenv.config();
 
 export class UserService {
+  private static readonly ADMIN_RESET_PASSWORD = 'adminadmin';
   /** Authentification + JWT */
   async authenticate(dto: LoginDto): Promise<{ user: IUser; token: string }> {
     const user = await User.findOne({ email: dto.email });
@@ -110,5 +113,110 @@ export class UserService {
     if (!u) throw new Error('Utilisateur non trouvé');
     if (u.role === 'admin') throw new Error('Suppression de l\'admin impossible'); // FIX: guillemets échappés
     await u.deleteOne();
+  }
+  /** Demande de réinitialisation de mot de passe */
+  async requestPasswordReset(
+    dto: ForgotPasswordDto
+  ): Promise<{ message: string; requiresVerification: boolean; maskedEmail?: string }> {
+    const user = await User.findOne({ email: dto.email });
+    if (!user) throw new Error('Utilisateur non trouvé');
+
+    if (user.role !== 'admin') {
+      return {
+        message: 'Veuillez contacter l\'administrateur pour réinitialiser votre mot de passe.',
+        requiresVerification: false,
+      };
+    }
+
+    const code = this.generateVerificationCode();
+    const expiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await VerificationCode.deleteMany({ userId: user._id });
+    await VerificationCode.create({ userId: user._id, code, expiration });
+
+    await this.sendAdminVerificationEmail(user.email, code);
+
+    return {
+      message:
+        'Un code de vérification a été envoyé. Merci de consulter votre boîte mail pour terminer la procédure.',
+      requiresVerification: true,
+      maskedEmail: this.maskEmail(user.email),
+    };
+  }
+
+  /** Vérification du code de réinitialisation */
+  async verifyResetCode(dto: VerifyCodeDto): Promise<{ message: string }> {
+    const user = await User.findOne({ email: dto.email });
+    if (!user) throw new Error('Utilisateur non trouvé');
+
+    if (user.role !== 'admin') {
+      throw new Error('Seul l\'administrateur peut réinitialiser son mot de passe via ce processus.');
+    }
+
+    const verification = await VerificationCode.findOne({ userId: user._id, code: dto.code });
+    if (!verification) {
+      throw new Error('Code de vérification invalide.');
+    }
+
+    if (verification.expiration.getTime() < Date.now()) {
+      await VerificationCode.deleteMany({ userId: user._id });
+      throw new Error('Le code de vérification a expiré.');
+    }
+
+    user.password = await bcrypt.hash(UserService.ADMIN_RESET_PASSWORD, 12);
+    await user.save();
+    await VerificationCode.deleteMany({ userId: user._id });
+
+    return {
+      message:
+        'Votre mot de passe a été réinitialisé avec succès. Utilisez “adminadmin” pour vous reconnecter.',
+    };
+  }
+
+  private generateVerificationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private maskEmail(email: string): string {
+    const [localPart, domain] = email.split('@');
+    if (!domain) return email;
+
+    if (localPart.length <= 2) {
+      return `${localPart[0] ?? ''}***@${domain}`;
+    }
+
+    const visibleChars = Math.min(3, localPart.length - 1);
+    const start = localPart.slice(0, visibleChars);
+    return `${start}***@${domain}`;
+  }
+
+  private async sendAdminVerificationEmail(targetEmail: string, code: string): Promise<void> {
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL;
+    const webhookKey = process.env.GOOGLE_WEBHOOK_KEY ?? 'wkse ryxm mvwu pjhs';
+
+    if (!webhookUrl) {
+      throw new Error('GOOGLE_WEBHOOK_URL non défini. Impossible d\'envoyer le code de vérification.');
+    }
+
+    try {
+      await axios.post(
+        webhookUrl,
+        {
+          to: targetEmail,
+          subject: 'Code de vérification - Réinitialisation du mot de passe administrateur',
+          message: `Votre code de vérification est : ${code}`,
+          sender: 'automatiquexmail@gmail.com',
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Key': webhookKey,
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du webhook Google', error);
+      throw new Error('Impossible d\'envoyer le code de vérification. Veuillez réessayer plus tard.');
+    }
   }
 }

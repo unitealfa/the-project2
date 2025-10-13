@@ -3,6 +3,7 @@
 ## Backend
 cd backend
 npm install bcrypt
+npm install axios
 npm install --save-dev @types/bcrypt
 npm install --save-dev @types/cors
 npm install jsonwebtoken

@@ -8,6 +8,17 @@ import { AuthContext } from '../context/AuthContext';
 const Login: React.FC = () => {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [showForgotModal, setShowForgotModal]           = useState(false);
+  const [forgotEmail, setForgotEmail]                   = useState('');
+  const [forgotMessage, setForgotMessage]               = useState('');
+  const [errorMessage, setErrorMessage]                 = useState('');
+  const [requiresVerification, setRequiresVerification] = useState(false);
+  const [maskedAdminEmail, setMaskedAdminEmail]         = useState('');
+  const [verificationCode, setVerificationCode]         = useState('');
+  const [isSending, setIsSending]                       = useState(false);
+  const [isVerifying, setIsVerifying]                   = useState(false);
+  const [verificationMessage, setVerificationMessage]   = useState('');
+  const [verificationCompleted, setVerificationCompleted] = useState(false);
   const navigate = useNavigate();
   const { user, login } = useContext(AuthContext);
 
@@ -43,6 +54,116 @@ const Login: React.FC = () => {
     }
   };
 
+  const openForgotModal = () => {
+    setShowForgotModal(true);
+    setForgotEmail(email);
+    setForgotMessage('');
+    setErrorMessage('');
+    setVerificationCode('');
+    setVerificationMessage('');
+    setMaskedAdminEmail('');
+    setRequiresVerification(false);
+    setVerificationCompleted(false);
+  };
+
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+  };
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSending(true);
+    setErrorMessage('');
+    setForgotMessage('');
+    setVerificationMessage('');
+    setVerificationCompleted(false);
+    try {
+      const res = await fetch('/api/users/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Erreur lors de la demande de réinitialisation.');
+      }
+      setForgotMessage(data.message ?? '');
+      setRequiresVerification(Boolean(data.requiresVerification));
+      setMaskedAdminEmail(data.maskedEmail ?? '');
+      if (!data.requiresVerification) {
+        setVerificationCode('');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    setErrorMessage('');
+    setVerificationMessage('');
+    try {
+      const res = await fetch('/api/users/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, code: verificationCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Erreur lors de la vérification du code.');
+      }
+      setVerificationMessage(data.message ?? '');
+      setVerificationCompleted(true);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '1rem',
+  };
+
+  const modalStyle: React.CSSProperties = {
+    backgroundColor: '#fff',
+    padding: '2rem 1.5rem 1.5rem',
+    borderRadius: '8px',
+    maxWidth: '420px',
+    width: '100%',
+    position: 'relative',
+    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+  };
+
+  const closeButtonStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '0.5rem',
+    right: '0.5rem',
+    border: 'none',
+    background: 'transparent',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+  };
+
+  const secondaryTextStyle: React.CSSProperties = {
+    fontSize: '0.9rem',
+    color: '#555',
+    lineHeight: 1.4,
+  };
+
   return (
     <div style={{ maxWidth: 320, margin: '2rem auto' }}>
       <h2>Connexion</h2>
@@ -65,6 +186,93 @@ const Login: React.FC = () => {
         <br/><br/>
         <button type="submit">Se connecter</button>
       </form>
+      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+        <button type="button" onClick={openForgotModal} style={{ background: 'none', border: 'none', color: '#0077cc', cursor: 'pointer', textDecoration: 'underline' }}>
+          Mot de passe oublié ?
+        </button>
+      </div>
+
+      {showForgotModal && (
+        <div style={overlayStyle} role="dialog" aria-modal="true" aria-labelledby="forgot-password-title">
+          <div style={modalStyle}>
+            <button style={closeButtonStyle} onClick={closeForgotModal} aria-label="Fermer la fenêtre de réinitialisation">
+              ×
+            </button>
+            <h3 id="forgot-password-title">Réinitialiser le mot de passe</h3>
+            <p style={secondaryTextStyle}>
+              Si vous n'êtes pas administrateur, veuillez contacter l'administrateur pour réinitialiser votre mot de passe.
+            </p>
+            {forgotMessage && (
+              <p style={{ marginTop: '0.75rem' }}>{forgotMessage}</p>
+            )}
+            {maskedAdminEmail && requiresVerification && (
+              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                Un email a été envoyé à <strong>{maskedAdminEmail}</strong>.
+              </p>
+            )}
+            {errorMessage && (
+              <p style={{ color: '#c0392b', marginTop: '0.75rem' }}>{errorMessage}</p>
+            )}
+            {verificationMessage && (
+              <p style={{ color: '#27ae60', marginTop: '0.75rem' }}>{verificationMessage}</p>
+            )}
+
+            {!requiresVerification && (
+              <form onSubmit={handleForgotSubmit} style={{ marginTop: '1rem' }}>
+                <label htmlFor="forgot-email">Adresse email</label><br/>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  required
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                />
+                <button
+                  type="submit"
+                  style={{ marginTop: '1rem', width: '100%' }}
+                  disabled={isSending}
+                >
+                  {isSending ? 'Envoi en cours…' : 'Recevoir le code'}
+                </button>
+              </form>
+            )}
+
+            {requiresVerification && !verificationCompleted && (
+              <form onSubmit={handleVerifyCode} style={{ marginTop: '1rem' }}>
+                <label htmlFor="verification-code">Code de vérification</label><br/>
+                <input
+                  id="verification-code"
+                  type="text"
+                  value={verificationCode}
+                  onChange={e => setVerificationCode(e.target.value)}
+                  required
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                />
+                <button
+                  type="submit"
+                  style={{ marginTop: '1rem', width: '100%' }}
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? 'Vérification…' : 'Valider le code'}
+                </button>
+              </form>
+            )}
+
+            {verificationCompleted && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  style={{ width: '100%' }}
+                  onClick={closeForgotModal}
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

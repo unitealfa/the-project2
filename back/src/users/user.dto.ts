@@ -10,3 +10,12 @@ export interface CreateUserDto {
   password:  string;
   role:      'gestionnaire' | 'confirmateur';
 }
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface VerifyCodeDto {
+  email: string;
+  code:  string;
+}
