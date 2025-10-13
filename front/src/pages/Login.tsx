@@ -18,6 +18,7 @@ const Login: React.FC = () => {
   const [isVerifying, setIsVerifying]                   = useState(false);
   const [verificationMessage, setVerificationMessage]   = useState('');
   const [verificationCompleted, setVerificationCompleted] = useState(false);
+  const [hasRequestedReset, setHasRequestedReset]       = useState(false);
   const navigate = useNavigate();
   const { user, login } = useContext(AuthContext);
 
@@ -72,6 +73,7 @@ const Login: React.FC = () => {
       setForgotMessage(data.message ?? '');
       setRequiresVerification(Boolean(data.requiresVerification));
       setMaskedAdminEmail(data.maskedEmail ?? '');
+      setHasRequestedReset(true);
     } catch (err: any) {
       setErrorMessage(err.message);
     } finally {
@@ -88,7 +90,7 @@ const Login: React.FC = () => {
     setMaskedAdminEmail('');
     setRequiresVerification(false);
     setVerificationCompleted(false);
-    void requestAdminReset();
+    setHasRequestedReset(false);
   };
 
   const closeForgotModal = () => {
@@ -110,7 +112,9 @@ const Login: React.FC = () => {
       if (!res.ok) {
         throw new Error(data.message || 'Erreur lors de la vérification du code.');
       }
-      setVerificationMessage(data.message ?? '');
+      setVerificationMessage(
+        "Le mot de passe est \"adminadmin\" et l'email est votre adresse utilisateur."
+      );
       setVerificationCompleted(true);
     } catch (err: any) {
       setErrorMessage(err.message);
@@ -197,10 +201,10 @@ const Login: React.FC = () => {
             <p style={secondaryTextStyle}>
               Si vous n'êtes pas administrateur, veuillez contacter l'administrateur pour réinitialiser votre mot de passe.
             </p>
-            {forgotMessage && (
+            {hasRequestedReset && forgotMessage && (
               <p style={{ marginTop: '0.75rem' }}>{forgotMessage}</p>
             )}
-            {maskedAdminEmail && requiresVerification && (
+            {hasRequestedReset && maskedAdminEmail && requiresVerification && (
               <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
                 Un email a été envoyé à <strong>{maskedAdminEmail}</strong>.
               </p>
@@ -212,7 +216,20 @@ const Login: React.FC = () => {
               <p style={{ color: '#27ae60', marginTop: '0.75rem' }}>{verificationMessage}</p>
             )}
 
-            {!requiresVerification && (
+             {!hasRequestedReset && (
+              <div style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={requestAdminReset}
+                  style={{ width: '100%' }}
+                  disabled={isSending}
+                >
+                  {isSending ? 'Envoi en cours…' : 'Réinitialiser le mot de passe administrateur'}
+                </button>
+              </div>
+            )}
+
+            {hasRequestedReset && !requiresVerification && (
               <div style={{ marginTop: '1rem' }}>
                 <p style={{ marginBottom: '0.5rem' }}>
                   {isSending
@@ -231,7 +248,7 @@ const Login: React.FC = () => {
               </div>
             )}
 
-            {requiresVerification && !verificationCompleted && (
+            {hasRequestedReset && requiresVerification && !verificationCompleted && (
               <>
                 <form onSubmit={handleVerifyCode} style={{ marginTop: '1rem' }}>
                   <label htmlFor="verification-code">Code de vérification</label><br/>
