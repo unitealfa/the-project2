@@ -558,10 +558,8 @@ const Admin: React.FC = () => {
      gradient.addColorStop(0, "rgba(107, 114, 128, 0.35)");
     gradient.addColorStop(1, "rgba(107, 114, 128, 0)");
 
-    const revenueValues = salesTrend.map(point => Math.round(point.revenue));
-    const maxRevenue = revenueValues.length
-      ? Math.max(...revenueValues)
-      : 0;
+        const orderValues = salesTrend.map(point => point.orders);
+    const maxOrders = orderValues.length ? Math.max(...orderValues) : 0;
 
     const computeNiceStep = (maxValue: number): { step: number; max: number } => {
       if (maxValue <= 0) {
@@ -585,7 +583,7 @@ const Admin: React.FC = () => {
       return { step, max };
     };
 
-    const { step: yStepSize, max: yMax } = computeNiceStep(maxRevenue);
+    const { step: yStepSize, max: yMax } = computeNiceStep(maxOrders);
 
     chartInstanceRef.current = new Chart(ctx, {
       type: "line",
@@ -593,8 +591,8 @@ const Admin: React.FC = () => {
         labels: salesTrend.map(point => point.label),
         datasets: [
           {
-            label: "Ventes",
-            data: revenueValues,
+            label: "Commandes",
+            data: orderValues,
             fill: true,
             borderColor: "#6b7280",
             borderWidth: 1.8,
@@ -622,7 +620,10 @@ const Admin: React.FC = () => {
             padding: 10,
             callbacks: {
               title: tooltipItems => tooltipItems[0]?.label ?? "",
-              label: tooltipItem => `ventes : ${tooltipItem.formattedValue}`,
+              label: tooltipItem =>
+                `commandes : ${new Intl.NumberFormat("fr-FR", {
+                  maximumFractionDigits: 0,
+                }).format(tooltipItem.parsed.y ?? 0)}`,
             },
           },
         },
@@ -819,8 +820,8 @@ const Admin: React.FC = () => {
 
       <div className="bottom-grid">
         <div className="chart-card">
-          <h3>Évolution des ventes</h3>
-          <p className="chart-sub">Montant cumulé sur les 45 derniers jours</p>
+          <h3>Évolution des commandes</h3>
+          <p className="chart-sub">Nombre quotidien sur les 45 derniers jours</p>
           <div className="chart-wrapper">
             <canvas ref={chartRef} />
           </div>
