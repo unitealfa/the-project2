@@ -30,6 +30,18 @@ const Login: React.FC = () => {
     else                               navigate(`/confirmateur/${user.id}`, { replace: true });
   }, [user, navigate]);
 
+
+  async function parseJsonSafe<T>(res: Response): Promise<T | null> {
+    const text = await res.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text) as T;
+    } catch (error) {
+      console.error('Réponse JSON invalide reçue:', error, text);
+      return null;
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -38,19 +50,36 @@ const Login: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      const data = await parseJsonSafe<(User & { token: string }) | { message?: string }>(res);
+
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message);
+        const message = (data as { message?: string } | null)?.message ??
+          "Erreur lors de la tentative de connexion. Veuillez réessayer.";
+        throw new Error(message);
       }
-      const data = (await res.json()) as User & { token: string };
+
+      if (!data || !(data as User & { token: string }).token) {
+        throw new Error('Réponse du serveur invalide.');
+      }
+
+      const { token, ...userData } = data as User & { token: string };
 
       // stocke user + token
       login(
-        { id: data.id, firstName: data.firstName, lastName: data.lastName, email: data.email, role: data.role },
-        data.token
+        {
+          id: userData.id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role,
+        },
+        token
       );
     } catch (err: any) {
-      alert(err.message);
+      const message = err instanceof Error
+        ? err.message
+        : "Impossible d'effectuer la connexion. Veuillez réessayer.";
+      alert(message);
     }
   };
 
@@ -66,22 +95,37 @@ const Login: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<{
+        message?: string;
+        requiresVerification?: boolean;
+        maskedEmail?: string;
+      }>(res);
+
       if (!res.ok) {
-        throw new Error(data.message || 'Erreur lors de la demande de réinitialisation.');
+        throw new Error(data?.message || 'Erreur lors de la demande de réinitialisation.');
       }
-      setForgotMessage(data.message ?? '');
-      setRequiresVerification(Boolean(data.requiresVerification));
-      setMaskedAdminEmail(data.maskedEmail ?? '');
+
+      if (data) {
+        setForgotMessage(data.message ?? '');
+        setRequiresVerification(Boolean(data.requiresVerification));
+        setMaskedAdminEmail(data.maskedEmail ?? '');
+      } else {
+        setForgotMessage('Demande de réinitialisation envoyée.');
+        setRequiresVerification(false);
+        setMaskedAdminEmail('');
+      }
       setHasRequestedReset(true);
     } catch (err: any) {
-      setErrorMessage(err.message);
+      const message = err instanceof Error
+        ? err.message
+        : 'Erreur lors de la demande de réinitialisation.';
+      setErrorMessage(message);
     } finally {
       setIsSending(false);
     }
   };
 
-    const openForgotModal = () => {
+  const openForgotModal = () => {
     setShowForgotModal(true);
     setForgotMessage('');
     setErrorMessage('');
@@ -106,18 +150,23 @@ const Login: React.FC = () => {
       const res = await fetch('/api/users/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ code: verificationCode }),
+        body: JSON.stringify({ code: verificationCode }),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<{ message?: string }>(res);
+
       if (!res.ok) {
-        throw new Error(data.message || 'Erreur lors de la vérification du code.');
+        throw new Error(data?.message || 'Erreur lors de la vérification du code.');
       }
+
       setVerificationMessage(
         "Le mot de passe est \"adminadmin\" et l'email est votre adresse utilisateur."
       );
       setVerificationCompleted(true);
     } catch (err: any) {
-      setErrorMessage(err.message);
+      const message = err instanceof Error
+        ? err.message
+        : 'Erreur lors de la vérification du code.';
+      setErrorMessage(message);
     } finally {
       setIsVerifying(false);
     }

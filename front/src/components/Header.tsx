@@ -84,7 +84,7 @@ const Header: React.FC = () => {
       <div className="header-left">
         <Link to={homePath} className="header-logo" aria-label="Accueil">
           <i className="fa-solid fa-shop" aria-hidden="true"></i>
-          Commerce
+          BOUAZZA E-COM
         </Link>
         <nav className="header-nav" aria-label="Navigation principale">
           {navItems.map((item) => (
