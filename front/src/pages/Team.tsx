@@ -1,8 +1,10 @@
 // front/src/pages/Team.tsx
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { User } from '../types';
 import { AuthContext } from '../context/AuthContext';
+
+import '../styles/Team.css';
 
 const Team: React.FC = () => {
   const { id: adminId } = useParams<{ id: string }>();
@@ -10,8 +12,9 @@ const Team: React.FC = () => {
   const [team, setTeam] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchTeam = async () => {
+  const fetchTeam = useCallback(async () => {
     try {
       const res = await fetch('/api/users', {
         headers: { Authorization: `Bearer ${token}` },
@@ -24,97 +27,177 @@ const Team: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchTeam();
-  }, []);
+  }, [fetchTeam]);
 
-  if (!user || user.role !== 'admin') {
-    return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Accès non autorisé</p>;
-  }
-  if (loading) return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Chargement…</p>;
-  if (error)   return <p style={{ color: 'red', textAlign: 'center', marginTop: '2rem' }}>{error}</p>;
+  const roleLabels = useMemo(
+    () => ({
+      admin: 'Administrateur',
+      gestionnaire: 'Gestionnaire',
+      confirmateur: 'Confirmateur',
+    }),
+    []
+  );
 
   const handleDelete = async (userId: string) => {
-    if (!window.confirm('Supprimer cet utilisateur ?')) return;
-    const res = await fetch(`/api/users/${userId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) fetchTeam();
-    else alert('Erreur suppression');
+    if (!window.confirm('Supprimer cet utilisateur ?')) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Erreur ${res.status}`);
+      }
+
+      await fetchTeam();
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : "Erreur suppression";
+      alert(message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
+  const renderMessage = (message: string, tone: 'default' | 'error' = 'default') => (
+    <div className={`team-card team-card--message team-card--${tone}`}>
+      <p>{message}</p>
+    </div>
+  );
+
+  if (!user || user.role !== 'admin') {
+    return <div className="team-page">{renderMessage('Accès non autorisé', 'error')}</div>;
+  }
+
+  if (loading) {
+    return <div className="team-page">{renderMessage('Chargement en cours…')}</div>;
+  }
+
+  if (error) {
+    return <div className="team-page">{renderMessage(error, 'error')}</div>;
+  }
+
+  const hasTeamMembers = team.length > 0;
+
   return (
-    <div style={{ maxWidth: 800, margin: '2rem auto' }}>
-      <h2 style={{ textAlign: 'center' }}>Mon équipe</h2>
-      <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
-        <Link
-          to={`/admin/${adminId}/create-user`}
-          style={{
-            background: '#007bff',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: 4,
-            textDecoration: 'none'
-          }}
-        >
-          Créer un utilisateur
-        </Link>
-      </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ background: '#f5f5f5' }}>
-            {['Prénom','Nom','Email','Rôle','Actions'].map(h => (
-              <th key={h} style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {team.map(u => {
-            const isAdmin = u.role === 'admin';
-            const isMe = u.id === adminId;
-            return (
-              <tr
-                key={u.id}
-                style={{
-                  background: isMe ? '#d1ecf1' : 'white',
-                  fontWeight: isMe ? 'bold' : 'normal',
-                }}
-              >
-                <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{u.firstName}</td>
-                <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{u.lastName}</td>
-                <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{u.email}</td>
-                <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{u.role}</td>
-                <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>
-                  <Link to={`/admin/${adminId}/users/${u.id}`} style={{ marginRight: 8 }}>
-                    Voir
-                  </Link>
-                  <Link to={`/admin/${adminId}/users/${u.id}/edit`} style={{ marginRight: 8 }}>
-                    Éditer
-                  </Link>
-                  {!isAdmin && (
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      style={{
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: 3,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="team-page">
+      <header className="team-page__header">
+        <div>
+          <h1>Mon équipe</h1>
+          <p className="team-page__subtitle">
+            Retrouvez les membres de votre organisation et gérez leurs accès.
+          </p>
+        </div>
+        <div className="team-page__actions">
+          <Link
+            to={`/admin/${adminId}/create-user`}
+            className="team-page__create-button"
+          >
+            <span className="team-page__create-icon" aria-hidden="true">+</span>
+            Nouvel utilisateur
+          </Link>
+        </div>
+      </header>
+
+      <section className="team-card" aria-live="polite">
+        {hasTeamMembers ? (
+          <div className="team-table-wrapper">
+            <table className="team-table">
+              <thead>
+                <tr>
+                  <th>Prénom</th>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Rôle</th>
+                  <th className="team-table__actions-header">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {team.map((member) => {
+                  const isAdmin = member.role === 'admin';
+                  const isMe = member.id === adminId;
+                  const rowClassName = [
+                    'team-table__row',
+                    isMe ? 'team-table__row--current' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
+
+                  return (
+                    <tr key={member.id} className={rowClassName}>
+                      <td data-label="Prénom">
+                        <div className="team-member">
+                          <span className="team-member__initials" aria-hidden="true">
+                            {(member.firstName || '?').charAt(0)}
+                            {(member.lastName || '').charAt(0)}
+                          </span>
+                          <div>
+                            <span className="team-member__name">{member.firstName || '—'}</span>
+                            {isMe && <span className="team-tag">Vous</span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Nom">{member.lastName || '—'}</td>
+                      <td data-label="Email">
+                        <a href={`mailto:${member.email}`} className="team-link">
+                          {member.email}
+                        </a>
+                      </td>
+                      <td data-label="Rôle">
+                        <span className={`team-role-badge team-role-badge--${member.role}`}>
+                          {roleLabels[member.role as keyof typeof roleLabels] ?? member.role}
+                        </span>
+                      </td>
+                      <td data-label="Actions">
+                        <div className="team-actions">
+                          <Link
+                            to={`/admin/${adminId}/users/${member.id}`}
+                            className="team-action-button"
+                          >
+                            Voir
+                          </Link>
+                          <Link
+                            to={`/admin/${adminId}/users/${member.id}/edit`}
+                            className="team-action-button team-action-button--secondary"
+                          >
+                            Éditer
+                          </Link>
+                          {!isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(member.id)}
+                              className="team-action-button team-action-button--danger"
+                              disabled={isDeleting}
+                            >
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="team-empty">
+            <p>Vous n'avez pas encore ajouté de collaborateurs.</p>
+            <Link
+              to={`/admin/${adminId}/create-user`}
+              className="team-empty__cta"
+            >
+              Inviter un premier membre
+            </Link>
+          </div>
+        )}
+      </section>
     </div>
   );
 };
