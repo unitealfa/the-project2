@@ -1,7 +1,8 @@
 .orders-page {
-  max-width: 1200px;
+  max-width: none;
+  width: min(1600px, 100%);
   margin: 0 auto;
-  padding: 40px 24px 60px;
+  padding: 32px 20px 48px;
   color: #111827;
 }
 
@@ -26,10 +27,10 @@
   border-radius: 16px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  padding: 24px;
+  padding: 20px 18px 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .orders-toolbar {
@@ -161,18 +162,25 @@
   color: #dc2626;
 }
 
-.orders-table-wrapper {
-  overflow: auto;
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
-}
-
 .orders-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   min-width: 960px;
+}
+
+.orders-table__header {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .orders-table__header {
@@ -207,11 +215,12 @@
 }
 
 .orders-table__cell {
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
   color: #1f2937;
   vertical-align: top;
   border-bottom: 1px solid #f1f5f9;
+  line-height: 1.35;
 }
 
 .orders-table__cell--actions {
@@ -350,7 +359,7 @@
 
 .orders-table__cell--phone {
   white-space: nowrap;
-  min-width: 180px;
+  min-width: 150px;
 }
 
 .orders-table__phone {
@@ -433,15 +442,15 @@
 
 @media (max-width: 768px) {
   .orders-page {
-    padding: 32px 16px 48px;
+    padding: 24px 12px 40px;
   }
 
   .orders-panel {
-    padding: 20px;
+    padding: 16px;
   }
 
   .orders-table {
-    min-width: 720px;
+    min-width: unset;
   }
 
   .orders-toolbar__row {
