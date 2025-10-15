@@ -1,7 +1,7 @@
 .app-header {
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
-  padding: 10px 30px;
+  padding: 13px 39px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -12,34 +12,35 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 39px;
 }
 
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1.43rem;
   color: #000000;
   text-decoration: none;
 }
 
 .header-logo i {
-  font-size: 20px;
+  font-size: 26px;
   color: #000000;
 }
 
 .header-nav {
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 32px;
 }
 
 .header-nav a {
   text-decoration: none;
   color: #6b7280;
   font-weight: 500;
+  font-size: 1.3rem;
   transition: color 0.2s ease;
 }
 
@@ -57,10 +58,10 @@
 .profile-button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   background-color: #eef5ff;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 50px;
   transition: background 0.2s ease;
   border: none;
@@ -73,18 +74,19 @@
 }
 
 .profile-button i {
-  font-size: 18px;
+  font-size: 23px;
   color: #000000;
 }
 
 .profile-button span {
   font-weight: 500;
+  font-size: 1.3rem;
   color: #111827;
 }
 
 .chevron {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   color: #6b7280;
   transition: transform 0.2s ease;
 }
@@ -95,13 +97,13 @@
 
 .profile-menu {
   position: absolute;
-  top: 48px;
+  top: 62px;
   right: 0;
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  min-width: 200px;
+  min-width: 260px;
   overflow: hidden;
   display: none;
 }
@@ -114,14 +116,14 @@
 .profile-menu button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 13px;
   width: 100%;
-  padding: 10px 15px;
+  padding: 13px 20px;
   color: #111827;
   background: transparent;
   border: none;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1.24rem;
   text-align: left;
   cursor: pointer;
   text-decoration: none;
@@ -138,7 +140,7 @@
 
 .profile-menu i {
   color: #007bff;
-  font-size: 16px;
+  font-size: 21px;
 }
 
 @media (max-width: 768px) {

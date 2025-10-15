@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import multer from 'multer';
+import multer, { type DiskStorageOptions } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticateJWT } from '../middleware/auth.middleware';
@@ -22,14 +22,16 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Multer storage config
-const storage = multer.diskStorage({
+const storageOptions: DiskStorageOptions = {
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
     const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_');
     cb(null, `${base}_${Date.now()}${ext}`);
   },
-});
+};
+
+const storage = multer.diskStorage(storageOptions);
 
 const upload = multer({ storage });
 

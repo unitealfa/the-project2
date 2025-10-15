@@ -15,6 +15,9 @@ npm init -y
 npm install googleapis
 npm install nodemailer
 npm install --save-dev @types/nodemailer
+npm install multer
+npm install -D @types/multer
+
 
 
 
