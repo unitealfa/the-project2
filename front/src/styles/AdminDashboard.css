@@ -110,6 +110,7 @@
   height: 320px;
 }
 
+.chart-card .card-header,
 .cities-card .card-header {
   display: flex;
   justify-content: space-between;
@@ -132,6 +133,22 @@
   padding: 6px 10px;
   background: #fff;
   color: #111827;
+}
+
+.chart-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.chart-filters select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #fff;
+  color: #111827;
+  font-size: 0.85rem;
 }
 
 .filter-hint {

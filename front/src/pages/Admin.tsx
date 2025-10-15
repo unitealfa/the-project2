@@ -16,6 +16,7 @@ import { AuthContext } from "../context/AuthContext";
 import "../styles/AdminDashboard.css";
 
 type TimeFilter = "all" | "day" | "month" | "year";
+type ChartRangeMode = "recent" | "month" | "year";
 
 const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
   { value: "all", label: "Tout" },
@@ -177,6 +178,28 @@ const filterRowsByTime = (rows: Record<string, string>[], filter: TimeFilter) =>
   });
 };
 
+const getMonthValue = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const formatMonthLabel = (value: string): string => {
+  const [yearStr, monthStr] = value.split("-");
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+  if (Number.isNaN(year) || Number.isNaN(monthIndex) || monthIndex < 0) {
+    return value;
+  }
+
+  const formatter = new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return formatter.format(new Date(year, monthIndex, 1));
+};
+
+const getDefaultMonthValue = () => getMonthValue(new Date());
+const getDefaultYearValue = () => new Date().getFullYear().toString();
+
 const mapStatusBucket = (status: string):
   | "new"
   | "confirmed"
@@ -213,6 +236,11 @@ const Admin: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [chartRangeMode, setChartRangeMode] =
+    useState<ChartRangeMode>("recent");
+  const [selectedMonth, setSelectedMonth] =
+    useState<string>(getDefaultMonthValue);
+  const [selectedYear, setSelectedYear] = useState<string>(getDefaultYearValue);
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<ChartInstance | null>(null);
   const adminUser = user && user.role === "admin" ? user : null;
@@ -491,6 +519,68 @@ const Admin: React.FC = () => {
       .slice(0, 5);
   }, [timeFilteredRows]);
 
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set<string>();
+    rows.forEach(row => {
+      const date = extractRowDate(row);
+      if (!date) return;
+      monthSet.add(getMonthValue(date));
+    });
+
+    if (monthSet.size === 0) {
+      monthSet.add(getDefaultMonthValue());
+    }
+
+    return Array.from(monthSet)
+      .sort()
+      .map(value => ({ value, label: formatMonthLabel(value) }));
+  }, [rows]);
+
+  const availableYears = useMemo(() => {
+    const yearSet = new Set<number>();
+    rows.forEach(row => {
+      const date = extractRowDate(row);
+      if (!date) return;
+      yearSet.add(date.getFullYear());
+    });
+
+    if (yearSet.size === 0) {
+      yearSet.add(Number.parseInt(getDefaultYearValue(), 10));
+    }
+
+    return Array.from(yearSet).sort((a, b) => a - b);
+  }, [rows]);
+
+  useEffect(() => {
+    if (!availableMonths.some(month => month.value === selectedMonth)) {
+      const fallback =
+        availableMonths[availableMonths.length - 1]?.value ?? getDefaultMonthValue();
+      setSelectedMonth(fallback);
+    }
+  }, [availableMonths, selectedMonth]);
+
+  useEffect(() => {
+    if (!availableYears.some(year => year.toString() === selectedYear)) {
+      const fallback =
+        availableYears[availableYears.length - 1]?.toString() ?? getDefaultYearValue();
+      setSelectedYear(fallback);
+    }
+  }, [availableYears, selectedYear]);
+
+  const chartSubtitle = useMemo(() => {
+    if (chartRangeMode === "month") {
+      return `Nombre quotidien pour ${formatMonthLabel(selectedMonth)}`;
+    }
+
+    if (chartRangeMode === "year") {
+      return selectedYear
+        ? `Nombre quotidien durant ${selectedYear}`
+        : "Nombre quotidien sur l'année sélectionnée";
+    }
+
+    return "Nombre quotidien sur les 45 derniers jours";
+  }, [chartRangeMode, selectedMonth, selectedYear]);
+  
   const totalRevenue = useMemo(() => {
     return rows.reduce((acc, row) => {
       const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
@@ -501,22 +591,44 @@ const Admin: React.FC = () => {
 
   const salesTrend = useMemo(() => {
     const now = new Date();
-    const start = new Date(now);
+    let start = new Date(now);
+    let end = new Date(now);
     start.setDate(start.getDate() - 44);
+
+     start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    if (chartRangeMode === "month") {
+      const [yearStr, monthStr] = selectedMonth.split("-");
+      const year = Number(yearStr);
+      const monthIndex = Number(monthStr) - 1;
+
+      if (!Number.isNaN(year) && !Number.isNaN(monthIndex) && monthIndex >= 0) {
+        start = new Date(year, monthIndex, 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(year, monthIndex + 1, 0);
+        end.setHours(23, 59, 59, 999);
+      }
+    } else if (chartRangeMode === "year") {
+      const year = Number(selectedYear);
+      if (!Number.isNaN(year)) {
+        start = new Date(year, 0, 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(year, 11, 31);
+        end.setHours(23, 59, 59, 999);
+      }
+    }
 
     const dailyMap = new Map<string, { orders: number; revenue: number }>();
 
     rows.forEach(row => {
       const date = extractRowDate(row);
       if (!date) return;
-      if (date < start || date > now) return;
-      const dayKey = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      )
-        .toISOString()
-        .slice(0, 10);
+        if (date < start || date > end) return;
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(date.getDate()).padStart(2, "0")}`;
       const current = dailyMap.get(dayKey) ?? { orders: 0, revenue: 0 };
       const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
       dailyMap.set(dayKey, {
@@ -526,24 +638,28 @@ const Admin: React.FC = () => {
     });
 
     const trend: { label: string; orders: number; revenue: number }[] = [];
-    for (let i = 44; i >= 0; i -= 1) {
-      const date = new Date(now);
-      date.setHours(0, 0, 0, 0);
-      date.setDate(now.getDate() - i);
-      const key = date.toISOString().slice(0, 10);
+     const cursor = new Date(start);
+    cursor.setHours(0, 0, 0, 0);
+
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(cursor.getDate()).padStart(2, "0")}`;
       const entry = dailyMap.get(key) ?? { orders: 0, revenue: 0 };
       trend.push({
-        label: date.toLocaleDateString("fr-FR", {
+        label: cursor.toLocaleDateString("fr-FR", {
           day: "2-digit",
           month: "short",
         }),
         orders: entry.orders,
         revenue: entry.revenue,
       });
+      cursor.setDate(cursor.getDate() + 1);
     }
 
     return trend;
-  }, [rows]);
+  }, [rows, chartRangeMode, selectedMonth, selectedYear]);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -820,8 +936,51 @@ const Admin: React.FC = () => {
 
       <div className="bottom-grid">
         <div className="chart-card">
-          <h3>Évolution des commandes</h3>
-          <p className="chart-sub">Nombre quotidien sur les 45 derniers jours</p>
+          <div className="card-header">
+            <div>
+              <h3>Évolution des commandes</h3>
+              <p className="chart-sub">{chartSubtitle}</p>
+            </div>
+            <div className="chart-filters">
+              <select
+                aria-label="Plage de temps du graphique"
+                value={chartRangeMode}
+                onChange={event =>
+                  setChartRangeMode(event.target.value as ChartRangeMode)
+                }
+              >
+                <option value="recent">45 derniers jours</option>
+                <option value="month">Par mois</option>
+                <option value="year">Par année</option>
+              </select>
+              {chartRangeMode === "month" && (
+                <select
+                  aria-label="Mois à afficher"
+                  value={selectedMonth}
+                  onChange={event => setSelectedMonth(event.target.value)}
+                >
+                  {availableMonths.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {chartRangeMode === "year" && (
+                <select
+                  aria-label="Année à afficher"
+                  value={selectedYear}
+                  onChange={event => setSelectedYear(event.target.value)}
+                >
+                  {availableYears.map(year => (
+                    <option key={year} value={year.toString()}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
           <div className="chart-wrapper">
             <canvas ref={chartRef} />
           </div>
