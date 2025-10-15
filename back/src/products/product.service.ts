@@ -11,13 +11,17 @@ export interface CreateProductDto {
 
 export class ProductService {
   async create(dto: CreateProductDto): Promise<IProduct> {
+    const normalizedVariants = Array.isArray(dto.variants) && dto.variants.length > 0
+      ? dto.variants
+      : [{ name: 'default', quantity: 0 }];
+
     const product = await Product.create({
       code: dto.code ?? '',
       name: dto.name,
       costPrice: dto.costPrice,
       salePrice: dto.salePrice,
       image: dto.image ?? '',
-      variants: dto.variants ?? [],
+      variants: normalizedVariants,
     });
     return product;
   }

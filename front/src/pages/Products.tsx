@@ -19,6 +19,8 @@ const Products: React.FC = () => {
   const [query, setQuery] = useState('');
 
   const [form, setForm] = useState<ProductDto>(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const canEdit = user?.role === 'admin' || user?.role === 'gestionnaire';
@@ -70,6 +72,17 @@ const Products: React.FC = () => {
     }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setImageFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
+    } else {
+      setImagePreview('');
+    }
+  };
+
   const addVariant = () => {
     setForm(prev => ({ ...prev, variants: [...(prev.variants || []), { name: '', quantity: 0 }] }));
   };
@@ -94,17 +107,28 @@ const Products: React.FC = () => {
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId ? `/api/products/${editingId}` : '/api/products';
     try {
+      const fd = new FormData();
+      if (form.code) fd.append('code', form.code);
+      fd.append('name', form.name);
+      fd.append('costPrice', String(form.costPrice));
+      fd.append('salePrice', String(form.salePrice));
+      // Keep existing image if no new file selected
+      if (!imageFile && form.image) fd.append('image', form.image);
+      if (imageFile) fd.append('image', imageFile);
+      fd.append('variants', JSON.stringify(form.variants || []));
+
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: fd,
       });
       if (!res.ok) throw new Error('Échec de la sauvegarde');
       await load();
       setForm(emptyForm);
+      setImageFile(null);
+      setImagePreview('');
       setEditingId(null);
     } catch (e: any) {
       alert(e?.message || 'Erreur');
@@ -113,6 +137,8 @@ const Products: React.FC = () => {
 
   const edit = (p: ProductDto) => {
     setForm({ ...p, variants: p.variants || [] });
+    setImageFile(null);
+    setImagePreview('');
     setEditingId(p.id || null);
   };
 
@@ -162,10 +188,19 @@ const Products: React.FC = () => {
             <span>Prix de vente</span>
             <input type="number" step="0.01" name="salePrice" value={form.salePrice} onChange={handleChange} required />
           </label>
-          <label style={{ display: 'grid' }}>
-            <span>Image (URL)</span>
-            <input name="image" value={form.image || ''} onChange={handleChange} />
-          </label>
+          <div style={{ display: 'grid' }}>
+            <span>Image</span>
+            <input type="file" accept="image/*" onChange={handleImageChange} />
+            {(imagePreview || form.image) && (
+              <div style={{ marginTop: 8 }}>
+                <img
+                  src={imagePreview || form.image}
+                  alt={form.name || 'prévisualisation'}
+                  style={{ maxHeight: 80 }}
+                />
+              </div>
+            )}
+          </div>
           <div style={{ gridColumn: '1 / -1', border: '1px solid #eee', padding: 8, borderRadius: 4 }}>
             <strong>Variantes</strong>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>

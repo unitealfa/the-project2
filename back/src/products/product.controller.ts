@@ -6,7 +6,23 @@ const service = new ProductService();
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const p = await service.create(req.body);
+    const body = req.body as any;
+    let variants: Array<{ name: string; quantity: number }> = [];
+    try {
+      variants = typeof body.variants === 'string' ? JSON.parse(body.variants) : (Array.isArray(body.variants) ? body.variants : []);
+    } catch {
+      variants = [];
+    }
+    const imagePath = (req as any).file ? `/uploads/${(req as any).file.filename}` : (body.image || '');
+    const dto = {
+      code: body.code ?? '',
+      name: String(body.name),
+      costPrice: Number(body.costPrice),
+      salePrice: Number(body.salePrice),
+      image: imagePath,
+      variants,
+    };
+    const p = await service.create(dto);
     res.status(201).json(p);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
@@ -33,7 +49,25 @@ export const getProduct = async (req: Request, res: Response) => {
 
 export const updateProduct = async (req: Request, res: Response) => {
   try {
-    const p = await service.update(req.params.id, req.body);
+    const body = req.body as any;
+    const partial: any = {};
+    if (body.code !== undefined) partial.code = body.code;
+    if (body.name !== undefined) partial.name = body.name;
+    if (body.costPrice !== undefined) partial.costPrice = Number(body.costPrice);
+    if (body.salePrice !== undefined) partial.salePrice = Number(body.salePrice);
+    if ((req as any).file) {
+      partial.image = `/uploads/${(req as any).file.filename}`;
+    } else if (body.image !== undefined) {
+      partial.image = body.image; // keep existing or clear
+    }
+    if (body.variants !== undefined) {
+      try {
+        partial.variants = typeof body.variants === 'string' ? JSON.parse(body.variants) : body.variants;
+      } catch {
+        partial.variants = [];
+      }
+    }
+    const p = await service.update(req.params.id, partial);
     res.json(p);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
