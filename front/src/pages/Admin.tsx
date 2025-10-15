@@ -1,8 +1,19 @@
 // front/src/pages/Admin.tsx
 
-import React, { useEffect, useState, useContext, useMemo } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Chart from "chart.js/auto";
+import type { Chart as ChartInstance } from "chart.js";
+import { MapPin, Package } from "lucide-react";
+
 import { AuthContext } from "../context/AuthContext";
+import "../styles/AdminDashboard.css";
 
 type TimeFilter = "all" | "day" | "month" | "year";
 
@@ -108,7 +119,10 @@ const extractRowDate = (row: Record<string, string>): Date | null => {
 
 const getRowStatus = (row: Record<string, string>): string => {
   const rawStatus = row["etat"] ?? row["État"] ?? row["Etat"] ?? "";
-  const status = typeof rawStatus === "string" ? rawStatus.trim() : String(rawStatus ?? "").trim();
+   const status =
+    typeof rawStatus === "string"
+      ? rawStatus.trim()
+      : String(rawStatus ?? "").trim();
   return status || "new";
 };
 
@@ -163,16 +177,44 @@ const filterRowsByTime = (rows: Record<string, string>[], filter: TimeFilter) =>
   });
 };
 
+const mapStatusBucket = (status: string):
+  | "new"
+  | "confirmed"
+  | "shipped"
+  | "completed"
+  | "returned"
+  | "abandoned"
+  | null => {
+  const normalized = status.trim().toLowerCase();
+  if (!normalized || /new|nouveau|pending|en cours/.test(normalized)) {
+    return "new";
+  }
+  if (/confirm/.test(normalized)) {
+    return "confirmed";
+  }
+  if (/ship|expédi|exped/.test(normalized)) {
+    return "shipped";
+  }
+  if (/livr|deliver|complete|termin/.test(normalized)) {
+    return "completed";
+  }
+  if (/retour|return/.test(normalized)) {
+    return "returned";
+  }
+  if (/abandon|annul/.test(normalized)) {
+    return "abandoned";
+  }
+  return null;
+};
+
 const Admin: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [showPopup, setShowPopup] = useState<boolean>(false);
-  const [countdown, setCountdown] = useState<number>(10);
-  const [showButton, setShowButton] = useState<boolean>(true);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const chartRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstanceRef = useRef<ChartInstance | null>(null);
   const adminUser = user && user.role === "admin" ? user : null;
 
   useEffect(() => {
@@ -184,53 +226,181 @@ const Admin: React.FC = () => {
     }
   }, [adminUser, id, navigate]);
 
-  // Chargement des commandes (Google Sheet) pour calculer le montant total visualisé
   useEffect(() => {
-    const SHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
+    const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
     const parseCsv = (csvText: string): string[][] => {
       const out: string[][] = [];
-      let field = '';
+      let field = "";
       let row: string[] = [];
       let inQuotes = false;
-      for (let i = 0; i < csvText.length; i++) {
+      for (let i = 0; i < csvText.length; i += 1) {
         const c = csvText[i];
         const n = csvText[i + 1];
         if (inQuotes) {
-          if (c === '"') { if (n === '"') { field += '"'; i++; } else { inQuotes = false; } }
-          else { field += c; }
+          if (c === "\"") {
+            if (n === "\"") {
+              field += "\"";
+              i += 1;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            field += c;
+          }
+        } else if (c === "\"") {
+          inQuotes = true;
+        } else if (c === ",") {
+          row.push(field);
+          field = "";
+        } else if (c === "\n") {
+          row.push(field);
+          out.push(row);
+          row = [];
+          field = "";
+        } else if (c === "\r") {
+          // ignore
         } else {
-          if (c === '"') inQuotes = true;
-          else if (c === ',') { row.push(field); field = ''; }
-          else if (c === '\n') { row.push(field); out.push(row); row = []; field = ''; }
-          else if (c === '\r') { /* ignore */ }
-          else { field += c; }
+          field += c;
         }
       }
-      if (field.length > 0 || inQuotes || row.length > 0) { row.push(field); out.push(row); }
+      if (field.length > 0 || inQuotes || row.length > 0) {
+        row.push(field);
+        out.push(row);
+      }
       return out;
     };
 
     const WILAYAS = [
-      { id: 1, name: 'Adrar' },{ id: 2, name: 'Chlef' },{ id: 3, name: 'Laghouat' },{ id: 4, name: 'Oum El Bouaghi' },{ id: 5, name: 'Batna' },{ id: 6, name: 'Béjaïa' },{ id: 7, name: 'Biskra' },{ id: 8, name: 'Béchar' },{ id: 9, name: 'Blida' },{ id: 10, name: 'Bouira' },{ id: 11, name: 'Tamanrasset' },{ id: 12, name: 'Tébessa' },{ id: 13, name: 'Tlemcen' },{ id: 14, name: 'Tiaret' },{ id: 15, name: 'Tizi Ouzou' },{ id: 16, name: 'Alger' },{ id: 17, name: 'Djelfa' },{ id: 18, name: 'Jijel' },{ id: 19, name: 'Sétif' },{ id: 20, name: 'Saïda' },{ id: 21, name: 'Skikda' },{ id: 22, name: 'Sidi Bel Abbès' },{ id: 23, name: 'Annaba' },{ id: 24, name: 'Guelma' },{ id: 25, name: 'Constantine' },{ id: 26, name: 'Médéa' },{ id: 27, name: 'Mostaganem' },{ id: 28, name: "M'Sila" },{ id: 29, name: 'Mascara' },{ id: 30, name: 'Ouargla' },{ id: 31, name: 'Oran' },{ id: 32, name: 'El Bayadh' },{ id: 33, name: 'Illizi' },{ id: 34, name: 'Bordj Bou Arreridj' },{ id: 35, name: 'Boumerdès' },{ id: 36, name: 'El Tarf' },{ id: 37, name: 'Tindouf' },{ id: 38, name: 'Tissemsilt' },{ id: 39, name: 'El Oued' },{ id: 40, name: 'Khenchela' },{ id: 41, name: 'Souk Ahras' },{ id: 42, name: 'Tipaza' },{ id: 43, name: 'Mila' },{ id: 44, name: 'Aïn Defla' },{ id: 45, name: 'Naâma' },{ id: 46, name: 'Aïn Témouchent' },{ id: 47, name: 'Ghardaïa' },{ id: 48, name: 'Relizane' }
+      { id: 1, name: "Adrar" },
+      { id: 2, name: "Chlef" },
+      { id: 3, name: "Laghouat" },
+      { id: 4, name: "Oum El Bouaghi" },
+      { id: 5, name: "Batna" },
+      { id: 6, name: "Béjaïa" },
+      { id: 7, name: "Biskra" },
+      { id: 8, name: "Béchar" },
+      { id: 9, name: "Blida" },
+      { id: 10, name: "Bouira" },
+      { id: 11, name: "Tamanrasset" },
+      { id: 12, name: "Tébessa" },
+      { id: 13, name: "Tlemcen" },
+      { id: 14, name: "Tiaret" },
+      { id: 15, name: "Tizi Ouzou" },
+      { id: 16, name: "Alger" },
+      { id: 17, name: "Djelfa" },
+      { id: 18, name: "Jijel" },
+      { id: 19, name: "Sétif" },
+      { id: 20, name: "Saïda" },
+      { id: 21, name: "Skikda" },
+      { id: 22, name: "Sidi Bel Abbès" },
+      { id: 23, name: "Annaba" },
+      { id: 24, name: "Guelma" },
+      { id: 25, name: "Constantine" },
+      { id: 26, name: "Médéa" },
+      { id: 27, name: "Mostaganem" },
+      { id: 28, name: "M'Sila" },
+      { id: 29, name: "Mascara" },
+      { id: 30, name: "Ouargla" },
+      { id: 31, name: "Oran" },
+      { id: 32, name: "El Bayadh" },
+      { id: 33, name: "Illizi" },
+      { id: 34, name: "Bordj Bou Arreridj" },
+      { id: 35, name: "Boumerdès" },
+      { id: 36, name: "El Tarf" },
+      { id: 37, name: "Tindouf" },
+      { id: 38, name: "Tissemsilt" },
+      { id: 39, name: "El Oued" },
+      { id: 40, name: "Khenchela" },
+      { id: 41, name: "Souk Ahras" },
+      { id: 42, name: "Tipaza" },
+      { id: 43, name: "Mila" },
+      { id: 44, name: "Aïn Defla" },
+      { id: 45, name: "Naâma" },
+      { id: 46, name: "Aïn Témouchent" },
+      { id: 47, name: "Ghardaïa" },
+      { id: 48, name: "Relizane" },
     ];
 
     const DELIVERY_TARIFFS: Record<number, { domicile: number; stop: number }> = {
-      1:{domicile:1100,stop:600},2:{domicile:700,stop:400},3:{domicile:900,stop:500},4:{domicile:800,stop:400},5:{domicile:800,stop:400},6:{domicile:700,stop:400},7:{domicile:900,stop:500},8:{domicile:1100,stop:600},9:{domicile:500,stop:250},10:{domicile:650,stop:400},11:{domicile:1300,stop:800},12:{domicile:800,stop:500},13:{domicile:800,stop:400},14:{domicile:800,stop:400},15:{domicile:650,stop:400},16:{domicile:400,stop:200},17:{domicile:900,stop:500},18:{domicile:700,stop:400},19:{domicile:700,stop:400},20:{domicile:800,stop:400},21:{domicile:700,stop:400},22:{domicile:700,stop:400},23:{domicile:700,stop:400},24:{domicile:800,stop:400},25:{domicile:700,stop:400},26:{domicile:600,stop:400},27:{domicile:700,stop:400},28:{domicile:800,stop:500},29:{domicile:700,stop:400},30:{domicile:1000,stop:500},31:{domicile:700,stop:400},32:{domicile:1000,stop:500},33:{domicile:1300,stop:600},34:{domicile:700,stop:400},35:{domicile:600,stop:350},36:{domicile:800,stop:400},37:{domicile:1300,stop:600},38:{domicile:800,stop:400},39:{domicile:900,stop:500},40:{domicile:800,stop:500},41:{domicile:800,stop:500},42:{domicile:600,stop:350},43:{domicile:700,stop:400},44:{domicile:600,stop:400},45:{domicile:1000,stop:500},46:{domicile:700,stop:400},47:{domicile:1000,stop:500},48:{domicile:700,stop:400},49:{domicile:1300,stop:600},51:{domicile:900,stop:500},52:{domicile:1300,stop:0},53:{domicile:1300,stop:600},55:{domicile:900,stop:500},57:{domicile:900,stop:0},58:{domicile:1000,stop:500}
+      1: { domicile: 1100, stop: 600 },
+      2: { domicile: 700, stop: 400 },
+      3: { domicile: 900, stop: 500 },
+      4: { domicile: 800, stop: 400 },
+      5: { domicile: 800, stop: 400 },
+      6: { domicile: 700, stop: 400 },
+      7: { domicile: 900, stop: 500 },
+      8: { domicile: 1100, stop: 600 },
+      9: { domicile: 500, stop: 250 },
+      10: { domicile: 650, stop: 400 },
+      11: { domicile: 1300, stop: 800 },
+      12: { domicile: 800, stop: 500 },
+      13: { domicile: 800, stop: 400 },
+      14: { domicile: 800, stop: 400 },
+      15: { domicile: 650, stop: 400 },
+      16: { domicile: 400, stop: 200 },
+      17: { domicile: 900, stop: 500 },
+      18: { domicile: 700, stop: 400 },
+      19: { domicile: 700, stop: 400 },
+      20: { domicile: 800, stop: 400 },
+      21: { domicile: 700, stop: 400 },
+      22: { domicile: 700, stop: 400 },
+      23: { domicile: 700, stop: 400 },
+      24: { domicile: 800, stop: 400 },
+      25: { domicile: 700, stop: 400 },
+      26: { domicile: 600, stop: 400 },
+      27: { domicile: 700, stop: 400 },
+      28: { domicile: 800, stop: 500 },
+      29: { domicile: 700, stop: 400 },
+      30: { domicile: 1000, stop: 500 },
+      31: { domicile: 700, stop: 400 },
+      32: { domicile: 1000, stop: 500 },
+      33: { domicile: 1300, stop: 600 },
+      34: { domicile: 700, stop: 400 },
+      35: { domicile: 600, stop: 350 },
+      36: { domicile: 800, stop: 400 },
+      37: { domicile: 1300, stop: 600 },
+      38: { domicile: 800, stop: 400 },
+      39: { domicile: 900, stop: 500 },
+      40: { domicile: 800, stop: 500 },
+      41: { domicile: 800, stop: 500 },
+      42: { domicile: 600, stop: 350 },
+      43: { domicile: 700, stop: 400 },
+      44: { domicile: 600, stop: 400 },
+      45: { domicile: 1000, stop: 500 },
+      46: { domicile: 700, stop: 400 },
+      47: { domicile: 1000, stop: 500 },
+      48: { domicile: 700, stop: 400 },
+      49: { domicile: 1300, stop: 600 },
+      51: { domicile: 900, stop: 500 },
+      52: { domicile: 1300, stop: 0 },
+      53: { domicile: 1300, stop: 600 },
+      55: { domicile: 900, stop: 500 },
+      57: { domicile: 900, stop: 0 },
+      58: { domicile: 1000, stop: 500 },
     };
 
     const getWilayaIdByName = (name: string) => {
-      const normalize = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+      const normalize = (s: string) =>
+        (s || "")
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ");
       const target = normalize(name);
       const found = WILAYAS.find(w => normalize(w.name) === target);
       return found ? found.id : 16;
     };
 
-    const getDeliveryTariff = (wilayaCode: number | string, stopDeskFlag: string | number) => {
-      const code = typeof wilayaCode === 'string' ? parseInt(wilayaCode) : wilayaCode;
-      const isStop = String(stopDeskFlag) === '1';
-      const safe = (!code || Number.isNaN(code)) ? 16 : code;
+    const getDeliveryTariff = (
+      wilayaCode: number | string,
+      stopDeskFlag: string | number
+    ) => {
+      const code = typeof wilayaCode === "string" ? parseInt(wilayaCode, 10) : wilayaCode;
+      const isStop = String(stopDeskFlag) === "1";
+      const safe = !code || Number.isNaN(code) ? 16 : code;
       let tariffs = DELIVERY_TARIFFS[safe];
       if (!tariffs) tariffs = DELIVERY_TARIFFS[16];
       if (!tariffs) return 0;
@@ -239,7 +409,7 @@ const Admin: React.FC = () => {
 
     const normalizeAmount = (amount: string): number => {
       if (!amount) return 1000;
-      let normalized = amount.replace(/[^\d.,]/g, '').replace(',', '.');
+      const normalized = amount.replace(/[^\d.,]/g, "").replace(",", ".");
       const n = parseFloat(normalized);
       if (Number.isNaN(n)) return 1000;
       return n;
@@ -252,66 +422,55 @@ const Admin: React.FC = () => {
         const grid = parseCsv(text);
         if (grid.length === 0) return;
         const [hdr, ...data] = grid;
-        setHeaders(hdr);
         const mapped = data
-          .filter(r => r.some(cell => cell && cell.trim() !== ''))
+          .filter(r => r.some(cell => cell && cell.trim() !== ""))
           .map(r => {
             const o: Record<string, string> = {};
-            hdr.forEach((h, i) => o[h] = r[i] ?? '');
-            // Calculer et injecter le montant total calculé
-            const qty = parseInt((o['Quantité'] || o['Quantite'] || o['Qte'] || '1').toString().replace(/[^\d]/g, '')) || 1;
-            const unit = normalizeAmount(o['Total'] || '1000');
-            const code = getWilayaIdByName(o['Wilaya']);
-            const stopFlag = (o['Type de livraison'] || '').toLowerCase().includes('stop') ? '1' : '0';
+            hdr.forEach((h, i) => {
+              o[h] = r[i] ?? "";
+            });
+            const qty =
+              parseInt(
+                (o["Quantité"] || o["Quantite"] || o["Qte"] || "1")
+                  .toString()
+                  .replace(/[^\d]/g, ""),
+                10
+              ) || 1;
+            const unit = normalizeAmount(o["Total"] || "1000");
+            const code = getWilayaIdByName(o["Wilaya"]);
+            const stopFlag = (o["Type de livraison"] || "")
+              .toLowerCase()
+              .includes("stop")
+              ? "1"
+              : "0";
             const tariff = getDeliveryTariff(code, stopFlag);
             const grand = unit * qty + tariff;
-            o['__MONTANT_TOTAL_CALC__'] = String(grand);
+            o["__MONTANT_TOTAL_CALC__"] = String(grand);
             return o;
           });
         setRows(mapped);
-      } catch (e) {
+      } catch (error) {
         // silencieux
       }
     })();
   }, []);
-    const statusSummary = useMemo(() => {
+
+  const statusSummary = useMemo(() => {
     return rows.reduce(
       (acc, row) => {
-        const status = getRowStatus(row).trim().toLowerCase();
-        const normalizedStatus = status.replace(/\s+/g, "_");
-        switch (normalizedStatus) {
-          case "new":
-          case "":
-            acc.newOrders += 1;
-            break;
-          case "ready_to_ship":
-            acc.confirmed += 1;
-            break;
-          case "shipped":
-            acc.shipped += 1;
-            break;
-          case "delivered":
-            acc.completed += 1;
-            break;
-          case "returned":
-            acc.returned += 1;
-            break;
-          case "abandoned":
-            acc.abandoned += 1;
-            break;
-          default:
-            break;
-        }
+        const bucket = mapStatusBucket(getRowStatus(row));
+        if (!bucket) return acc;
+        acc[bucket] += 1;
         return acc;
       },
       {
-        newOrders: 0,
+        new: 0,
         confirmed: 0,
         shipped: 0,
         completed: 0,
         returned: 0,
         abandoned: 0,
-      }
+      } as Record<"new" | "confirmed" | "shipped" | "completed" | "returned" | "abandoned", number>
     );
   }, [rows]);
 
@@ -332,7 +491,249 @@ const Admin: React.FC = () => {
       .slice(0, 5);
   }, [timeFilteredRows]);
 
-  // Si pas connecté ou pas admin
+  const totalRevenue = useMemo(() => {
+    return rows.reduce((acc, row) => {
+      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+      if (Number.isNaN(amount)) return acc;
+      return acc + amount;
+    }, 0);
+  }, [rows]);
+
+  const salesTrend = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - 44);
+
+    const dailyMap = new Map<string, { orders: number; revenue: number }>();
+
+    rows.forEach(row => {
+      const date = extractRowDate(row);
+      if (!date) return;
+      if (date < start || date > now) return;
+      const dayKey = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      )
+        .toISOString()
+        .slice(0, 10);
+      const current = dailyMap.get(dayKey) ?? { orders: 0, revenue: 0 };
+      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+      dailyMap.set(dayKey, {
+        orders: current.orders + 1,
+        revenue: current.revenue + (Number.isNaN(amount) ? 0 : amount),
+      });
+    });
+
+    const trend: { label: string; orders: number; revenue: number }[] = [];
+    for (let i = 44; i >= 0; i -= 1) {
+      const date = new Date(now);
+      date.setHours(0, 0, 0, 0);
+      date.setDate(now.getDate() - i);
+      const key = date.toISOString().slice(0, 10);
+      const entry = dailyMap.get(key) ?? { orders: 0, revenue: 0 };
+      trend.push({
+        label: date.toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "short",
+        }),
+        orders: entry.orders,
+        revenue: entry.revenue,
+      });
+    }
+
+    return trend;
+  }, [rows]);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) return;
+
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
+    }
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, "rgba(37, 99, 235, 0.25)");
+    gradient.addColorStop(1, "rgba(37, 99, 235, 0)");
+
+    chartInstanceRef.current = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: salesTrend.map(point => point.label),
+        datasets: [
+          {
+            label: "Ventes",
+            data: salesTrend.map(point => Math.round(point.revenue)),
+            fill: true,
+            borderColor: "#2563eb",
+            borderWidth: 2,
+            backgroundColor: gradient,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: "#1e3a8a",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#fff",
+            titleColor: "#111",
+            bodyColor: "#111",
+            borderColor: "#e5e7eb",
+            borderWidth: 1,
+            displayColors: false,
+            padding: 12,
+            callbacks: {
+              title: tooltipItems => tooltipItems[0]?.label ?? "",
+              label: tooltipItem =>
+                `Ventes : ${new Intl.NumberFormat("fr-DZ", {
+                  maximumFractionDigits: 0,
+                }).format(Number(tooltipItem.parsed.y))} DA`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: "#f3f4f6" },
+            ticks: { color: "#6b7280" },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: "#6b7280",
+              callback: value =>
+                new Intl.NumberFormat("fr-DZ", {
+                  notation: "compact",
+                  maximumFractionDigits: 1,
+                }).format(Number(value)),
+            },
+            grid: { color: "#f3f4f6" },
+          },
+        },
+      },
+    });
+
+    return () => {
+      chartInstanceRef.current?.destroy();
+    };
+  }, [salesTrend]);
+
+  const getFirstValue = (row: Record<string, string>, keys: string[]): string => {
+    for (const key of keys) {
+      if (key in row && row[key] && row[key].trim()) {
+        return row[key].trim();
+      }
+    }
+    return "";
+  };
+
+  const formatCurrency = (value: number): string =>
+    `${new Intl.NumberFormat("fr-DZ", {
+      maximumFractionDigits: 0,
+    }).format(Math.round(value))} DA`;
+
+  const recentOrders = useMemo(() => {
+    return rows
+      .map((row, index) => {
+        const date = extractRowDate(row);
+        const timestamp = date?.getTime() ?? 0;
+        const status = getRowStatus(row);
+        const orderId =
+          getFirstValue(row, [
+            "ID",
+            "Id",
+            "#",
+            "Num commande",
+            "Référence",
+            "Reference",
+            "Commande",
+          ]) || `Commande ${index + 1}`;
+        const customer =
+          getFirstValue(row, [
+            "Nom",
+            "Client",
+            "Full Name",
+            "Name",
+            "Nom et prénom",
+            "Nom complet",
+          ]) || "Client inconnu";
+        const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+        return {
+          key: `${orderId}-${index}`,
+          orderId,
+          customer,
+          city: resolveCityFromRow(row),
+          status,
+          amount: Number.isNaN(amount) ? 0 : amount,
+          timestamp,
+          date,
+        };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5);
+  }, [rows]);
+
+  const popularProducts = useMemo(() => {
+    const productKeys = [
+      "Produit",
+      "Product",
+      "Article",
+      "Nom du produit",
+      "Produit commandé",
+      "Item",
+    ];
+
+    const products = new Map<string, { count: number; revenue: number }>();
+
+    rows.forEach(row => {
+      const productName = getFirstValue(row, productKeys);
+      if (!productName) return;
+      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+      const current = products.get(productName) ?? { count: 0, revenue: 0 };
+      products.set(productName, {
+        count: current.count + 1,
+        revenue: current.revenue + (Number.isNaN(amount) ? 0 : amount),
+      });
+    });
+
+    return Array.from(products.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        revenue: stats.revenue,
+      }));
+  }, [rows]);
+
+  const resolveStatusLabel = (status: string) => {
+    const bucket = mapStatusBucket(status);
+    switch (bucket) {
+      case "new":
+        return { label: "Nouveau", className: "status-new" };
+      case "confirmed":
+        return { label: "Confirmé", className: "status-confirmed" };
+      case "shipped":
+        return { label: "Expédié", className: "status-shipped" };
+      case "completed":
+        return { label: "Livré", className: "status-completed" };
+      case "returned":
+        return { label: "Retourné", className: "status-returned" };
+      case "abandoned":
+        return { label: "Abandonné", className: "status-abandoned" };
+      default:
+        return { label: status || "Statut inconnu", className: "status-default" };
+    }
+  };
+
   if (!adminUser) {
     return (
       <p style={{ textAlign: "center", marginTop: "2rem" }}>
@@ -340,133 +741,182 @@ const Admin: React.FC = () => {
       </p>
     );
   }
-  // Erreur ou chargement
+
   if (id && adminUser.id !== id) {
     return (
       <p style={{ textAlign: "center", marginTop: "2rem" }}>Chargement…</p>
     );
   }
 
+  const cityMaxCount = topCities.length
+    ? Math.max(...topCities.map(([, count]) => count))
+    : 0;
+
   return (
-    <div style={{ maxWidth: 1000, margin: "2rem auto" }}>
-      <h1>
-        Bienvenue {adminUser.firstName} {adminUser.lastName}
-      </h1>
-<section style={{ marginTop: "2rem" }}>
-        <h2 style={{ marginBottom: "1rem" }}>Statistiques des commandes</h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "1rem",
-          }}
-        >
-          {[{
-            label: "New Orders",
-            value: statusSummary.newOrders,
-          }, {
-            label: "Confirmed",
-            value: statusSummary.confirmed,
-          }, {
-            label: "Shipped",
-            value: statusSummary.shipped,
-          }, {
-            label: "Completed",
-            value: statusSummary.completed,
-          }, {
-            label: "Returned",
-            value: statusSummary.returned,
-          }, {
-            label: "Abandoned",
-            value: statusSummary.abandoned,
-          }].map(card => (
-            <div
-              key={card.label}
-              style={{
-                background: "#f7f9fc",
-                border: "1px solid #dce3f0",
-                borderRadius: "12px",
-                padding: "1rem",
-                textAlign: "center",
-                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-              }}
-            >
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
-                {card.label}
-              </p>
-              <p style={{ margin: "0.5rem 0 0", fontSize: "1.8rem", fontWeight: 700 }}>
-                {card.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ marginTop: "3rem" }}>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "1rem",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Top 5 Cities</h2>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span>Filtrer par :</span>
-            <select
-              value={timeFilter}
-              onChange={event => setTimeFilter(event.target.value as TimeFilter)}
-              style={{
-                padding: "0.5rem 0.75rem",
-                borderRadius: "8px",
-                border: "1px solid #cbd5f5",
-              }}
-            >
-              {TIME_FILTER_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <p style={{ marginTop: "0.75rem", color: "#475569" }}>
-          {timeFilteredRows.length} commande(s) pour cette période
-        </p>
-
-        {topCities.length > 0 ? (
-          <ol style={{ paddingLeft: "1.5rem", marginTop: "1rem" }}>
-            {topCities.map(([city, count]) => (
-              <li key={city} style={{ marginBottom: "0.5rem" }}>
-                <strong>{city}</strong> – {count} commande(s)
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p style={{ marginTop: "1rem" }}>
-            Aucune donnée disponible pour ce filtre.
+    <div className="admin-dashboard">
+      <header className="dashboard-header">
+        <div>
+          <h1>Tableau de bord</h1>
+          <p className="subtitle">
+            Vue d'ensemble des {rows.length} commandes suivies pour {" "}
+            {adminUser.firstName} {adminUser.lastName}
           </p>
-        )}
+        </div>
+        <div className="user-pill">
+          <span className="user-name">
+            {adminUser.firstName} {adminUser.lastName}
+          </span>
+          <span className="user-role">Administrateur</span>
+        </div>
+      </header>
+
+      <section className="stats-grid">
+        {[
+          { label: "New Orders", value: statusSummary.new },
+          { label: "Confirmed", value: statusSummary.confirmed },
+          { label: "Shipped", value: statusSummary.shipped },
+          { label: "Completed", value: statusSummary.completed },
+          { label: "Returned", value: statusSummary.returned },
+          { label: "Abandoned", value: statusSummary.abandoned },
+        ].map(card => (
+          <div className="card" key={card.label}>
+            <h3>{card.label}</h3>
+            <div className="value">{card.value.toLocaleString("fr-DZ")}</div>
+          </div>
+        ))}
+        <div className="card" key="total-sales">
+          <h3>Total ventes</h3>
+          <div className="value">{formatCurrency(totalRevenue)}</div>
+        </div>
       </section>
-      {/* Tableau commandes avec montant total en rouge */}
-      <div style={{ marginTop: '2rem', overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-          <thead>
-            <tr>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, 100).map((r, i) => {
+
+      <div className="bottom-grid">
+        <div className="chart-card">
+          <h3>Évolution des ventes</h3>
+          <p className="chart-sub">Montant cumulé sur les 45 derniers jours</p>
+          <div className="chart-wrapper">
+            <canvas ref={chartRef} />
+          </div>
+        </div>
+
+        <div className="cities-card">
+          <div className="card-header">
+            <div>
+              <h3>Top villes</h3>
+              <p className="cities-sub">Répartition géographique des commandes</p>
+            </div>
+            <label className="filter-control">
+              <span>Filtrer :</span>
+              <select
+                value={timeFilter}
+                onChange={event => setTimeFilter(event.target.value as TimeFilter)}
+              >
+                {TIME_FILTER_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <p className="filter-hint">
+            {timeFilteredRows.length.toLocaleString("fr-DZ")} commande(s) sur la
+            période
+          </p>
+
+          {topCities.length > 0 ? (
+            topCities.map(([city, count]) => (
+              <div className="city" key={city}>
+                <div className="label">
+                  <span>
+                    <MapPin size={14} />
+                    {city}
+                  </span>
+                  <span>{count.toLocaleString("fr-DZ")}</span>
+                </div>
+                <div className="bar">
+                  <span
+                    style={{
+                      width: cityMaxCount
+                        ? `${Math.max((count / cityMaxCount) * 100, 6)}%`
+                        : "6%",
+                    }}
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">Aucune donnée disponible pour ce filtre.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="data-grid">
+        <div className="data-card">
+          <h3>Commandes récentes</h3>
+          <p className="data-sub">Les 5 dernières commandes importées</p>
+
+          {recentOrders.length > 0 ? (
+            recentOrders.map(order => {
+              const { label, className } = resolveStatusLabel(order.status);
               return (
-                <tr key={i}>
-                </tr>
+                <div className="order" key={order.key}>
+                  <div className="left">
+                    <strong>
+                      {order.orderId}
+                      <span className={`status-pill ${className}`}>{label}</span>
+                    </strong>
+                    <span>
+                      {order.customer} • {order.city}
+                    </span>
+                  </div>
+                  <div className="right">
+                    <strong>{formatCurrency(order.amount)}</strong>
+                    <span className="order-date">
+                      {order.date
+                        ? new Intl.DateTimeFormat("fr-FR", {
+                            day: "2-digit",
+                            month: "short",
+                          }).format(order.date)
+                        : "Date inconnue"}
+                    </span>
+                  </div>
+                </div>
               );
-            })}
-          </tbody>
-        </table>
+            })
+          ) : (
+            <p className="empty-state">Aucune commande récente disponible.</p>
+          )}
+        </div>
+
+        <div className="data-card">
+          <h3>Produits populaires</h3>
+          <p className="data-sub">Les produits les plus demandés ce mois-ci</p>
+
+          {popularProducts.length > 0 ? (
+            popularProducts.map(product => (
+              <div className="product" key={product.name}>
+                <div className="left">
+                  <div className="icon">
+                    <Package size={18} />
+                  </div>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <span>
+                      {product.count.toLocaleString("fr-DZ")} vente(s)
+                    </span>
+                  </div>
+                </div>
+                <strong>{formatCurrency(product.revenue)}</strong>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">
+              Impossible d'afficher des produits populaires pour le moment.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

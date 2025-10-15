@@ -7,12 +7,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "chart.js": "^4.5.1",
     "lucide-react": "^0.525.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.7.0"
   },
   "devDependencies": {
+    "@types/chart.js": "^4.0.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/react-router-dom": "^5.3.3",
