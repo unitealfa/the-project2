@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import '../styles/Orders.css';
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
 function parseCsv(csvText: string): string[][] {
@@ -543,6 +544,63 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const [delivering, setDelivering] = React.useState<boolean>(false);
   const [abandoning, setAbandoning] = React.useState<boolean>(false);
 
+  const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyValue = React.useCallback(
+    (value: string, key: string) => {
+      const text = (value || '').toString().trim();
+      if (!text) return;
+
+      const finalize = () => {
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        setCopiedKey(key);
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopiedKey(null);
+        }, 2000);
+      };
+
+      const attemptFallbackCopy = () => {
+        if (typeof document === 'undefined') return;
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          const result = document.execCommand('copy');
+          if (result) {
+            finalize();
+          }
+        } catch (error) {
+          console.error('Impossible de copier le texte', error);
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(finalize).catch(attemptFallbackCopy);
+      } else {
+        attemptFallbackCopy();
+      }
+    },
+    []
+  );
+
+  React.useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const handleDownload = useCallback(async () => {
     const confirmed = window.confirm(`Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`);
     if (!confirmed) {
@@ -779,8 +837,8 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
     }
   }, [nom_client, telephone, telephone_2, code_wilaya, totalForApi, stop_desk, row, onUpdateStatus, smartCommuneResolver, initialSheetStatus]);
   return (
-    <tr style={{ borderBottom: '1px solid #eee' }}>
-       {headers.map(h => {
+    <tr className="orders-row">
+      {headers.map(h => {
         const normalizedHeader = (h || '')
           .trim()
           .toLowerCase()
@@ -802,26 +860,79 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
             return telephone || row[h] || row['Numero'] || row['Numéro'] || '';
           }
 
-          return row[h] || '';
+           return row[h] || '';
         })();
 
+        const displayText = String(displayValue ?? '');
+        const trimmedDisplayText = displayText.trim();
+        const isPhoneColumn =
+          normalizedHeader.includes('numero') ||
+          normalizedHeader.includes('telephone') ||
+          normalizedHeader.includes('tel') ||
+          /\b(n|no|num)\b/.test(normalizedHeader);
+        const copyKey = `${idx}-${normalizedHeader || h}`;
+
+        if (isPhoneColumn) {
+          if (!trimmedDisplayText) {
+            return (
+              <td key={h} className="orders-table__cell orders-table__cell--phone">
+                <span className="orders-table__muted">—</span>
+              </td>
+            );
+          }
+
+          const isCopied = copiedKey === copyKey;
+
+          return (
+            <td key={h} className="orders-table__cell orders-table__cell--phone">
+              <button
+                type="button"
+                className={`orders-table__phone${isCopied ? ' is-copied' : ''}`}
+                onClick={() => handleCopyValue(trimmedDisplayText, copyKey)}
+                title={isCopied ? 'Numéro copié' : 'Cliquer pour copier le numéro'}
+              >
+                <span className="orders-table__phone-number">{trimmedDisplayText}</span>
+                <svg
+                  className="orders-table__phone-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm1 4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 14H8V7h9v12Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span className="orders-table__copy-feedback" aria-live="polite">
+                  {isCopied ? 'Copié !' : 'Copier'}
+                </span>
+              </button>
+            </td>
+          );
+        }
+
         return (
-          <td key={h} style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-            {displayValue}
+          <td key={h} className="orders-table__cell">
+            {trimmedDisplayText ? trimmedDisplayText : <span className="orders-table__muted">—</span>}
           </td>
         );
       })}
 
-      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <td className="orders-table__cell orders-table__cell--actions">
+        <div className="orders-table__actions">
           <button
+            type="button"
             onClick={handleDownload}
             disabled={submitting || abandoning}
-            style={{ background: submitting ? '#9bbcf1' : '#007bff', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: submitting || abandoning ? 'not-allowed' : 'pointer' }}
+            className={`orders-button orders-button--primary${submitting ? ' is-loading' : ''}`}
           >
-            {submitting ? 'Envoi...' : 'Envoyer la validation'}
+            {submitting ? 'Envoi…' : 'Envoyer la validation'}
           </button>
           <button
+            type="button"
             onClick={async () => {
               const confirmed = window.confirm(`Confirmer l'abandon de la commande ${displayRowLabel || ''} ?`);
               if (!confirmed) return;
@@ -839,11 +950,12 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               }
             }}
             disabled={abandoning || submitting}
-            style={{ background: abandoning ? '#d9534f99' : '#dc3545', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: abandoning || submitting ? 'not-allowed' : 'pointer' }}
+            className={`orders-button orders-button--danger${abandoning ? ' is-loading' : ''}`}
           >
             {abandoning ? 'Abandon…' : 'Abandonnée'}
           </button>
           <button
+            type="button"
             onClick={async () => {
               try {
                 setDelivering(true);
@@ -862,21 +974,24 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
               }
             }}
             disabled={delivering || submitting || abandoning}
-            style={{ background: delivering ? '#8bc34a99' : '#28a745', color: 'white', border: 'none', padding: '0.3rem 0.7rem', borderRadius: 4, cursor: delivering || submitting || abandoning ? 'not-allowed' : 'pointer' }}
+            className={`orders-button orders-button--success${delivering ? ' is-loading' : ''}`}
           >
             {delivering ? 'Traitement…' : 'Marquer livrée (décrémenter stock)'}
           </button>
         </div>
       </td>
-      <td style={{ padding: '0.4rem 0.5rem', verticalAlign: 'top' }}>
-        {(() => {
-          const fromSheet = String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim();
-          return fromSheet ? fromSheet : 'new';
-        })()}
+      <td className="orders-table__cell orders-table__cell--status">
+        <span className="orders-status">
+          {(() => {
+            const fromSheet = String(row['etat'] ?? row['État'] ?? row['Etat'] ?? '').trim();
+            return fromSheet ? fromSheet : 'new';
+          })()}
+        </span>
       </td>
     </tr>
   );
 });
+
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>('');
    const [currentPage, setCurrentPage] = React.useState<number>(1);
@@ -1456,245 +1571,179 @@ const OrderRowItem = React.memo(function OrderRowItem({ row, idx, headers, onUpd
   const pageRangeStart = filtered.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
   const pageRangeEnd = Math.min(filtered.length, (safeCurrentPage - 1) * PAGE_SIZE + paginatedRows.length);
 
-  return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Commandes (Google Sheet)</h2>
-
-      <div style={{ margin: '0.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher (client, wilaya, produit, ... )"
-            style={{ padding: '0.4rem 0.6rem', width: 320 }}
-          />
-          <a
-            href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
-            target="_blank"
-            rel="noreferrer"
-            style={{ alignSelf: 'center' }}
-          >
-            Ouvrir la feuille
-          </a>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>Filtrer par période :</span>
-          {TIME_FILTER_OPTIONS.map(option => {
-            const isActive = option.value === timeFilter;
-            return (
-              <button
-                key={option.value}
-                onClick={() => setTimeFilter(option.value)}
-                type="button"
-                style={{
-                  padding: '0.35rem 0.7rem',
-                  borderRadius: 4,
-                  border: '1px solid #ced4da',
-                  background: isActive ? '#4c8bf5' : '#ffffff',
-                  color: isActive ? '#ffffff' : '#212529',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-
-          {timeFilter !== 'all' && (
-            <select
-              value={availableDayOptions.length === 0 ? '' : selectedDay}
-              onChange={e => setSelectedDay(e.target.value)}
-              disabled={availableDayOptions.length === 0}
-              style={{
-                padding: '0.35rem 0.55rem',
-                borderRadius: 4,
-                border: '1px solid #ced4da',
-                minWidth: 220,
-              }}
-            >
-              {availableDayOptions.length === 0 ? (
-                <option value="">Aucune date disponible</option>
-              ) : (
-                availableDayOptions.map(option => (
-                  <option key={option} value={option}>
-                    {formatDayOptionLabel(option)}
-                  </option>
-                ))
-              )}
-            </select>
-          )}
-
-          <span style={{ fontWeight: 500, fontSize: '0.9rem', marginLeft: '0.5rem' }}>Statut :</span>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            style={{
-              padding: '0.35rem 0.55rem',
-              borderRadius: 4,
-              border: '1px solid #ced4da',
-              minWidth: 160,
-            }}
-          >
-            <option value="all">Tous les statuts</option>
-            {statusOptions.map(option => (
-              <option key={option || 'status-empty'} value={option}>
-                {option || 'Sans statut'}
-              </option>
-            ))}
-          </select>
-        </div>
+   return (
+    <div className="orders-page">
+      <div className="orders-page__header">
+        <h1 className="orders-page__title">Commandes</h1>
+        <p className="orders-page__subtitle">
+          Suivi centralisé des commandes importées depuis Google Sheets pour l’équipe admin et confirmation.
+        </p>
       </div>
 
-            {statusSyncDisabled && (
-        <p style={{ color: '#a94442', background: '#f2dede', padding: '0.6rem 0.8rem', borderRadius: 4 }}>
-          Synchronisation du statut désactivée : impossible de contacter le service backend{' '}
-          (<code>{SHEET_SYNC_ENDPOINT}</code>). Les changements locaux ne seront pas envoyés.
-        </p>
-      )}
+      <div className="orders-panel">
+        <div className="orders-toolbar">
+          <div className="orders-toolbar__row">
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Rechercher (client, wilaya, produit, …)"
+              className="orders-input"
+            />
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
+              target="_blank"
+              rel="noreferrer"
+              className="orders-link"
+            >
+              Ouvrir la feuille Google
+            </a>
+          </div>
 
-      {loading && <p>Chargement...</p>}
-      {error && <p style={{ color: 'red' }}>Erreur: {error}</p>}
+          <div className="orders-toolbar__row orders-toolbar__row--filters">
+            <span className="orders-filter-label">Filtrer par période :</span>
+            {TIME_FILTER_OPTIONS.map(option => {
+              const isActive = option.value === timeFilter;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setTimeFilter(option.value)}
+                  type="button"
+                  className={`orders-chip${isActive ? ' is-active' : ''}`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
 
-      {!loading && !error && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead>
-       <tr>
-                {headers.map(h => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: 'left',
-                      borderBottom: '1px solid #ccc',
-                      padding: '0.5rem',
-                      background: '#f8f9fa',
-                      position: 'sticky',
-                      top: 0,
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-                
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>Action</th>
-                <th style={{ background: '#f8f9fa', position: 'sticky', top: 0 }}>etat</th>
-              </tr>
-             </thead>
-             <tbody>
-              {paginatedRows.map((row, idx) => (
-                <OrderRowItem key={row['id-sheet'] || row['ID'] || idx} row={row} idx={idx} headers={headers} onUpdateStatus={handleUpdateRowStatus} onDelivered={handleDelivered} />
+            {timeFilter !== 'all' && (
+              <select
+                value={availableDayOptions.length === 0 ? '' : selectedDay}
+                onChange={e => setSelectedDay(e.target.value)}
+                disabled={availableDayOptions.length === 0}
+                className="orders-select"
+              >
+                {availableDayOptions.length === 0 ? (
+                  <option value="">Aucune date disponible</option>
+                ) : (
+                  availableDayOptions.map(option => (
+                    <option key={option} value={option}>
+                      {formatDayOptionLabel(option)}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
+
+            <span className="orders-filter-label orders-filter-label--status">Statut :</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="orders-select"
+            >
+              <option value="all">Tous les statuts</option>
+              {statusOptions.map(option => (
+                <option key={option || 'status-empty'} value={option}>
+                  {option || 'Sans statut'}
+                </option>
               ))}
-              {filtered.length === 0 && (
+            </select>
+          </div>
+        </div>
+
+        {statusSyncDisabled && (
+          <div className="orders-alert" role="status">
+            <strong>Synchronisation désactivée.</strong>{' '}
+            Impossible de contacter le service backend (<code>{SHEET_SYNC_ENDPOINT}</code>). Les changements locaux ne seront pas envoyés.
+          </div>
+        )}
+
+        {loading && <p className="orders-state orders-state--loading">Chargement…</p>}
+        {error && <p className="orders-state orders-state--error">Erreur : {error}</p>}
+
+        {!loading && !error && (
+          <div className="orders-table-wrapper">
+            <table className="orders-table">
+              <thead>
                 <tr>
-                  <td colSpan={headers.length + 2} style={{ padding: '0.8rem' }}>
-                    Aucune commande trouvée.
-                  </td>
+                  {headers.map(h => (
+                    <th key={h} className="orders-table__header">
+                      {h}
+                    </th>
+                  ))}
+
+                  <th className="orders-table__header">Action</th>
+                  <th className="orders-table__header">Statut</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {filtered.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            marginTop: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem', color: '#555' }}>
-            <span>
-              Affichage des commandes {pageRangeStart} à {pageRangeEnd} sur {filtered.length}
-            </span>
-            {timeRangeLabel && <span>{timeRangeLabel}</span>}
-            {statusFilterLabel && <span>{statusFilterLabel}</span>}
+              </thead>
+              <tbody>
+                {paginatedRows.map((row, idx) => (
+                  <OrderRowItem
+                    key={row['id-sheet'] || row['ID'] || idx}
+                    row={row}
+                    idx={idx}
+                    headers={headers}
+                    onUpdateStatus={handleUpdateRowStatus}
+                    onDelivered={handleDelivered}
+                  />
+                ))}
+                {filtered.length === 0 && (
+                  <tr className="orders-row orders-row--empty">
+                    <td className="orders-table__cell" colSpan={headers.length + 2}>
+                      Aucune commande trouvée.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
+        )}
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem',marginRight: '50rem' }}>
-            <button
-              onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
-              disabled={safeCurrentPage <= 1}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: 4,
-                border: '1px solid #ced4da',
-                background: safeCurrentPage <= 1 ? '#f1f3f5' : '#ffffff',
-                color: safeCurrentPage <= 1 ? '#adb5bd' : '#212529',
-                cursor: safeCurrentPage <= 1 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Précédent
-            </button>
-            <span style={{ fontSize: '0.9rem', color: '#555' }}>
-              Page {safeCurrentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
-              disabled={safeCurrentPage >= totalPages}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: 4,
-                border: '1px solid #ced4da',
-                background: safeCurrentPage >= totalPages ? '#f1f3f5' : '#ffffff',
-                color: safeCurrentPage >= totalPages ? '#adb5bd' : '#212529',
-                cursor: safeCurrentPage >= totalPages ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Suivant
-            </button>
+        {filtered.length > 0 && (
+          <div className="orders-pagination">
+            <div className="orders-pagination__details">
+              <span>
+                Affichage des commandes {pageRangeStart} à {pageRangeEnd} sur {filtered.length}
+              </span>
+              {timeRangeLabel && <span>{timeRangeLabel}</span>}
+              {statusFilterLabel && <span>{statusFilterLabel}</span>}
+            </div>
+
+            <div className="orders-pagination__controls">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
+                disabled={safeCurrentPage <= 1}
+                className="orders-button orders-button--ghost"
+              >
+                Précédent
+              </button>
+              <span className="orders-pagination__page">
+                Page {safeCurrentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
+                disabled={safeCurrentPage >= totalPages}
+                className="orders-button orders-button--ghost"
+              >
+                Suivant
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
 
       <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Revenir en haut de la page"
-          style={{
-            position: 'fixed',
-            right: 20,
-            bottom: 20,
-            width: 48,
-            height: 48,
-            background: 'linear-gradient(180deg, #4c8bf5 0%, #2864dc 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 999,
-            boxShadow: '0 8px 20px rgba(40, 100, 220, 0.35)',
-            cursor: 'pointer',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease',
-            opacity: 0.95
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 10px 24px rgba(40, 100, 220, 0.45)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 20px rgba(40, 100, 220, 0.35)';
-          }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor"/>
-          </svg>
-        </button>
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="Revenir en haut de la page"
+        className="orders-scroll-top"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor" />
+        </svg>
+      </button>
     </div>
   );
 };
