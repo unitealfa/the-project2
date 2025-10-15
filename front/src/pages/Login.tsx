@@ -186,31 +186,114 @@ const Login: React.FC = () => {
     padding: '1rem',
   };
 
-  const modalStyle: React.CSSProperties = {
-    backgroundColor: '#fff',
-    padding: '2rem 1.5rem 1.5rem',
-    borderRadius: '8px',
-    maxWidth: '420px',
+   const modalStyle: React.CSSProperties = {
+    background: '#fff',
+    padding: '2.5rem 2.25rem',
+    borderRadius: '18px',
+    maxWidth: '440px',
     width: '100%',
     position: 'relative',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 22px 55px rgba(0, 0, 0, 0.18)',
+    color: '#111',
+    textAlign: 'left',
   };
 
   const closeButtonStyle: React.CSSProperties = {
     position: 'absolute',
-    top: '0.5rem',
-    right: '0.5rem',
+    top: '1.25rem',
+    right: '1.25rem',
     border: 'none',
-    background: 'transparent',
-    fontSize: '1.5rem',
+    background: '#f4f4f4',
+    fontSize: '1.1rem',
     cursor: 'pointer',
+    width: '2.2rem',
+    height: '2.2rem',
+    borderRadius: '999px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#111',
   };
 
   const secondaryTextStyle: React.CSSProperties = {
-    fontSize: '0.9rem',
-    color: '#555',
-    lineHeight: 1.4,
+    fontSize: '0.95rem',
+    color: '#444',
+    lineHeight: 1.5,
+    marginTop: '0.75rem',
   };
+
+  const modalTitleStyle: React.CSSProperties = {
+    fontSize: '1.65rem',
+    fontWeight: 700,
+    letterSpacing: '-0.01em',
+    marginBottom: '0.5rem',
+  };
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.8rem 1.1rem',
+    borderRadius: '12px',
+    border: '2px solid #111',
+    backgroundColor: '#fff',
+    color: '#111',
+    fontSize: '0.95rem',
+    outline: 'none',
+    transition: 'box-shadow 0.2s ease',
+    boxShadow: 'inset 0 0 0 0 rgba(0,0,0,0)',
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    width: '100%',
+    marginTop: '1.75rem',
+    padding: '0.9rem 1rem',
+    borderRadius: '999px',
+    border: 'none',
+    backgroundColor: '#111',
+    color: '#fff',
+    fontSize: '1rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  };
+
+  const modalSectionSpacingStyle: React.CSSProperties = {
+    marginTop: '1.5rem',
+  };
+
+  const modalInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    marginTop: '0.75rem',
+    border: '2px solid #111',
+  };
+
+  const modalPrimaryButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    marginTop: '1.25rem',
+  };
+
+  const modalSecondaryButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    marginTop: '0.75rem',
+    backgroundColor: '#f4f4f4',
+    color: '#111',
+    boxShadow: 'inset 0 0 0 2px #111',
+  };
+
+  const modalMessageStyle: React.CSSProperties = {
+    fontSize: '0.95rem',
+    lineHeight: 1.5,
+    marginTop: '0.75rem',
+  };
+
+  const getDisabledButtonStyle = (disabled: boolean): React.CSSProperties =>
+    disabled
+      ? {
+          opacity: 0.6,
+          cursor: 'not-allowed',
+          boxShadow: 'none',
+          transform: 'none',
+        }
+      : {};
+
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
@@ -255,33 +338,6 @@ const Login: React.FC = () => {
     color: '#222',
     textAlign: 'left',
     marginBottom: '0.5rem',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '0.8rem 1.1rem',
-    borderRadius: '12px',
-    border: '2px solid #111',
-    backgroundColor: '#fff',
-    color: '#111',
-    fontSize: '0.95rem',
-    outline: 'none',
-    transition: 'box-shadow 0.2s ease',
-    boxShadow: 'inset 0 0 0 0 rgba(0,0,0,0)',
-  };
-
-  const buttonStyle: React.CSSProperties = {
-    width: '100%',
-    marginTop: '1.75rem',
-    padding: '0.9rem 1rem',
-    borderRadius: '999px',
-    border: 'none',
-    backgroundColor: '#111',
-    color: '#fff',
-    fontSize: '1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
   };
 
   const forgotButtonStyle: React.CSSProperties = {
@@ -342,34 +398,48 @@ const Login: React.FC = () => {
       {showForgotModal && (
         <div style={overlayStyle} role="dialog" aria-modal="true" aria-labelledby="forgot-password-title">
           <div style={modalStyle}>
-            <button style={closeButtonStyle} onClick={closeForgotModal} aria-label="Fermer la fenêtre de réinitialisation">
+            <button
+              style={closeButtonStyle}
+              onClick={closeForgotModal}
+              aria-label="Fermer la fenêtre de réinitialisation"
+            >
               ×
             </button>
-            <h3 id="forgot-password-title">Réinitialiser le mot de passe</h3>
+            <h3 id="forgot-password-title" style={modalTitleStyle}>
+              Réinitialiser le mot de passe
+            </h3>
             <p style={secondaryTextStyle}>
-              Si vous n'êtes pas administrateur, veuillez contacter l'administrateur pour réinitialiser votre mot de passe.
+              Si vous n'êtes pas administrateur, veuillez contacter l'administrateur pour
+              réinitialiser votre mot de passe.
             </p>
             {hasRequestedReset && forgotMessage && (
-              <p style={{ marginTop: '0.75rem' }}>{forgotMessage}</p>
+              <p style={modalMessageStyle}>{forgotMessage}</p>
             )}
             {hasRequestedReset && maskedAdminEmail && requiresVerification && (
-              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+              <p style={{ ...modalMessageStyle, fontSize: '0.95rem' }}>
                 Un email a été envoyé à <strong>{maskedAdminEmail}</strong>.
               </p>
             )}
             {errorMessage && (
-              <p style={{ color: '#c0392b', marginTop: '0.75rem' }}>{errorMessage}</p>
+              <p style={{ ...modalMessageStyle, color: '#c0392b', fontWeight: 600 }}>
+                {errorMessage}
+              </p>
             )}
             {verificationMessage && (
-              <p style={{ color: '#27ae60', marginTop: '0.75rem' }}>{verificationMessage}</p>
+              <p style={{ ...modalMessageStyle, color: '#1e8449', fontWeight: 600 }}>
+                {verificationMessage}
+              </p>
             )}
 
-             {!hasRequestedReset && (
-              <div style={{ marginTop: '1rem' }}>
+            {!hasRequestedReset && (
+              <div style={modalSectionSpacingStyle}>
                 <button
                   type="button"
                   onClick={requestAdminReset}
-                  style={{ width: '100%' }}
+                  style={{
+                    ...modalPrimaryButtonStyle,
+                    ...getDisabledButtonStyle(isSending),
+                  }}
                   disabled={isSending}
                 >
                   {isSending ? 'Envoi en cours…' : 'Réinitialiser le mot de passe administrateur'}
@@ -378,17 +448,20 @@ const Login: React.FC = () => {
             )}
 
             {hasRequestedReset && !requiresVerification && (
-              <div style={{ marginTop: '1rem' }}>
-                <p style={{ marginBottom: '0.5rem' }}>
+              <div style={modalSectionSpacingStyle}>
+                <p style={modalMessageStyle}>
                   {isSending
-                    ? 'Envoi du code de vérification à l\'administrateur…'
-                    : 'Un email est envoyé automatiquement à l\'administrateur pour lancer la réinitialisation.'}
+                    ? "Envoi du code de vérification à l'administrateur…"
+                    : "Un email est envoyé automatiquement à l'administrateur pour lancer la réinitialisation."}
                 </p>
                 {!isSending && (
                   <button
                     type="button"
                     onClick={requestAdminReset}
-                    style={{ width: '100%' }}
+                    style={{
+                      ...modalSecondaryButtonStyle,
+                      ...getDisabledButtonStyle(false),
+                    }}
                   >
                     Renvoyer le code
                   </button>
@@ -397,20 +470,27 @@ const Login: React.FC = () => {
             )}
 
             {hasRequestedReset && requiresVerification && !verificationCompleted && (
-              <>
-                <form onSubmit={handleVerifyCode} style={{ marginTop: '1rem' }}>
-                  <label htmlFor="verification-code">Code de vérification</label><br/>
+              <div style={modalSectionSpacingStyle}>
+                <form onSubmit={handleVerifyCode}>
+                  <label htmlFor="verification-code" style={labelStyle}>
+                    Code de vérification
+                  </label>
                   <input
                     id="verification-code"
                     type="text"
                     value={verificationCode}
                     onChange={e => setVerificationCode(e.target.value)}
                     required
-                    style={{ width: '100%', marginTop: '0.5rem' }}
+                    style={modalInputStyle}
+                    onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
+                    onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
                   />
                   <button
                     type="submit"
-                    style={{ marginTop: '1rem', width: '100%' }}
+                    style={{
+                      ...modalPrimaryButtonStyle,
+                      ...getDisabledButtonStyle(isVerifying),
+                    }}
                     disabled={isVerifying}
                   >
                     {isVerifying ? 'Vérification…' : 'Valider le code'}
@@ -419,19 +499,22 @@ const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={requestAdminReset}
-                  style={{ marginTop: '0.75rem', width: '100%' }}
+                  style={{
+                    ...modalSecondaryButtonStyle,
+                    ...getDisabledButtonStyle(isSending),
+                  }}
                   disabled={isSending}
                 >
                   {isSending ? 'Renvoi en cours…' : 'Renvoyer le code'}
                 </button>
-              </>
+              </div>
             )}
 
             {verificationCompleted && (
-              <div style={{ marginTop: '1.5rem' }}>
+              <div style={modalSectionSpacingStyle}>
                 <button
                   type="button"
-                  style={{ width: '100%' }}
+                  style={modalPrimaryButtonStyle}
                   onClick={closeForgotModal}
                 >
                   Fermer
