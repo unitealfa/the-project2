@@ -212,30 +212,129 @@ const Login: React.FC = () => {
     lineHeight: 1.4,
   };
 
+  const pageStyle: React.CSSProperties = {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f4f4f4',
+    padding: '2rem 1.5rem',
+  };
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: '#fff',
+    color: '#111',
+    borderRadius: '18px',
+    boxShadow: '0 22px 55px rgba(0, 0, 0, 0.14)',
+    padding: '2.5rem 2.25rem',
+    width: '100%',
+    maxWidth: '360px',
+    textAlign: 'center',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: '1.9rem',
+    marginBottom: '0.5rem',
+    fontWeight: 700,
+    letterSpacing: '-0.02em',
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    fontSize: '0.95rem',
+    color: '#555',
+    marginBottom: '2rem',
+    lineHeight: 1.5,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: '#222',
+    textAlign: 'left',
+    marginBottom: '0.5rem',
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.8rem 1.1rem',
+    borderRadius: '12px',
+    border: '2px solid #111',
+    backgroundColor: '#fff',
+    color: '#111',
+    fontSize: '0.95rem',
+    outline: 'none',
+    transition: 'box-shadow 0.2s ease',
+    boxShadow: 'inset 0 0 0 0 rgba(0,0,0,0)',
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    width: '100%',
+    marginTop: '1.75rem',
+    padding: '0.9rem 1rem',
+    borderRadius: '999px',
+    border: 'none',
+    backgroundColor: '#111',
+    color: '#fff',
+    fontSize: '1rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  };
+
+  const forgotButtonStyle: React.CSSProperties = {
+    marginTop: '1.25rem',
+    border: 'none',
+    background: 'transparent',
+    color: '#111',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    fontWeight: 500,
+  };
+
+  const fieldSpacingStyle: React.CSSProperties = {
+    marginBottom: '1.25rem',
+  };
+
+
   return (
-    <div style={{ maxWidth: 320, margin: '2rem auto' }}>
-      <h2>Connexion</h2>
-      <form onSubmit={handleSubmit}>
-        <label>Email</label><br/>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
-        <br/><br/>
-        <label>Mot de passe</label><br/>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
-        <br/><br/>
-        <button type="submit">Se connecter</button>
-      </form>
-      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-        <button type="button" onClick={openForgotModal} style={{ background: 'none', border: 'none', color: '#0077cc', cursor: 'pointer', textDecoration: 'underline' }}>
+     <div style={pageStyle}>
+      <div style={cardStyle}>
+        <h1 style={titleStyle}>Connexion</h1>
+        <p style={subtitleStyle}>Accédez à votre espace en renseignant vos identifiants.</p>
+        <form onSubmit={handleSubmit}>
+          <div style={fieldSpacingStyle}>
+            <label style={labelStyle} htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
+              onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
+            />
+          </div>
+          <div style={fieldSpacingStyle}>
+            <label style={labelStyle} htmlFor="password">Mot de passe</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
+              onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
+            />
+          </div>
+          <button type="submit" style={buttonStyle}>Se connecter</button>
+        </form>
+        <button type="button" onClick={openForgotModal} style={forgotButtonStyle}>
           Mot de passe oublié ?
         </button>
       </div>
