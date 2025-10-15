@@ -555,8 +555,37 @@ const Admin: React.FC = () => {
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, "rgba(37, 99, 235, 0.25)");
-    gradient.addColorStop(1, "rgba(37, 99, 235, 0)");
+     gradient.addColorStop(0, "rgba(107, 114, 128, 0.35)");
+    gradient.addColorStop(1, "rgba(107, 114, 128, 0)");
+
+    const revenueValues = salesTrend.map(point => Math.round(point.revenue));
+    const maxRevenue = revenueValues.length
+      ? Math.max(...revenueValues)
+      : 0;
+
+    const computeNiceStep = (maxValue: number): { step: number; max: number } => {
+      if (maxValue <= 0) {
+        return { step: 1, max: 1 };
+      }
+
+      const desiredSteps = 4;
+      const roughStep = maxValue / desiredSteps;
+      const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+      const normalized = roughStep / magnitude;
+
+      let niceNormalized: number;
+      if (normalized <= 1) niceNormalized = 1;
+      else if (normalized <= 2) niceNormalized = 2;
+      else if (normalized <= 5) niceNormalized = 5;
+      else niceNormalized = 10;
+
+      const step = niceNormalized * magnitude;
+      const max = Math.ceil(maxValue / step) * step;
+
+      return { step, max };
+    };
+
+    const { step: yStepSize, max: yMax } = computeNiceStep(maxRevenue);
 
     chartInstanceRef.current = new Chart(ctx, {
       type: "line",
@@ -565,15 +594,15 @@ const Admin: React.FC = () => {
         datasets: [
           {
             label: "Ventes",
-            data: salesTrend.map(point => Math.round(point.revenue)),
+            data: revenueValues,
             fill: true,
-            borderColor: "#2563eb",
-            borderWidth: 2,
+            borderColor: "#6b7280",
+            borderWidth: 1.8,
             backgroundColor: gradient,
             tension: 0.4,
             pointRadius: 0,
-            pointHoverRadius: 5,
-            pointHoverBackgroundColor: "#1e3a8a",
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: "#111827",
           },
         ],
       },
@@ -590,32 +619,30 @@ const Admin: React.FC = () => {
             borderColor: "#e5e7eb",
             borderWidth: 1,
             displayColors: false,
-            padding: 12,
+            padding: 10,
             callbacks: {
               title: tooltipItems => tooltipItems[0]?.label ?? "",
-              label: tooltipItem =>
-                `Ventes : ${new Intl.NumberFormat("fr-DZ", {
-                  maximumFractionDigits: 0,
-                }).format(Number(tooltipItem.parsed.y))} DA`,
+              label: tooltipItem => `ventes : ${tooltipItem.formattedValue}`,
             },
           },
         },
         scales: {
           x: {
-            grid: { color: "#f3f4f6" },
+            grid: { color: "#e5e7eb" },
             ticks: { color: "#6b7280" },
           },
           y: {
             beginAtZero: true,
             ticks: {
               color: "#6b7280",
+              stepSize: yStepSize,
               callback: value =>
-                new Intl.NumberFormat("fr-DZ", {
-                  notation: "compact",
-                  maximumFractionDigits: 1,
+                new Intl.NumberFormat("fr-FR", {
+                  maximumFractionDigits: 0,
                 }).format(Number(value)),
             },
-            grid: { color: "#f3f4f6" },
+            suggestedMax: yMax,
+            grid: { color: "#e5e7eb" },
           },
         },
       },
