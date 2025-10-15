@@ -15,14 +15,16 @@ import { MapPin, Package } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/AdminDashboard.css";
 
-type TimeFilter = "all" | "day" | "month" | "year";
+type TimeFilter = "all" | "day" | "week" | "month" | "customMonth" | "year";
 type ChartRangeMode = "recent" | "month" | "year";
 
 const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
+  { value: "day", label: "Aujourd'hui" },
+  { value: "week", label: "Cette semaine" },
+  { value: "month", label: "Ce mois" },
+  { value: "customMonth", label: "Choisir un mois" },
+  { value: "year", label: "Cette année" },
   { value: "all", label: "Tout" },
-  { value: "day", label: "Jour" },
-  { value: "month", label: "Mois" },
-  { value: "year", label: "Année" },
 ];
 
 const parseSheetDateValue = (value: string | undefined): Date | null => {
@@ -156,25 +158,59 @@ const resolveCityFromRow = (row: Record<string, string>): string => {
   return "Inconnue";
 };
 
-const filterRowsByTime = (rows: Record<string, string>[], filter: TimeFilter) => {
+const filterRowsByTime = (
+  rows: Record<string, string>[],
+  filter: TimeFilter,
+  customMonthValue?: string
+) => {
   if (filter === "all") return rows;
+
   const now = new Date();
-  const start = new Date(now);
+  let start: Date | null = null;
+  let end: Date | null = null;
 
   if (filter === "day") {
+    start = new Date(now);
     start.setHours(0, 0, 0, 0);
+    end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+  } else if (filter === "week") {
+    start = new Date(now);
+    const day = start.getDay();
+    const diff = (day + 6) % 7;
+    start.setDate(start.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    end = new Date(now);
+    end.setHours(23, 59, 59, 999);
   } else if (filter === "month") {
-    start.setDate(1);
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
     start.setHours(0, 0, 0, 0);
+    end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+  } else if (filter === "customMonth") {
+    if (!customMonthValue) return [];
+    const [yearStr, monthStr] = customMonthValue.split("-");
+    const year = Number(yearStr);
+    const monthIndex = Number(monthStr) - 1;
+    if (Number.isNaN(year) || Number.isNaN(monthIndex) || monthIndex < 0) {
+      return [];
+    }
+    start = new Date(year, monthIndex, 1);
+    start.setHours(0, 0, 0, 0);
+    end = new Date(year, monthIndex + 1, 0);
+    end.setHours(23, 59, 59, 999);
   } else if (filter === "year") {
-    start.setMonth(0, 1);
+    start = new Date(now.getFullYear(), 0, 1);
     start.setHours(0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
   }
+
+  if (!start || !end) return rows;
 
   return rows.filter(row => {
     const rowDate = extractRowDate(row);
     if (!rowDate) return false;
-    return rowDate >= start && rowDate <= now;
+    return rowDate >= start && rowDate <= end;
   });
 };
 
@@ -236,6 +272,9 @@ const Admin: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [timeFilterMonth, setTimeFilterMonth] = useState<string>(
+    () => getDefaultMonthValue()
+  );
   const [chartRangeMode, setChartRangeMode] =
     useState<ChartRangeMode>("recent");
   const [selectedMonth, setSelectedMonth] =
@@ -483,8 +522,13 @@ const Admin: React.FC = () => {
     })();
   }, []);
 
-  const statusSummary = useMemo(() => {
-    return rows.reduce(
+  const timeFilteredRows = useMemo(
+    () => filterRowsByTime(rows, timeFilter, timeFilterMonth),
+    [rows, timeFilter, timeFilterMonth]
+  );
+
+  const filteredStatusSummary = useMemo(() => {
+    return timeFilteredRows.reduce(
       (acc, row) => {
         const bucket = mapStatusBucket(getRowStatus(row));
         if (!bucket) return acc;
@@ -498,14 +542,12 @@ const Admin: React.FC = () => {
         completed: 0,
         returned: 0,
         abandoned: 0,
-      } as Record<"new" | "confirmed" | "shipped" | "completed" | "returned" | "abandoned", number>
+       } as Record<
+        "new" | "confirmed" | "shipped" | "completed" | "returned" | "abandoned",
+        number
+      >
     );
-  }, [rows]);
-
-  const timeFilteredRows = useMemo(
-    () => filterRowsByTime(rows, timeFilter),
-    [rows, timeFilter]
-  );
+  }, [timeFilteredRows]);
 
   const topCities = useMemo(() => {
     const counts = new Map<string, number>();
@@ -535,6 +577,14 @@ const Admin: React.FC = () => {
       .sort()
       .map(value => ({ value, label: formatMonthLabel(value) }));
   }, [rows]);
+
+useEffect(() => {
+    if (!availableMonths.some(month => month.value === timeFilterMonth)) {
+      const fallback =
+        availableMonths[availableMonths.length - 1]?.value ?? getDefaultMonthValue();
+      setTimeFilterMonth(fallback);
+    }
+  }, [availableMonths, timeFilterMonth]);
 
   const availableYears = useMemo(() => {
     const yearSet = new Set<number>();
@@ -580,14 +630,37 @@ const Admin: React.FC = () => {
 
     return "Nombre quotidien sur les 45 derniers jours";
   }, [chartRangeMode, selectedMonth, selectedYear]);
+
   
+  const timeFilterLabel = useMemo(() => {
+    if (timeFilter === "customMonth") {
+      const monthLabel =
+        availableMonths.find(month => month.value === timeFilterMonth)?.label ??
+        formatMonthLabel(timeFilterMonth);
+      return `le mois de ${monthLabel}`;
+    }
+
+    switch (timeFilter) {
+      case "day":
+        return "aujourd'hui";
+      case "week":
+        return "cette semaine";
+      case "month":
+        return "ce mois-ci";
+      case "year":
+        return "cette année";
+      default:
+        return "toute la période";
+    }
+  }, [availableMonths, timeFilter, timeFilterMonth]);
+
   const totalRevenue = useMemo(() => {
-    return rows.reduce((acc, row) => {
+    return timeFilteredRows.reduce((acc, row) => {
       const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
       if (Number.isNaN(amount)) return acc;
       return acc + amount;
     }, 0);
-  }, [rows]);
+  }, [timeFilteredRows]);
 
   const salesTrend = useMemo(() => {
     const now = new Date();
@@ -902,8 +975,9 @@ const Admin: React.FC = () => {
         <div>
           <h1>Tableau de bord</h1>
           <p className="subtitle">
-            Vue d'ensemble des {rows.length} commandes suivies pour {" "}
-            {adminUser.firstName} {adminUser.lastName}
+            Vue d'ensemble de {timeFilteredRows.length.toLocaleString("fr-DZ")} {" "}
+            commande(s) pour {timeFilterLabel}, suivies par {adminUser.firstName}{" "}
+            {adminUser.lastName}
           </p>
         </div>
         <div className="user-pill">
@@ -914,23 +988,55 @@ const Admin: React.FC = () => {
         </div>
       </header>
 
-      <section className="stats-grid">
-        {[
-          { label: "New Orders", value: statusSummary.new },
-          { label: "Confirmed", value: statusSummary.confirmed },
-          { label: "Shipped", value: statusSummary.shipped },
-          { label: "Completed", value: statusSummary.completed },
-          { label: "Returned", value: statusSummary.returned },
-          { label: "Abandoned", value: statusSummary.abandoned },
-        ].map(card => (
-          <div className="card" key={card.label}>
-            <h3>{card.label}</h3>
-            <div className="value">{card.value.toLocaleString("fr-DZ")}</div>
+      <section className="stats-section">
+        <div className="stats-toolbar">
+          <label className="filter-control">
+            <span>Période :</span>
+            <select
+              value={timeFilter}
+              onChange={event => setTimeFilter(event.target.value as TimeFilter)}
+            >
+              {TIME_FILTER_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {timeFilter === "customMonth" && (
+            <label className="filter-control">
+              <span>Mois :</span>
+              <select
+                value={timeFilterMonth}
+                onChange={event => setTimeFilterMonth(event.target.value)}
+              >
+                {availableMonths.map(month => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+        <div className="stats-grid">
+          {[
+            { label: "New Orders", value: filteredStatusSummary.new },
+            { label: "Confirmed", value: filteredStatusSummary.confirmed },
+            { label: "Shipped", value: filteredStatusSummary.shipped },
+            { label: "Completed", value: filteredStatusSummary.completed },
+            { label: "Returned", value: filteredStatusSummary.returned },
+            { label: "Abandoned", value: filteredStatusSummary.abandoned },
+          ].map(card => (
+            <div className="card" key={card.label}>
+              <h3>{card.label}</h3>
+              <div className="value">{card.value.toLocaleString("fr-DZ")}</div>
+            </div>
+          ))}
+          <div className="card" key="total-sales">
+            <h3>Total ventes</h3>
+            <div className="value">{formatCurrency(totalRevenue)}</div>
           </div>
-        ))}
-        <div className="card" key="total-sales">
-          <h3>Total ventes</h3>
-          <div className="value">{formatCurrency(totalRevenue)}</div>
         </div>
       </section>
 
@@ -1008,8 +1114,8 @@ const Admin: React.FC = () => {
           </div>
 
           <p className="filter-hint">
-            {timeFilteredRows.length.toLocaleString("fr-DZ")} commande(s) sur la
-            période
+             {timeFilteredRows.length.toLocaleString("fr-DZ")} commande(s) pour {" "}
+            {timeFilterLabel}
           </p>
 
           {topCities.length > 0 ? (
