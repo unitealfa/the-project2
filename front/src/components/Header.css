@@ -1,0 +1,160 @@
+.app-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #000000;
+  text-decoration: none;
+}
+
+.header-logo i {
+  font-size: 20px;
+  color: #000000;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.header-nav a {
+  text-decoration: none;
+  color: #6b7280;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.header-nav a:hover,
+.header-nav a.active {
+  color: #111827;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background-color: #eef5ff;
+  padding: 6px 12px;
+  border-radius: 50px;
+  transition: background 0.2s ease;
+  border: none;
+}
+
+.profile-button:hover,
+.profile-button:focus-visible {
+  background-color: #e0ecff;
+  outline: none;
+}
+
+.profile-button i {
+  font-size: 18px;
+  color: #000000;
+}
+
+.profile-button span {
+  font-weight: 500;
+  color: #111827;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+.profile-button.active .chevron {
+  transform: rotate(180deg);
+}
+
+.profile-menu {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  overflow: hidden;
+  display: none;
+}
+
+.profile-menu.open {
+  display: block;
+}
+
+.profile-menu a,
+.profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 15px;
+  color: #111827;
+  background: transparent;
+  border: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.profile-menu a:hover,
+.profile-menu button:hover,
+.profile-menu a:focus-visible,
+.profile-menu button:focus-visible {
+  background-color: #f3f4f6;
+  outline: none;
+}
+
+.profile-menu i {
+  color: #007bff;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-right {
+    align-self: flex-end;
+  }
+}

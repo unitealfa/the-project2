@@ -19,6 +19,8 @@ import Confirmateur from './pages/Confirmateur';
 import Orders       from './pages/Orders';
 import Products     from './pages/Products';
 
+import './styles/global.css';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
