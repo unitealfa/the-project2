@@ -397,6 +397,38 @@ const Orders: React.FC = () => {
     return normalized;
   };
 
+   const formatPhoneForDisplay = (
+    rawPhone: string,
+    normalizedPhone: string
+  ): string => {
+    const trimmedRaw = (rawPhone || "").trim();
+    const normalizedDigits = (normalizedPhone || "").replace(/\D/g, "");
+
+    if (!normalizedDigits) {
+      return trimmedRaw;
+    }
+
+    const groupedDigits = normalizedDigits
+      .replace(/(\d{2})(?=\d)/g, "$1 ")
+      .trim();
+
+    if (!trimmedRaw) {
+      return groupedDigits;
+    }
+
+    const rawDigits = trimmedRaw.replace(/\D/g, "");
+    if (rawDigits === normalizedDigits) {
+      return groupedDigits;
+    }
+
+    if (!trimmedRaw.startsWith("0") && normalizedDigits.startsWith("0")) {
+      return groupedDigits;
+    }
+
+    return trimmedRaw;
+  };
+
+
   const normalizeName = (name: string): string => {
     if (!name) return "";
 
@@ -482,7 +514,7 @@ const Orders: React.FC = () => {
     }
 
     const phoneDial = normalizePhone(rawPhone);
-    const displayPhone = (rawPhone || phoneDial).trim();
+    const displayPhone = formatPhoneForDisplay(rawPhone, phoneDial);
     const sheetRowId = String(row["id-sheet"] ?? "").trim();
     const fallbackRowId = String(row["ID"] ?? "").trim();
     const rowId = sheetRowId || fallbackRowId;
@@ -1155,6 +1187,24 @@ const Orders: React.FC = () => {
           const copyKey = `${idx}-${normalizedHeader || h}`;
 
           if (isPhoneColumn) {
+            const rawPhoneValue = String(
+              row[h] ||
+                row["Numero"] ||
+                row["Numéro"] ||
+                row["Téléphone"] ||
+                row["Telephone"] ||
+                ""
+            );
+            const normalizedPhoneForCopy = normalizePhone(
+              rawPhoneValue || trimmedDisplayText
+            );
+            const phoneDisplayText = formatPhoneForDisplay(
+              rawPhoneValue || trimmedDisplayText,
+              normalizedPhoneForCopy || trimmedDisplayText
+            );
+            const valueToCopy =
+              normalizedPhoneForCopy || trimmedDisplayText || phoneDisplayText;
+
             if (!trimmedDisplayText) {
               return (
                 <td
@@ -1178,13 +1228,13 @@ const Orders: React.FC = () => {
                   className={`orders-table__phone${
                     isCopied ? " is-copied" : ""
                   }`}
-                  onClick={() => handleCopyValue(trimmedDisplayText, copyKey)}
+                  onClick={() => handleCopyValue(valueToCopy, copyKey)}
                   title={
                     isCopied ? "Numéro copié" : "Cliquer pour copier le numéro"
                   }
                 >
                   <span className="orders-table__phone-number">
-                    {trimmedDisplayText}
+                    {phoneDisplayText}
                   </span>
                   <svg
                     className="orders-table__phone-icon"
@@ -2341,7 +2391,7 @@ const Orders: React.FC = () => {
                     value = selectedOrder[matchedKey];
                   }
                 }
-                
+
                 const displayValue = (value ?? "").toString().trim();
                 return (
                   <div key={key} className="orders-modal__detail">

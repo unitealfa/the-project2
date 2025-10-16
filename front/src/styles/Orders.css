@@ -78,8 +78,11 @@
 }
 
 .orders-input {
-  flex: 1 1 240px;
-  min-width: 220px;
+  flex: 1 1 320px;
+  width: 100%;
+  min-width: 200px;
+  max-width: 420px;
+  box-sizing: border-box;
   border-radius: 10px;
   border: 1px solid #d1d5db;
   padding: 10px 14px;
@@ -735,12 +738,12 @@
     width: 100%;
   }
 
-   .orders-input {
+    .orders-input {
+    flex: 1 1 100%;
     padding: 9px 12px;
     font-size: 0.9rem;
     border-radius: 8px;
     min-width: 0;
-    width: 100%;
     max-width: 100%;
   }
 
@@ -863,6 +866,13 @@
     height: 46px;
     right: 16px;
     bottom: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .orders-input {
+    font-size: 0.8rem;
+    padding: 7px 10px;
   }
 }
 
