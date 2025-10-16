@@ -1625,7 +1625,11 @@ const Orders: React.FC = () => {
       if (grid.length === 0) {
         throw new Error("CSV vide");
       }
-      const [headerRow, ...dataRows] = grid;
+      const [rawHeaderRow, ...dataRows] = grid;
+      const headerRow = rawHeaderRow.map((cell) =>
+        typeof cell === "string" ? cell.trim() : String(cell ?? "")
+      );
+
       if (!cancelledRef.current) {
         const normalizeHeader = (h: string) =>
           (h || "")
@@ -2320,7 +2324,24 @@ const Orders: React.FC = () => {
             <div className="orders-modal__details">
               {headers.map((header, index) => {
                 const key = `${header || "col"}-${index}`;
-                const value = selectedOrder[header];
+                 const trimmedHeader = header ? header.trim() : "";
+                const normalizedHeader = trimmedHeader
+                  ? normalizeFieldKey(trimmedHeader)
+                  : "";
+                let value = selectedOrder[header];
+                if (value === undefined && trimmedHeader && header !== trimmedHeader) {
+                  value = selectedOrder[trimmedHeader];
+                }
+                if (value === undefined && normalizedHeader) {
+                  const matchedKey = Object.keys(selectedOrder).find(
+                    (candidate) =>
+                      normalizeFieldKey(candidate || "") === normalizedHeader
+                  );
+                  if (matchedKey) {
+                    value = selectedOrder[matchedKey];
+                  }
+                }
+                
                 const displayValue = (value ?? "").toString().trim();
                 return (
                   <div key={key} className="orders-modal__detail">
