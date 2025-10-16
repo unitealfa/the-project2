@@ -1,7 +1,9 @@
 // front/src/pages/Confirmateur.tsx
 
 import React, { useContext, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import '../styles/Confirmateur.css';
 
 const Confirmateur: React.FC = () => {
   const { user } = useContext(AuthContext);
@@ -103,12 +105,60 @@ const Confirmateur: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: '2rem auto' }}>
-      <div style={{ textAlign: 'center' }}>
+    <div className="confirmateur-page">
+      <header className="confirmateur-hero">
+        <p className="confirmateur-role">Rôle : Confirmateur</p>
         <h1>Bienvenue {user.firstName} {user.lastName}</h1>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Rôle:</strong> {user.role}</p>
-      </div>
+        <p className="confirmateur-subtitle">
+          Retrouvez ici toutes les informations essentielles pour préparer vos journées de confirmation.
+          Ce tableau de bord mobile-first regroupe les tâches clés et des rappels rapides pour vous aider à rester concentré.
+        </p>
+        <Link
+          to={`/confirmateur/${user.id}/orders`}
+          className="confirmateur-primary-action"
+        >
+          Accéder aux commandes
+        </Link>
+      </header>
+
+      <section className="confirmateur-grid">
+        <article className="confirmateur-card">
+          <h2>Résumé du jour</h2>
+          <ul>
+            <li><strong>Commandes à confirmer :</strong> 12</li>
+            <li><strong>Confirmations effectuées :</strong> 7</li>
+            <li><strong>Livraisons en attente :</strong> 5</li>
+          </ul>
+          <p className="confirmateur-card-note">Ces chiffres sont fournis à titre indicatif pour démarrer la journée.</p>
+        </article>
+
+        <article className="confirmateur-card">
+          <h2>Raccourcis utiles</h2>
+          <ul className="confirmateur-shortcuts">
+            <li>✅ Vérifier les coordonnées clients avant d'appeler</li>
+            <li>📦 Confirmer le mode de livraison et la disponibilité</li>
+            <li>🗒️ Noter les retours et commentaires importants</li>
+          </ul>
+        </article>
+
+        <article className="confirmateur-card">
+          <h2>Conseils rapides</h2>
+          <p>
+            Adoptez un ton cordial et rassurant, privilégiez les créneaux horaires annoncés et gardez toujours un historique
+            des échanges pour faciliter le suivi par les gestionnaires.
+          </p>
+          <p>
+            En cas d'imprévu, informez immédiatement l'équipe logistique afin de réattribuer la commande au besoin.
+          </p>
+        </article>
+      </section>
+
+      <footer className="confirmateur-footer">
+        <p><strong>Email :</strong> {user.email}</p>
+        <p className="confirmateur-footer-note">
+          Un doute ou une urgence ? Contactez le support interne pour obtenir de l'aide rapide.
+        </p>
+      </footer>
     </div>
   );
 };
