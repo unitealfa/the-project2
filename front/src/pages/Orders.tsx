@@ -381,6 +381,107 @@ const Orders: React.FC = () => {
     return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
   }
 
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return "";
+
+    let normalized = phone.replace(/\D/g, "");
+    if (normalized.startsWith("0")) {
+      return normalized;
+    }
+    if (normalized.startsWith("213")) {
+      return "0" + normalized.substring(3);
+    }
+    if (normalized.length === 9) {
+      return "0" + normalized;
+    }
+    return normalized;
+  };
+
+  const normalizeName = (name: string): string => {
+    if (!name) return "";
+
+    return name
+      .replace(/[éèêë]/g, "e")
+      .replace(/[àâä]/g, "a")
+      .replace(/[ùûü]/g, "u")
+      .replace(/[îï]/g, "i")
+      .replace(/[ôö]/g, "o")
+      .replace(/[ç]/g, "c")
+      .replace(/[ñ]/g, "n")
+      .replace(/[ý]/g, "y")
+      .replace(/[æ]/g, "ae")
+      .replace(/[œ]/g, "oe")
+      .replace(/['\'\`]/g, "")
+      .replace(/[-_]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const extractOrderSummary = (
+    row: OrderRow
+  ): {
+    name: string;
+    rawName: string;
+    phoneDial: string;
+    displayPhone: string;
+    status: SheetStatus;
+    rowId: string;
+    displayRowLabel: string;
+  } => {
+    let rawName = "";
+    for (const key of Object.keys(row)) {
+      if (key.trim().toLowerCase() === "nom du client" && row[key]) {
+        rawName = row[key];
+        break;
+      }
+    }
+    if (!rawName) {
+      for (const key of Object.keys(row)) {
+        if (key.trim().toLowerCase().includes("client") && row[key]) {
+          rawName = row[key];
+          break;
+        }
+      }
+    }
+
+    let rawPhone = "";
+    for (const key of Object.keys(row)) {
+      if (key.trim().toLowerCase() === "numero" && row[key]) {
+        rawPhone = row[key];
+        break;
+      }
+    }
+    if (!rawPhone) {
+      for (const key of Object.keys(row)) {
+        const normalized = key.trim().toLowerCase();
+        if (normalized.includes("téléphone") && row[key]) {
+          rawPhone = row[key];
+          break;
+        }
+      }
+    }
+
+    const phoneDial = normalizePhone(rawPhone);
+    const displayPhone = (rawPhone || phoneDial).trim();
+    const sheetRowId = String(row["id-sheet"] ?? "").trim();
+    const fallbackRowId = String(row["ID"] ?? "").trim();
+    const rowId = sheetRowId || fallbackRowId;
+    const displayRowLabel = fallbackRowId || sheetRowId;
+    const status = (String(
+      row["etat"] ?? row["État"] ?? row["Etat"] ?? ""
+    ).trim() || "new") as SheetStatus;
+
+    return {
+      name: normalizeName(rawName),
+      rawName: rawName?.toString() ?? "",
+      phoneDial,
+      displayPhone,
+      status,
+      rowId,
+      displayRowLabel,
+    };
+  };
+
   const OrderRowItem = React.memo(function OrderRowItem({
     row,
     idx,
@@ -406,96 +507,14 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
   }) {
-    // Fonction de normalisation des numéros de téléphone
-    const normalizePhone = (phone: string): string => {
-      if (!phone) return "";
-
-      // Supprimer tous les caractères non numériques
-      let normalized = phone.replace(/\D/g, "");
-
-      // Si le numéro commence par 0, le garder tel quel
-      if (normalized.startsWith("0")) {
-        return normalized;
-      }
-
-      // Si le numéro commence par 213 (code pays), ajouter 0
-      if (normalized.startsWith("213")) {
-        return "0" + normalized.substring(3);
-      }
-
-      // Si le numéro a 9 chiffres, ajouter 0 au début
-      if (normalized.length === 9) {
-        return "0" + normalized;
-      }
-
-      return normalized;
-    };
-
-    // Fonction de normalisation des noms
-    const normalizeName = (name: string): string => {
-      if (!name) return "";
-
-      return name
-        .replace(/[éèêë]/g, "e")
-        .replace(/[àâä]/g, "a")
-        .replace(/[ùûü]/g, "u")
-        .replace(/[îï]/g, "i")
-        .replace(/[ôö]/g, "o")
-        .replace(/[ç]/g, "c")
-        .replace(/[ñ]/g, "n")
-        .replace(/[ý]/g, "y")
-        .replace(/[æ]/g, "ae")
-        .replace(/[œ]/g, "oe")
-        .replace(/['\'\`]/g, "")
-        .replace(/[-_]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    };
-
-    // Champs du JSON cible
-    // Recherche robuste du nom client (insensible à la casse et espaces)
-    let nom_client = "";
-    for (const key of Object.keys(row)) {
-      if (key.trim().toLowerCase() === "nom du client" && row[key]) {
-        nom_client = row[key];
-        break;
-      }
-    }
-    if (!nom_client) {
-      for (const key of Object.keys(row)) {
-        if (key.trim().toLowerCase().includes("client") && row[key]) {
-          nom_client = row[key];
-          break;
-        }
-      }
-    }
-    nom_client = normalizeName(nom_client);
-
-    // Recherche robuste du numéro de téléphone (insensible à la casse et espaces)
-    let telephone = "";
-    for (const key of Object.keys(row)) {
-      if (key.trim().toLowerCase() === "numero" && row[key]) {
-        telephone = row[key];
-        break;
-      }
-    }
-    if (!telephone) {
-      for (const key of Object.keys(row)) {
-        if (key.trim().toLowerCase().includes("téléphone") && row[key]) {
-          telephone = row[key];
-          break;
-        }
-      }
-    }
-    telephone = normalizePhone(telephone);
+    const {
+      name: nom_client,
+      phoneDial: telephone,
+      status: initialSheetStatus,
+      rowId,
+      displayRowLabel,
+    } = extractOrderSummary(row);
     const telephone_2 = telephone;
-    const initialSheetStatus: SheetStatus = (String(
-      row["etat"] ?? row["État"] ?? row["Etat"] ?? ""
-    ).trim() || "new") as SheetStatus;
-    const sheetRowId = String(row["id-sheet"] ?? "").trim();
-    const fallbackRowId = String(row["ID"] ?? "").trim();
-    const rowId = sheetRowId || fallbackRowId;
-    const displayRowLabel = fallbackRowId || sheetRowId;
 
     // Système intelligent de résolution des communes avec vraies données
     const smartCommuneResolver = (
@@ -1293,6 +1312,43 @@ const Orders: React.FC = () => {
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
 
+  const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(null);
+
+  const selectedSummary = React.useMemo(
+    () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
+    [selectedOrder]
+  );
+
+  React.useEffect(() => {
+    if (!selectedOrder) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedOrder(null);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    const body = typeof document !== "undefined" ? document.body : null;
+    const previousOverflow = body ? body.style.overflow : "";
+    if (body) {
+      body.style.overflow = "hidden";
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("keydown", handleKeyDown);
+      }
+      if (body) {
+        body.style.overflow = previousOverflow;
+      }
+    };
+  }, [selectedOrder]);
+
+
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
     rows.forEach((row) => {
@@ -2056,44 +2112,98 @@ const Orders: React.FC = () => {
         )}
 
         {!loading && !error && (
-          <div className="orders-table-wrapper">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  {headers.map((h) => (
-                    <th key={h} className="orders-table__header">
-                      {h}
-                    </th>
-                  ))}
-
-                  <th className="orders-table__header">Action</th>
-                  <th className="orders-table__header">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRows.map((row, idx) => (
-                  <OrderRowItem
+           <>
+            <div className="orders-mobile-list">
+              {paginatedRows.map((row, idx) => {
+                const summary = extractOrderSummary(row);
+                const displayName = summary.rawName || summary.name || "Sans nom";
+                const statusLabel = summary.status || "Sans statut";
+                const phoneHref = summary.phoneDial
+                  ? `tel:${summary.phoneDial}`
+                  : summary.displayPhone
+                  ? `tel:${summary.displayPhone.replace(/\s+/g, "")}`
+                  : "";
+                return (
+                  <button
+                    type="button"
                     key={row["id-sheet"] || row["ID"] || idx}
-                    row={row}
-                    idx={idx}
-                    headers={headers}
-                    onUpdateStatus={handleUpdateRowStatus}
-                    onDelivered={handleDelivered}
-                  />
-                ))}
-                {filtered.length === 0 && (
-                  <tr className="orders-row orders-row--empty">
-                    <td
-                      className="orders-table__cell"
-                      colSpan={headers.length + 2}
-                    >
-                      Aucune commande trouvée.
-                    </td>
+                    className="orders-mobile-card"
+                    onClick={() => setSelectedOrder(row)}
+                    aria-label={`Voir la commande de ${displayName}`}
+                  >
+                    <div className="orders-mobile-card__header">
+                      <div className="orders-mobile-card__title">
+                        <span className="orders-mobile-card__name">{displayName}</span>
+                        {summary.displayRowLabel && (
+                          <span className="orders-mobile-card__reference">
+                            #{summary.displayRowLabel}
+                          </span>
+                        )}
+                      </div>
+                      <span className="orders-status">{statusLabel}</span>
+                    </div>
+                    <div className="orders-mobile-card__contact">
+                      {summary.displayPhone ? (
+                        <a
+                          href={phoneHref}
+                          onClick={(event) => event.stopPropagation()}
+                          className="orders-mobile-card__phone"
+                        >
+                          {summary.displayPhone}
+                        </a>
+                      ) : (
+                        <span className="orders-mobile-card__phone orders-mobile-card__phone--disabled">
+                          Aucun numéro
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="orders-mobile-empty">Aucune commande trouvée.</div>
+              )}
+            </div>
+
+            <div className="orders-table-wrapper">
+              <table className="orders-table">
+                <thead>
+                  <tr>
+                    {headers.map((h) => (
+                      <th key={h} className="orders-table__header">
+                        {h}
+                      </th>
+                    ))}
+
+                    <th className="orders-table__header">Action</th>
+                    <th className="orders-table__header">Statut</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedRows.map((row, idx) => (
+                    <OrderRowItem
+                      key={row["id-sheet"] || row["ID"] || idx}
+                      row={row}
+                      idx={idx}
+                      headers={headers}
+                      onUpdateStatus={handleUpdateRowStatus}
+                      onDelivered={handleDelivered}
+                    />
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr className="orders-row orders-row--empty">
+                      <td
+                        className="orders-table__cell"
+                        colSpan={headers.length + 2}
+                      >
+                        Aucune commande trouvée.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {filtered.length > 0 && (
@@ -2133,6 +2243,84 @@ const Orders: React.FC = () => {
           </div>
         )}
       </div>
+
+       {selectedOrder && selectedSummary && (
+        <div
+          className="orders-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="orders-modal-title"
+        >
+          <div
+            className="orders-modal__backdrop"
+            onClick={() => setSelectedOrder(null)}
+            aria-hidden="true"
+          />
+          <div className="orders-modal__content" role="document">
+            <button
+              type="button"
+              className="orders-modal__close"
+              onClick={() => setSelectedOrder(null)}
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+
+            <h2 id="orders-modal-title" className="orders-modal__title">
+              {selectedSummary.rawName || selectedSummary.name || "Commande"}
+            </h2>
+            {selectedSummary.displayRowLabel && (
+              <p className="orders-modal__reference">
+                Référence : {selectedSummary.displayRowLabel}
+              </p>
+            )}
+
+            <div className="orders-modal__summary">
+              {selectedSummary.displayPhone ? (
+                <a
+                  href={
+                    selectedSummary.phoneDial
+                      ? `tel:${selectedSummary.phoneDial}`
+                      : `tel:${selectedSummary.displayPhone.replace(/\s+/g, "")}`
+                  }
+                  className="orders-modal__phone"
+                >
+                  Appeler {selectedSummary.displayPhone}
+                </a>
+              ) : (
+                <span className="orders-modal__phone orders-modal__phone--disabled">
+                  Aucun numéro disponible
+                </span>
+              )}
+              <span className="orders-status">
+                {selectedSummary.status || "Sans statut"}
+              </span>
+            </div>
+
+            <div className="orders-modal__details">
+              {headers.map((header, index) => {
+                const key = `${header || "col"}-${index}`;
+                const value = selectedOrder[header];
+                const displayValue = (value ?? "").toString().trim();
+                return (
+                  <div key={key} className="orders-modal__detail">
+                    <span className="orders-modal__detail-label">
+                      {header || "Sans titre"}
+                    </span>
+                    <span className="orders-modal__detail-value">
+                      {displayValue ? (
+                        displayValue
+                      ) : (
+                        <span className="orders-table__muted">—</span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
