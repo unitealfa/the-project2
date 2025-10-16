@@ -1425,6 +1425,49 @@ Zm0 14H8V7h9v12Z"
     null
   );
 
+   const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
+    if (!row) return null;
+    const candidateKeys = [
+      "id-sheet",
+      "ID",
+      "Num commande",
+      "Numéro commande",
+      "Numero commande",
+    ];
+
+    for (const key of candidateKeys) {
+      const value = row[key];
+      if (value !== undefined && value !== null) {
+        const trimmed = String(value).trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+
+    return null;
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedOrder) return;
+
+    const identifier = getRowIdentifier(selectedOrder);
+    if (!identifier) {
+      return;
+    }
+
+    const updatedRow = rows.find(
+      (row) => getRowIdentifier(row) === identifier
+    );
+
+    if (!updatedRow || updatedRow === selectedOrder) {
+      return;
+    }
+
+    setSelectedOrder(updatedRow);
+  }, [getRowIdentifier, rows, selectedOrder]);
+
+
   const selectedSummary = React.useMemo(
     () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
     [selectedOrder]
