@@ -735,6 +735,13 @@
     width: 100%;
   }
 
+   .orders-input {
+    padding: 9px 12px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
+
   .orders-filter-label,
   .orders-filter-label--status {
     width: 100%;
@@ -743,6 +750,12 @@
 
   .orders-select {
     width: 100%;
+  }
+
+  .orders-link {
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    border-radius: 8px;
   }
 
   .orders-chip {
@@ -796,6 +809,16 @@
 
   .orders-page__subtitle {
     font-size: 0.9rem;
+  }
+
+    .orders-input {
+    font-size: 0.85rem;
+    padding: 8px 11px;
+  }
+
+  .orders-link {
+    font-size: 0.85rem;
+    padding: 8px 11px;
   }
 
   .orders-panel {

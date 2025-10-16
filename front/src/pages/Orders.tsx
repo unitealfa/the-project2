@@ -428,33 +428,53 @@ const Orders: React.FC = () => {
     rowId: string;
     displayRowLabel: string;
   } => {
-    let rawName = "";
-    for (const key of Object.keys(row)) {
-      if (key.trim().toLowerCase() === "nom du client" && row[key]) {
-        rawName = row[key];
-        break;
-      }
-    }
+      const canonicalName = String(row["Nom du client"] ?? "").trim();
+    let rawName = canonicalName;
+
     if (!rawName) {
       for (const key of Object.keys(row)) {
-        if (key.trim().toLowerCase().includes("client") && row[key]) {
+        const normalizedKey = normalizeFieldKey(key);
+        if (!normalizedKey) continue;
+        const tokens = normalizedKey
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        const hasClient = tokens.some(
+          (token) => token === "client" || token === "customer"
+        );
+        const hasName = tokens.some(
+          (token) => token === "nom" || token === "name"
+        );
+        if (hasClient && hasName && row[key]) {
           rawName = row[key];
           break;
         }
       }
     }
 
-    let rawPhone = "";
-    for (const key of Object.keys(row)) {
-      if (key.trim().toLowerCase() === "numero" && row[key]) {
-        rawPhone = row[key];
-        break;
-      }
-    }
+    const canonicalPhone = String(
+      row["Numero"] ?? row["Numéro"] ?? ""
+    ).trim();
+    let rawPhone = canonicalPhone;
+
     if (!rawPhone) {
       for (const key of Object.keys(row)) {
-        const normalized = key.trim().toLowerCase();
-        if (normalized.includes("téléphone") && row[key]) {
+        const normalizedKey = normalizeFieldKey(key);
+        if (!normalizedKey) continue;
+        const tokens = normalizedKey
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        const isPhone = tokens.some(
+          (token) =>
+            token === "numero" ||
+            token === "telephone" ||
+            token === "tel" ||
+            token === "phone"
+        );
+        if (isPhone && row[key]) {
           rawPhone = row[key];
           break;
         }
