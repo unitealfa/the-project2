@@ -224,7 +224,7 @@
 }
 
 .orders-table__cell--actions {
-  min-width: 260px;
+  min-width: 200px;
 }
 
 .orders-table__cell--status {
@@ -250,6 +250,17 @@
   justify-content: center;
   gap: 0.4rem;
   min-height: 38px;
+}
+
+.orders-button--icon {
+  padding: 0.45rem;
+  min-width: 38px;
+}
+
+.orders-button__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
 }
 
 .orders-button:disabled {
