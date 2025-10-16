@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Header.css';
 
@@ -17,27 +17,59 @@ type NavItem = {
 const Header: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const profileButtonRef = useRef<HTMLButtonElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+  const navButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!isMenuOpen) return;
       const target = event.target as Node;
-      if (
-        menuRef.current &&
-        buttonRef.current &&
-        !menuRef.current.contains(target) &&
-        !buttonRef.current.contains(target)
-      ) {
-        setIsMenuOpen(false);
+      if (isMenuOpen) {
+        if (
+          menuRef.current &&
+          profileButtonRef.current &&
+          !menuRef.current.contains(target) &&
+          !profileButtonRef.current.contains(target)
+        ) {
+          setIsMenuOpen(false);
+        }
+      }
+
+      if (isNavOpen) {
+        if (
+          navRef.current &&
+          navButtonRef.current &&
+          !navRef.current.contains(target) &&
+          !navButtonRef.current.contains(target)
+        ) {
+          setIsNavOpen(false);
+        }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isNavOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsNavOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    setIsNavOpen(false);
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     setIsMenuOpen(false);
@@ -86,25 +118,44 @@ const Header: React.FC = () => {
           <i className="fa-solid fa-shop" aria-hidden="true"></i>
           BOUAZZA E-COM
         </Link>
-        <nav className="header-nav" aria-label="Navigation principale">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                isActive ? 'active' : undefined
-              }
-              end={item.to === homePath}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <button
+          ref={navButtonRef}
+          type="button"
+          className={`menu-toggle${isNavOpen ? ' active' : ''}`}
+          onClick={() => setIsNavOpen((prev) => !prev)}
+          aria-haspopup="true"
+          aria-controls="primary-navigation"
+          aria-expanded={isNavOpen}
+        >
+          <i className="fa-solid fa-bars" aria-hidden="true"></i>
+          <span className="menu-toggle-label">Menu</span>
+        </button>
       </div>
+
+      <nav
+        id="primary-navigation"
+        ref={navRef}
+        className={`header-nav${isNavOpen ? ' open' : ''}`}
+        aria-label="Navigation principale"
+      >
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              isActive ? 'active' : undefined
+            }
+            end={item.to === homePath}
+            onClick={() => setIsNavOpen(false)}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
 
       <div className="header-right" ref={menuRef}>
         <button
-          ref={buttonRef}
+          ref={profileButtonRef}
           type="button"
           className={`profile-button${isMenuOpen ? ' active' : ''}`}
           onClick={() => setIsMenuOpen((prev) => !prev)}

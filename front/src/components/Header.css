@@ -5,6 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 32px;
   position: relative;
   z-index: 10;
 }
@@ -12,7 +13,7 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 39px;
+  gap: 32px;
 }
 
 .header-logo {
@@ -48,6 +49,29 @@
 .header-nav a.active {
   color: #111827;
 }
+
+.menu-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #111827;
+  font-size: 1.6rem;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.menu-toggle:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.menu-toggle-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 
 .header-right {
   display: flex;
@@ -147,16 +171,44 @@
   .app-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 16px;
+    padding: 16px 20px;
   }
 
   .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    width: 100%;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .menu-toggle {
+    display: flex;
+  }
+
+  .menu-toggle-label {
+    font-size: 1.1rem;
   }
 
   .header-right {
     align-self: flex-end;
+  }
+
+  .header-nav {
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .header-nav.open {
+    display: flex;
+  }
+
+  .header-nav a {
+    font-size: 1.1rem;
+    width: 100%;
   }
 }
