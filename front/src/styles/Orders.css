@@ -33,6 +33,33 @@
   gap: 20px;
 }
 
+.orders-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.orders-table-wrapper::-webkit-scrollbar {
+  height: 10px;
+}
+
+.orders-table-wrapper::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 999px;
+}
+
+.orders-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5f5;
+  border-radius: 999px;
+}
+
+.orders-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
 .orders-toolbar {
   display: flex;
   flex-direction: column;
@@ -459,6 +486,13 @@
   .orders-panel {
     padding: 16px;
   }
+    .orders-toolbar__row:first-child {
+    flex-direction: column;
+  }
+
+  .orders-toolbar__row:first-child > * {
+    width: 100%;
+  }
 
   .orders-table {
     min-width: unset;
@@ -466,10 +500,96 @@
 
   .orders-toolbar__row {
     align-items: stretch;
+    gap: 10px;
+  }
+
+  .orders-filter-label,
+  .orders-filter-label--status {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .orders-select {
+    width: 100%;
+  }
+
+  .orders-chip {
+    flex: 1 1 45%;
+    text-align: center;
+  }
+
+  .orders-table__cell {
+    padding: 0.55rem 0.6rem;
   }
 
   .orders-link {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .orders-page__title {
+    font-size: 1.5rem;
+  }
+
+  .orders-page__subtitle {
+    font-size: 0.9rem;
+  }
+
+  .orders-panel {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .orders-chip {
+    flex: 1 1 100%;
+  }
+
+  .orders-toolbar__row {
+    flex-direction: column;
+  }
+
+  .orders-toolbar__row > * {
+    width: 100%;
+  }
+
+  .orders-table {
+    font-size: 0.8rem;
+  }
+
+  .orders-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orders-pagination__controls {
+    justify-content: space-between;
+  }
+
+  .orders-button {
+    width: 100%;
+  }
+
+  .orders-scroll-top {
+    width: 46px;
+    height: 46px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .orders-panel {
+    padding: 12px;
+  }
+
+  .orders-table__cell {
+    font-size: 0.78rem;
+  }
+
+  .orders-pagination__page {
+    width: 100%;
+    text-align: center;
   }
 }
