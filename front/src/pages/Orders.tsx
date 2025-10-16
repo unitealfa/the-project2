@@ -397,7 +397,7 @@ const Orders: React.FC = () => {
     return normalized;
   };
 
-   const formatPhoneForDisplay = (
+  const formatPhoneForDisplay = (
     rawPhone: string,
     normalizedPhone: string
   ): string => {
@@ -427,7 +427,6 @@ const Orders: React.FC = () => {
 
     return trimmedRaw;
   };
-
 
   const normalizeName = (name: string): string => {
     if (!name) return "";
@@ -460,7 +459,7 @@ const Orders: React.FC = () => {
     rowId: string;
     displayRowLabel: string;
   } => {
-      const canonicalName = String(row["Nom du client"] ?? "").trim();
+    const canonicalName = String(row["Nom du client"] ?? "").trim();
     let rawName = canonicalName;
 
     if (!rawName) {
@@ -485,9 +484,7 @@ const Orders: React.FC = () => {
       }
     }
 
-    const canonicalPhone = String(
-      row["Numero"] ?? row["Numéro"] ?? ""
-    ).trim();
+    const canonicalPhone = String(row["Numero"] ?? row["Numéro"] ?? "").trim();
     let rawPhone = canonicalPhone;
 
     if (!rawPhone) {
@@ -534,16 +531,17 @@ const Orders: React.FC = () => {
     };
   };
 
-  const OrderRowItem = React.memo(function OrderRowItem({
+  type OrderSummary = ReturnType<typeof extractOrderSummary>;
+
+  const OrderActionButtons = React.memo(function OrderActionButtons({
     row,
-    idx,
-    headers,
+    summary,
     onUpdateStatus,
     onDelivered,
+    variant = "table",
   }: {
     row: OrderRow;
-    idx: number;
-    headers: string[];
+    summary: OrderSummary;
     onUpdateStatus: (
       rowId: string,
       status: SheetStatus,
@@ -558,6 +556,7 @@ const Orders: React.FC = () => {
       },
       rowId: string
     ) => Promise<void>;
+    variant?: "table" | "modal";
   }) {
     const {
       name: nom_client,
@@ -565,16 +564,77 @@ const Orders: React.FC = () => {
       status: initialSheetStatus,
       rowId,
       displayRowLabel,
-    } = extractOrderSummary(row);
-    const telephone_2 = telephone;
+    } = summary;
 
-    // Système intelligent de résolution des communes avec vraies données
+    const telephone_2 = telephone;
+    const code_wilaya = getWilayaIdByName(row["Wilaya"]);
+
+    const stop_desk = (() => {
+      const rawType = String(row["Type de livraison"] || "").toLowerCase();
+      return rawType.includes("stop") ? "1" : "0";
+    })();
+
+    const totalForApi = (() => {
+      const parseAmount = (value: unknown): number | null => {
+        if (value === undefined || value === null) return null;
+        const cleaned = String(value)
+          .replace(/\s+/g, "")
+          .replace(/[^\d,.-]/g, "")
+          .replace(/,/g, ".");
+        if (!cleaned) return null;
+        const parsed = parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const quantityForTotal = (() => {
+        const raw = String(
+          row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
+        );
+        const sanitized = raw.replace(/[^\d]/g, "");
+        const n = parseInt(sanitized, 10);
+        return Number.isNaN(n) || n <= 0 ? 1 : n;
+      })();
+
+      const unitPriceForTotal = (() => {
+        const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+        for (const key of candidates) {
+          if (key in row) {
+            const parsed = parseAmount(row[key]);
+            if (parsed !== null) return parsed;
+          }
+        }
+        return null;
+      })();
+
+      const amountFromSheet = (() => {
+        const candidates = [
+          "Total",
+          "total",
+          "Montant",
+          "Montant total",
+          "Prix total",
+        ];
+        for (const key of candidates) {
+          if (key in row) {
+            const parsed = parseAmount(row[key]);
+            if (parsed !== null) return parsed;
+          }
+        }
+        return null;
+      })();
+
+      const computedFromUnit =
+        unitPriceForTotal !== null
+          ? unitPriceForTotal * quantityForTotal
+          : null;
+      return amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
+    })();
+
     const smartCommuneResolver = (
       communeName: string,
       wilayaName: string,
       wilayaCode: number
     ): string => {
-      // Normalisation locale, sans appels réseau
       const normalizeText = (text: string): string => {
         if (!text) return "";
         return text
@@ -588,7 +648,7 @@ const Orders: React.FC = () => {
           .replace(/[ý]/g, "y")
           .replace(/[æ]/g, "ae")
           .replace(/[œ]/g, "oe")
-          .replace(/['\'\`]/g, "")
+          .replace(/['`]/g, "")
           .replace(/[-_]/g, " ")
           .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
           .replace(/\s+/g, " ")
@@ -622,136 +682,11 @@ const Orders: React.FC = () => {
       return "alger";
     };
 
-    const code_wilaya = getWilayaIdByName(row["Wilaya"]);
-
-    // stop_desk: 0 = a domicile, 1 = STOP DESK
-    let stop_desk = "0";
-    if ((row["Type de livraison"] || "").toLowerCase().includes("stop"))
-      stop_desk = "1";
-    else stop_desk = "0";
-
-    // Calcul du total pour l'envoi API: quantité × total unitaire (sans tarif de livraison)
-    const parseAmount = (value: unknown): number | null => {
-      if (value === undefined || value === null) return null;
-      const cleaned = String(value)
-        .replace(/\s+/g, "")
-        .replace(/[^\d,.-]/g, "")
-        .replace(/,/g, ".");
-      if (!cleaned) return null;
-      const parsed = parseFloat(cleaned);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-
-    const quantityForTotal = (() => {
-      const raw = String(
-        row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-      );
-      const sanitized = raw.replace(/[^\d]/g, "");
-      const n = parseInt(sanitized, 10);
-      return Number.isNaN(n) || n <= 0 ? 1 : n;
-    })();
-
-    const unitPriceForTotal = (() => {
-      const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
-      for (const key of candidates) {
-        if (key in row) {
-          const parsed = parseAmount(row[key]);
-          if (parsed !== null) return parsed;
-        }
-      }
-      return null;
-    })();
-
-    const amountFromSheet = (() => {
-      const candidates = [
-        "Total",
-        "total",
-        "Montant",
-        "Montant total",
-        "Prix total",
-      ];
-      for (const key of candidates) {
-        if (key in row) {
-          const parsed = parseAmount(row[key]);
-          if (parsed !== null) return parsed;
-        }
-      }
-      return null;
-    })();
-
-    const computedFromUnit =
-      unitPriceForTotal !== null ? unitPriceForTotal * quantityForTotal : null;
-    const totalForApi =
-      amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
-
     const [submitting, setSubmitting] = React.useState<boolean>(false);
     const [delivering, setDelivering] = React.useState<boolean>(false);
     const [abandoning, setAbandoning] = React.useState<boolean>(false);
 
-    const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
-    const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-      null
-    );
-
-    const handleCopyValue = React.useCallback((value: string, key: string) => {
-      const text = (value || "").toString().trim();
-      if (!text) return;
-
-      const finalize = () => {
-        if (copyTimeoutRef.current) {
-          clearTimeout(copyTimeoutRef.current);
-        }
-        setCopiedKey(key);
-        copyTimeoutRef.current = setTimeout(() => {
-          setCopiedKey(null);
-        }, 2000);
-      };
-
-      const attemptFallbackCopy = () => {
-        if (typeof document === "undefined") return;
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-          const result = document.execCommand("copy");
-          if (result) {
-            finalize();
-          }
-        } catch (error) {
-          console.error("Impossible de copier le texte", error);
-        } finally {
-          document.body.removeChild(textarea);
-        }
-      };
-
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
-        navigator.clipboard
-          .writeText(text)
-          .then(finalize)
-          .catch(attemptFallbackCopy);
-      } else {
-        attemptFallbackCopy();
-      }
-    }, []);
-
-    React.useEffect(
-      () => () => {
-        if (copyTimeoutRef.current) {
-          clearTimeout(copyTimeoutRef.current);
-        }
-      },
-      []
-    );
-
-    const handleDownload = useCallback(async () => {
+    const handleSendToApi = React.useCallback(async () => {
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
@@ -759,7 +694,7 @@ const Orders: React.FC = () => {
         return;
       }
 
-      const adr = "."; // Adresse fixe
+      const adr = ".";
       const produit = row["Produit"] || "";
       const remarque = row["ID"] || "";
 
@@ -875,7 +810,6 @@ const Orders: React.FC = () => {
         return "";
       };
 
-      // Appel API DHD (POST JSON, timeout, bouton désactivé)
       try {
         setSubmitting(true);
         const url = buildDhdUrl(DHD_CREATE_PATH);
@@ -928,7 +862,6 @@ const Orders: React.FC = () => {
         ) {
           const trackingValue = resolveTracking(responseData) || "N/A";
 
-          // Petit toast pro
           const toast = document.createElement("div");
           toast.textContent = `✅ Commande envoyée avec succès (${nom_client})`;
           Object.assign(toast.style, {
@@ -1024,61 +957,30 @@ const Orders: React.FC = () => {
                       body: JSON.stringify(attemptData),
                       signal: controllerRetry.signal,
                     });
-                    const t = await r.text();
-                    let d: any;
+                    const text2 = await r.text();
+                    let data2: any;
                     try {
-                      d = JSON.parse(t);
+                      data2 = JSON.parse(text2);
                     } catch {
-                      d = t;
+                      data2 = text2;
                     }
-                    return { resp: r, data: d };
+                    return { resp: r, data: data2 };
                   })();
+                  clearTimeout(timeoutRetry);
                   if (r2.ok && (r2.status === 200 || r2.status === 201)) {
                     const trackingValue = resolveTracking(d2) || "N/A";
-                    success = true;
-
-                    // ✅ Petit toast vert élégant (fallback)
-                    const toast = document.createElement("div");
-                    toast.textContent = `✅ Commande envoyée (fallback) – ${nom_client} (${communeCandidate})`;
-                    Object.assign(toast.style, {
-                      position: "fixed",
-                      bottom: "24px",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background:
-                        "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                      color: "#fff",
-                      padding: "12px 18px",
-                      borderRadius: "12px",
-                      boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
-                      fontSize: "0.9rem",
-                      fontWeight: "600",
-                      zIndex: "2000",
-                      opacity: "0",
-                      transition: "opacity 0.3s ease",
-                    });
-                    document.body.appendChild(toast);
-                    setTimeout(() => (toast.style.opacity = "1"), 50);
-                    setTimeout(() => {
-                      toast.style.opacity = "0";
-                      setTimeout(() => toast.remove(), 400);
-                    }, 3000);
-
                     await applyStatusUpdate("ready_to_ship", trackingValue);
                     await syncTrackingStatus(
                       trackingValue === "N/A" ? "" : trackingValue
                     );
+                    success = true;
                     break;
                   }
-
-                  if (r2.status !== 422) {
-                    alert(
-                      `❌ Erreur API (${
-                        r2.status
-                      }) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`
-                    );
-                    break;
-                  }
+                  console.warn(
+                    `Échec retry commune (${
+                      r2.status
+                    }) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`
+                  );
                 } finally {
                   clearTimeout(timeoutRetry);
                 }
@@ -1139,9 +1041,232 @@ const Orders: React.FC = () => {
       stop_desk,
       row,
       onUpdateStatus,
-      smartCommuneResolver,
       initialSheetStatus,
+      rowId,
     ]);
+
+    const handleMarkAbandoned = React.useCallback(async () => {
+      const confirmed = window.confirm(
+        `Confirmer l'abandon de la commande ${displayRowLabel || ""} ?`
+      );
+      if (!confirmed) return;
+      try {
+        setAbandoning(true);
+        await onUpdateStatus(rowId, "abandoned", {
+          previousStatus: initialSheetStatus,
+          row: { ...row, etat: "abandoned" },
+        });
+      } catch (e: any) {
+        const message =
+          e?.message || "Erreur lors de la mise à jour du statut abandonné";
+        alert(message);
+      } finally {
+        setAbandoning(false);
+      }
+    }, [displayRowLabel, initialSheetStatus, onUpdateStatus, row, rowId]);
+
+    const handleMarkDelivered = React.useCallback(async () => {
+      try {
+        setDelivering(true);
+        const quantity =
+          parseInt(
+            String(
+              row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
+            ).replace(/[^\d]/g, "")
+          ) || 1;
+        const name = String(row["Produit"] || "").trim();
+        const variant =
+          String(
+            row["Variante"] || row["Variation"] || row["Taille"] || "default"
+          ).trim() || "default";
+        await onDelivered({ name, variant, quantity }, rowId);
+        await onUpdateStatus(rowId, "delivered", {
+          previousStatus: initialSheetStatus,
+          row: { ...row, etat: "delivered" },
+        });
+      } catch (e: any) {
+        alert(e?.message || "Erreur lors de la livraison");
+      } finally {
+        setDelivering(false);
+      }
+    }, [initialSheetStatus, onDelivered, onUpdateStatus, row, rowId]);
+
+    const containerClass =
+      variant === "modal" ? "orders-modal__actions" : "orders-table__actions";
+
+    if (variant === "modal") {
+      return (
+        <div className={containerClass}>
+          <button
+            type="button"
+            onClick={handleSendToApi}
+            disabled={submitting || delivering || abandoning}
+            className={`orders-button orders-button--primary orders-modal__action-button${
+              submitting ? " is-loading" : ""
+            }`}
+          >
+            {submitting ? "Envoi…" : "Confirmer et envoyer"}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkDelivered}
+            disabled={delivering || submitting || abandoning}
+            className={`orders-button orders-button--success orders-modal__action-button${
+              delivering ? " is-loading" : ""
+            }`}
+          >
+            {delivering ? "Traitement…" : "Marquer livrée"}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkAbandoned}
+            disabled={abandoning || submitting}
+            className={`orders-button orders-button--danger orders-modal__action-button${
+              abandoning ? " is-loading" : ""
+            }`}
+          >
+            {abandoning ? "Abandon…" : "Abandonnée"}
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={containerClass}>
+        <button
+          type="button"
+          onClick={handleSendToApi}
+          disabled={submitting || abandoning}
+          className={`orders-button orders-button--primary orders-button--icon${
+            submitting ? " is-loading" : ""
+          }`}
+          aria-label={submitting ? "Envoi en cours…" : "Envoyer la validation"}
+          title="Envoyer la validation"
+        >
+          {submitting ? (
+            "Envoi…"
+          ) : (
+            <PaperPlaneIcon
+              aria-hidden="true"
+              className="orders-button__icon"
+            />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={handleMarkAbandoned}
+          disabled={abandoning || submitting}
+          className={`orders-button orders-button--danger${
+            abandoning ? " is-loading" : ""
+          }`}
+        >
+          {abandoning ? "Abandon…" : "Abandonnée"}
+        </button>
+        <button
+          type="button"
+          onClick={handleMarkDelivered}
+          disabled={delivering || submitting || abandoning}
+          className={`orders-button orders-button--success${
+            delivering ? " is-loading" : ""
+          }`}
+        >
+          {delivering ? "Traitement…" : "Marquer livrée (décrémenter stock)"}
+        </button>
+      </div>
+    );
+  });
+
+  const OrderRowItem = React.memo(function OrderRowItem({
+    row,
+    idx,
+    headers,
+    onUpdateStatus,
+    onDelivered,
+  }: {
+    row: OrderRow;
+    idx: number;
+    headers: string[];
+    onUpdateStatus: (
+      rowId: string,
+      status: SheetStatus,
+      context?: UpdateStatusContext
+    ) => Promise<void>;
+    onDelivered: (
+      payload: {
+        code?: string;
+        name?: string;
+        variant: string;
+        quantity: number;
+      },
+      rowId: string
+    ) => Promise<void>;
+  }) {
+    const summary = extractOrderSummary(row);
+    const { name: nom_client, phoneDial: telephone } = summary;
+
+    const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+    const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+    const handleCopyValue = React.useCallback((value: string, key: string) => {
+      const text = (value || "").toString().trim();
+      if (!text) return;
+
+      const finalize = () => {
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        setCopiedKey(key);
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopiedKey(null);
+        }, 2000);
+      };
+
+      const attemptFallbackCopy = () => {
+        if (typeof document === "undefined") return;
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          const result = document.execCommand("copy");
+          if (result) {
+            finalize();
+          }
+        } catch (error) {
+          console.error("Impossible de copier le texte", error);
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      };
+
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+      ) {
+        navigator.clipboard
+          .writeText(text)
+          .then(finalize)
+          .catch(attemptFallbackCopy);
+      } else {
+        attemptFallbackCopy();
+      }
+    }, []);
+
+    React.useEffect(
+      () => () => {
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+      },
+      []
+    );
+
     return (
       <tr className="orders-row">
         {headers.map((h) => {
@@ -1246,7 +1371,8 @@ const Orders: React.FC = () => {
                     aria-hidden="true"
                   >
                     <path
-                      d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm1 4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 14H8V7h9v12Z"
+                      d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm1 4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2
+Zm0 14H8V7h9v12Z"
                       fill="currentColor"
                     />
                   </svg>
@@ -1267,99 +1393,12 @@ const Orders: React.FC = () => {
         })}
 
         <td className="orders-table__cell orders-table__cell--actions">
-          <div className="orders-table__actions">
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={submitting || abandoning}
-              className={`orders-button orders-button--primary orders-button--icon${
-                submitting ? " is-loading" : ""
-              }`}
-              aria-label={
-                submitting ? "Envoi en cours…" : "Envoyer la validation"
-              }
-              title="Envoyer la validation"
-            >
-              {submitting ? (
-                "Envoi…"
-              ) : (
-                <PaperPlaneIcon
-                  aria-hidden="true"
-                  className="orders-button__icon"
-                />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const confirmed = window.confirm(
-                  `Confirmer l'abandon de la commande ${
-                    displayRowLabel || ""
-                  } ?`
-                );
-                if (!confirmed) return;
-                try {
-                  setAbandoning(true);
-                  await onUpdateStatus(rowId, "abandoned", {
-                    previousStatus: initialSheetStatus,
-                    row: { ...row, etat: "abandoned" },
-                  });
-                } catch (e: any) {
-                  const message =
-                    e?.message ||
-                    "Erreur lors de la mise à jour du statut abandonné";
-                  alert(message);
-                } finally {
-                  setAbandoning(false);
-                }
-              }}
-              disabled={abandoning || submitting}
-              className={`orders-button orders-button--danger${
-                abandoning ? " is-loading" : ""
-              }`}
-            >
-              {abandoning ? "Abandon…" : "Abandonnée"}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  setDelivering(true);
-                  const quantity =
-                    parseInt(
-                      String(
-                        row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-                      ).replace(/[^\d]/g, "")
-                    ) || 1;
-                  const name = String(row["Produit"] || "").trim();
-                  const variant =
-                    String(
-                      row["Variante"] ||
-                        row["Variation"] ||
-                        row["Taille"] ||
-                        "default"
-                    ).trim() || "default";
-                  await onDelivered({ name, variant, quantity }, rowId);
-                  await onUpdateStatus(rowId, "delivered", {
-                    previousStatus: initialSheetStatus,
-                    row: { ...row, etat: "delivered" },
-                  });
-                } catch (e: any) {
-                  alert(e?.message || "Erreur lors de la livraison");
-                } finally {
-                  setDelivering(false);
-                }
-              }}
-              disabled={delivering || submitting || abandoning}
-              className={`orders-button orders-button--success${
-                delivering ? " is-loading" : ""
-              }`}
-            >
-              {delivering
-                ? "Traitement…"
-                : "Marquer livrée (décrémenter stock)"}
-            </button>
-          </div>
+          <OrderActionButtons
+            row={row}
+            summary={summary}
+            onUpdateStatus={onUpdateStatus}
+            onDelivered={onDelivered}
+          />
         </td>
         <td className="orders-table__cell orders-table__cell--status">
           <span className="orders-status">
@@ -1382,7 +1421,9 @@ const Orders: React.FC = () => {
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
 
-  const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(null);
+  const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
+    null
+  );
 
   const selectedSummary = React.useMemo(
     () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
@@ -1417,7 +1458,6 @@ const Orders: React.FC = () => {
       }
     };
   }, [selectedOrder]);
-
 
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
@@ -2186,11 +2226,12 @@ const Orders: React.FC = () => {
         )}
 
         {!loading && !error && (
-           <>
+          <>
             <div className="orders-mobile-list">
               {paginatedRows.map((row, idx) => {
                 const summary = extractOrderSummary(row);
-                const displayName = summary.rawName || summary.name || "Sans nom";
+                const displayName =
+                  summary.rawName || summary.name || "Sans nom";
                 const statusLabel = summary.status || "Sans statut";
                 const phoneHref = summary.phoneDial
                   ? `tel:${summary.phoneDial}`
@@ -2207,7 +2248,9 @@ const Orders: React.FC = () => {
                   >
                     <div className="orders-mobile-card__header">
                       <div className="orders-mobile-card__title">
-                        <span className="orders-mobile-card__name">{displayName}</span>
+                        <span className="orders-mobile-card__name">
+                          {displayName}
+                        </span>
                         {summary.displayRowLabel && (
                           <span className="orders-mobile-card__reference">
                             #{summary.displayRowLabel}
@@ -2235,7 +2278,9 @@ const Orders: React.FC = () => {
                 );
               })}
               {filtered.length === 0 && (
-                <div className="orders-mobile-empty">Aucune commande trouvée.</div>
+                <div className="orders-mobile-empty">
+                  Aucune commande trouvée.
+                </div>
               )}
             </div>
 
@@ -2318,7 +2363,7 @@ const Orders: React.FC = () => {
         )}
       </div>
 
-       {selectedOrder && selectedSummary && (
+      {selectedOrder && selectedSummary && (
         <div
           className="orders-modal"
           role="dialog"
@@ -2355,7 +2400,10 @@ const Orders: React.FC = () => {
                   href={
                     selectedSummary.phoneDial
                       ? `tel:${selectedSummary.phoneDial}`
-                      : `tel:${selectedSummary.displayPhone.replace(/\s+/g, "")}`
+                      : `tel:${selectedSummary.displayPhone.replace(
+                          /\s+/g,
+                          ""
+                        )}`
                   }
                   className="orders-modal__phone"
                 >
@@ -2371,15 +2419,27 @@ const Orders: React.FC = () => {
               </span>
             </div>
 
+            <OrderActionButtons
+              row={selectedOrder}
+              summary={selectedSummary}
+              onUpdateStatus={handleUpdateRowStatus}
+              onDelivered={handleDelivered}
+              variant="modal"
+            />
+
             <div className="orders-modal__details">
               {headers.map((header, index) => {
                 const key = `${header || "col"}-${index}`;
-                 const trimmedHeader = header ? header.trim() : "";
+                const trimmedHeader = header ? header.trim() : "";
                 const normalizedHeader = trimmedHeader
                   ? normalizeFieldKey(trimmedHeader)
                   : "";
                 let value = selectedOrder[header];
-                if (value === undefined && trimmedHeader && header !== trimmedHeader) {
+                if (
+                  value === undefined &&
+                  trimmedHeader &&
+                  header !== trimmedHeader
+                ) {
                   value = selectedOrder[trimmedHeader];
                 }
                 if (value === undefined && normalizedHeader) {

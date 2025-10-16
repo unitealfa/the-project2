@@ -628,6 +628,18 @@
   flex-wrap: wrap;
 }
 
+.orders-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.orders-modal__action-button {
+  width: 100%;
+  justify-content: center;
+}
+
 .orders-modal__phone {
   display: inline-flex;
   align-items: center;
@@ -915,5 +927,18 @@
     width: 100%;
     justify-content: center;
     text-align: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .orders-modal__actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .orders-modal__action-button {
+    width: auto;
+    min-width: 0;
   }
 }
