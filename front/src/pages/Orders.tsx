@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/Orders.css";
 
@@ -53,16 +53,6 @@ interface OrderRow {
   [key: string]: string;
 }
 
-type OrderCommentState = {
-  value: string;
-  confirmed: boolean;
-  updatedAt: number;
-};
-
-type OrderCommentsMap = Record<string, OrderCommentState>;
-
-const COMMENTS_STORAGE_KEY = "orders.dhd.comments";
-
 const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
 const buildCsvUrl = () =>
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
@@ -94,22 +84,6 @@ const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
   { value: "month", label: "Mois" },
 ];
 
-const formatDayOptionLabel = (value: string) => {
-  const [yearStr, monthStr, dayStr] = value.split("-");
-  const year = Number(yearStr);
-  const month = Number(monthStr) - 1;
-  const day = Number(dayStr);
-  if ([year, month, day].some((part) => Number.isNaN(part))) {
-    return value;
-  }
-  const date = new Date(year, month, day);
-  return new Intl.DateTimeFormat("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(date);
-};
-
 const PaperPlaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     viewBox="0 0 24 24"
@@ -133,34 +107,6 @@ const CrossCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   >
     <path
       d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.54 12.46a1 1 0 0 1-1.41 1.41L12 13.75l-2.12 2.12a1 1 0 0 1-1.41-1.41L10.59 12 8.47 9.88a1 1 0 0 1 1.41-1.41L12 10.59l2.12-2.12a1 1 0 1 1 1.41 1.41L13.41 12l2.13 2.12Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-const CommentIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <path
-      d="M4 4h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-4.59l-3.7 3.7a1 1 0 0 1-1.7-.7V15H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v7h6a1 1 0 0 1 1 1v1.59l2.29-2.3a1 1 0 0 1 .7-.29H19V6H5Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <path
-      d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14.17-3.59-3.58 1.41-1.42L11 13.34l4.17-4.17 1.41 1.42L11 16.17Z"
       fill="currentColor"
     />
   </svg>
@@ -363,196 +309,9 @@ const Orders: React.FC = () => {
   const [rows, setRows] = React.useState<OrderRow[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [statusSyncDisabled, setStatusSyncDisabled] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [query, setQuery] = React.useState<string>("");
-  const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("all");
-  const [selectedDay, setSelectedDay] = React.useState<string>("");
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
-  const [orderComments, setOrderComments] = React.useState<OrderCommentsMap>({});
-  
+  const [statusSyncDisabled, setStatusSyncDisabled] =
+    React.useState<boolean>(false);
   const syncDisabledRef = React.useRef<boolean>(false);
-  const cancelledRef = React.useRef<boolean>(false);
-  const fetchingRef = React.useRef<boolean>(false);
-  const interactionLockRef = React.useRef<boolean>(false);
-  const isFirstLoadRef = React.useRef<boolean>(true);
-
-    
-  React.useEffect(() => {
-    if (fetchingRef.current) {
-      return;
-    }
-
-    const abortController = new AbortController();
-    let isActive = true;
-
-    const loadOrders = async () => {
-      fetchingRef.current = true;
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(buildCsvUrl(), {
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const text = await response.text();
-        if (!isActive || cancelledRef.current) {
-          return;
-        }
-
-        const grid = parseCsv(text);
-        if (grid.length === 0) {
-          setHeaders([]);
-          setRows([]);
-          return;
-        }
-
-        const [rawHeaders, ...dataRows] = grid;
-        const seenHeaders = new Map<string, number>();
-        const headerConfigs = rawHeaders.map((header, index) => {
-          const trimmed = (header ?? "").trim();
-          const base = trimmed || header || `Colonne ${index + 1}`;
-          const count = seenHeaders.get(base) ?? 0;
-          seenHeaders.set(base, count + 1);
-          const key = count === 0 ? base : `${base} (${count + 1})`;
-          return { key, base, raw: header ?? "", occurrence: count };
-        });
-
-        const headersToDisplay = headerConfigs.map(({ key }) => key);
-
-        const mappedRows = dataRows
-          .map((rowValues) => {
-            const row: OrderRow = {};
-            headerConfigs.forEach(({ key, base, raw, occurrence }, index) => {
-              const cell = rowValues[index] ?? "";
-              row[key] = cell ?? "";
-              if (base && base !== key && occurrence === 0) {
-                row[base] = cell ?? "";
-              }
-              if (raw && raw !== key && raw !== base && occurrence === 0) {
-                row[raw] = cell ?? "";
-              }
-            });
-            return row;
-          })
-          .filter((row) =>
-            headerConfigs.some(({ key }) =>
-              typeof row[key] === "string"
-                ? row[key].trim() !== ""
-                : Boolean(row[key])
-            )
-          );
-
-        if (!isActive || cancelledRef.current) {
-          return;
-        }
-
-        setHeaders(headersToDisplay);
-        setRows(mappedRows);
-        setError(null);
-      } catch (error) {
-        if (!isActive || cancelledRef.current) {
-          return;
-        }
-        console.error("Erreur lors du chargement des commandes", error);
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Impossible de charger les commandes";
-        setError(message);
-      } finally {
-        fetchingRef.current = false;
-        if (!isActive || cancelledRef.current) {
-          return;
-        }
-        isFirstLoadRef.current = false;
-        setLoading(false);
-      }
-    };
-
-    loadOrders();
-
-    return () => {
-      isActive = false;
-      abortController.abort();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    cancelledRef.current = false;
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, []);
-
-
-  const syncStatus = React.useCallback(async (
-    rowId: string,
-    status: SheetStatus,
-    context?: UpdateStatusContext
-  ) => {
-    if (syncDisabledRef.current) return Promise.resolve();
-    
-    if (!rowId) {
-      throw new Error("Identifiant de commande manquant");
-    }
-
-    try {
-      const res = await fetch(SHEET_SYNC_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rowId,
-          status,
-          tracking: context?.tracking,
-          row: context?.row,
-        }),
-      });
-
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-      }
-      if (!res.ok) {
-        const message = typeof data === "string" ? data : data?.message;
-        throw new Error(message || `HTTP ${res.status}`);
-      }
-      return data;
-    } catch (error) {
-      console.error("Erreur lors de la synchronisation du statut", error);
-      if (isNetworkError(error)) {
-        disableStatusSync(error);
-        return;
-      }
-      throw error;
-    }
-  }, []);
-
-  const disableStatusSync = React.useCallback((reason?: unknown) => {
-    if (!syncDisabledRef.current) {
-      syncDisabledRef.current = true;
-      setStatusSyncDisabled(true);
-      if (reason) {
-        console.warn("Désactivation de la synchronisation du statut", reason);
-      }
-    }
-  }, []);
-
-  const setInteractionLock = React.useCallback((locked: boolean) => {
-    interactionLockRef.current = locked;
-  }, []);
-
   // Adresse saisie par l'utilisateur pour chaque commande (indexée par idx)
 
   // Composant optimisé pour une ligne de commande
@@ -778,12 +537,7 @@ const Orders: React.FC = () => {
     row,
     summary,
     onUpdateStatus,
-    comment,
-    onCommentValueChange,
-    onCommentConfirm,
-    onCommentClear,
     onDelivered,
-    onInteractionLock,
     variant = "table",
   }: {
     row: OrderRow;
@@ -802,117 +556,15 @@ const Orders: React.FC = () => {
       },
       rowId: string
     ) => Promise<void>;
-    comment?: OrderCommentState;
-    onCommentValueChange: (nextValue: string) => void;
-    onCommentConfirm: () => void;
-    onCommentClear: () => void;
-    onInteractionLock: (locked: boolean) => void;
     variant?: "table" | "modal";
   }) {
     const {
       name: nom_client,
-      rawName,
       phoneDial: telephone,
       status: initialSheetStatus,
       rowId,
       displayRowLabel,
     } = summary;
-
-    const [commentOpen, setCommentOpen] = React.useState<boolean>(false);
-    const [submitting, setSubmitting] = React.useState<boolean>(false);
-    const [delivering, setDelivering] = React.useState<boolean>(false);
-    const [abandoning, setAbandoning] = React.useState<boolean>(false);
-
-    const handleToggleComment = React.useCallback(() => {
-      setCommentOpen((open) => {
-        const next = !open;
-        onInteractionLock(next);
-        return next;
-      });
-    }, [onInteractionLock]);
-
-    // refs pour gestion du clic hors popover
-    const popoverRef = React.useRef<HTMLDivElement | null>(null);
-    const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
-    const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
-
-        const isTargetWithinComment = React.useCallback((target: Node | null) => {
-      if (!target) return false;
-      const elements: Array<Element | null> = [
-        popoverRef.current,
-        textareaRef.current,
-        toggleButtonRef.current,
-      ];
-      return elements.some((element) => element?.contains(target as Node));
-    }, []);
-
-    const commentValue = comment?.value ?? "";
-    const trimmedCommentValue = commentValue.trim();
-    const hasComment = trimmedCommentValue.length > 0;
-    const isCommentConfirmed = Boolean(comment?.confirmed && hasComment); // Renamed to avoid conflict
-
-    React.useEffect(() => {
-      if (!commentOpen) return;
-
-      const handlePointerDown = (event: PointerEvent) => {
-        const target = event.target as Node | null;
-        if (isTargetWithinComment(target)) {
-          return;
-        }
-        setCommentOpen(false);
-        onInteractionLock(false);
-      };
-
-      document.addEventListener("pointerdown", handlePointerDown);
-      return () => {
-        document.removeEventListener("pointerdown", handlePointerDown);
-      };
-    }, [commentOpen, onInteractionLock, isTargetWithinComment]);
-
-    React.useEffect(() => {
-      if (!commentOpen) return;
-      if (!textareaRef.current) return;
-
-      textareaRef.current.focus({ preventScroll: true });
-    }, [commentOpen]);
-
-    React.useEffect(
-      () => () => {
-        onInteractionLock(false);
-      },
-      [onInteractionLock]
-    );
-
-    const handleConfirmComment = React.useCallback(() => {
-      if (!trimmedCommentValue) {
-        return;
-      }
-      onCommentConfirm();
-      if (variant !== "modal") {
-        setCommentOpen(false);
-      }
-      if (textareaRef.current) {
-        textareaRef.current.blur();
-      }
-    }, [onCommentConfirm, trimmedCommentValue, variant]);
-
-    const commentFieldId = React.useMemo(() => {
-      const base = (rowId || displayRowLabel || rawName || nom_client || "order")
-        .toString()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-      return `comment-${base || "order"}`;
-    }, [displayRowLabel, nom_client, rawName, rowId]);
-
-    React.useEffect(() => {
-      if (variant === "modal") {
-        setCommentOpen(false);
-        onInteractionLock(false);
-      }
-    }, [variant, onInteractionLock]);
-
 
     const telephone_2 = telephone;
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
@@ -1030,27 +682,11 @@ const Orders: React.FC = () => {
       return "alger";
     };
 
-    const handleCommentInputChange = React.useCallback(
-      (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        onCommentValueChange(event.target.value);
-      },
-      [onCommentValueChange]
-    );
+    const [submitting, setSubmitting] = React.useState<boolean>(false);
+    const [delivering, setDelivering] = React.useState<boolean>(false);
+    const [abandoning, setAbandoning] = React.useState<boolean>(false);
 
-    // début de la fonction manquante : encapsule le flux d'envoi vers DHD
     const handleSendToApi = React.useCallback(async () => {
-      
-      if (trimmedCommentValue && !isCommentConfirmed) {
-        alert("Veuillez valider le commentaire avant de l'envoyer à DHD.");
-        if (variant !== "modal") {
-          setCommentOpen(true);
-          onInteractionLock(true);
-        }
-        setTimeout(() => {
-          textareaRef.current?.focus({ preventScroll: true });
-        }, 0);
-        return;
-      }
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
@@ -1060,16 +696,7 @@ const Orders: React.FC = () => {
 
       const adr = ".";
       const produit = row["Produit"] || "";
-      const sheetReference = String(row["ID"] || row["id-sheet"] || "").trim();
-      const remarque = (() => {
-        if (hasComment && sheetReference) {
-          return `${trimmedCommentValue} | Ref: ${sheetReference}`;
-        }
-        if (hasComment) {
-          return trimmedCommentValue;
-        }
-        return sheetReference;
-      })();
+      const remarque = row["ID"] || "";
 
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
@@ -1260,9 +887,6 @@ const Orders: React.FC = () => {
             setTimeout(() => toast.remove(), 400);
           }, 3000);
 
-          setCommentOpen(false);
-          onInteractionLock(false);
-
           await applyStatusUpdate("ready_to_ship", trackingValue);
           await syncTrackingStatus(
             trackingValue === "N/A" ? "" : trackingValue
@@ -1419,11 +1043,6 @@ const Orders: React.FC = () => {
       onUpdateStatus,
       initialSheetStatus,
       rowId,
-      trimmedCommentValue,
-      hasComment,
-      isCommentConfirmed,
-      onCommentClear,
-      variant,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -1477,153 +1096,43 @@ const Orders: React.FC = () => {
 
     if (variant === "modal") {
       return (
-        <>
-          <div className="orders-modal__comment">
-            <label className="orders-modal__comment-label" htmlFor={commentFieldId}>
-              Commentaire DHD
-            </label>
-            <textarea
-              id={commentFieldId}
-              className="orders-modal__comment-textarea"
-              placeholder="Ajouter un commentaire pour la commande"
-              value={commentValue}
-              onChange={handleCommentInputChange}
-              disabled={submitting}
-              rows={3}
-              ref={textareaRef}
-            />
-            <p className="orders-modal__comment-hint">
-              Ce commentaire sera envoyé avec la commande.
-            </p>
-            <div className="orders-modal__comment-actions">
-              <button
-                type="button"
-                className="orders-button orders-button--success orders-modal__comment-validate"
-                onClick={handleConfirmComment}
-                disabled={submitting || !hasComment || isCommentConfirmed}
-              >
-                Valider le commentaire
-              </button>
-              {isCommentConfirmed && (
-                <span
-                  className="orders-modal__comment-status"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <CheckCircleIcon
-                    aria-hidden="true"
-                    className="orders-modal__comment-status-icon"
-                  />
-                  Commentaire validé
-                </span>
-              )}
-            </div>
-          </div>
-          <div className={containerClass}>
-            <button
-              type="button"
-              onClick={handleSendToApi}
-              disabled={submitting || delivering || abandoning}
-              className={`orders-button orders-button--primary orders-modal__action-button${
-                submitting ? " is-loading" : ""
-              }`}
-            >
-              {submitting ? "Envoi…" : "Confirmer et envoyer"}
-            </button>
-            <button
-              type="button"
-              onClick={handleMarkDelivered}
-              disabled={delivering || submitting || abandoning}
-              className={`orders-button orders-button--success orders-modal__action-button${
-                delivering ? " is-loading" : ""
-              }`}
-            >
-              {delivering ? "Traitement…" : "Marquer livrée"}
-            </button>
-            <button
-              type="button"
-              onClick={handleMarkAbandoned}
-              disabled={abandoning || submitting}
-              className={`orders-button orders-button--danger orders-modal__action-button${
-                abandoning ? " is-loading" : ""
-              }`}
-            >
-              {abandoning ? "Abandon…" : "Abandonnée"}
-            </button>
-          </div>
-        </>
+        <div className={containerClass}>
+          <button
+            type="button"
+            onClick={handleSendToApi}
+            disabled={submitting || delivering || abandoning}
+            className={`orders-button orders-button--primary orders-modal__action-button${
+              submitting ? " is-loading" : ""
+            }`}
+          >
+            {submitting ? "Envoi…" : "Confirmer et envoyer"}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkDelivered}
+            disabled={delivering || submitting || abandoning}
+            className={`orders-button orders-button--success orders-modal__action-button${
+              delivering ? " is-loading" : ""
+            }`}
+          >
+            {delivering ? "Traitement…" : "Marquer livrée"}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkAbandoned}
+            disabled={abandoning || submitting}
+            className={`orders-button orders-button--danger orders-modal__action-button${
+              abandoning ? " is-loading" : ""
+            }`}
+          >
+            {abandoning ? "Abandon…" : "Abandonnée"}
+          </button>
+        </div>
       );
     }
 
     return (
       <div className={containerClass}>
-        <div className="orders-comment">
-          <button
-            ref={toggleButtonRef}
-            type="button"
-            onClick={handleToggleComment}
-            className={`orders-button orders-button--ghost orders-button--icon orders-comment__toggle${
-              commentOpen ? " is-open" : ""
-            }${hasComment ? " has-comment" : ""}${
-              isCommentConfirmed ? " is-confirmed" : ""
-            }`}
-          >
-            <CommentIcon aria-hidden="true" className="orders-button__icon" />
-          </button>
-          {commentOpen && (
-            <div
-              ref={popoverRef}
-              className="orders-comment__popover"
-              role="dialog"
-              aria-label="Commentaire pour DHD"
-              
-            >
-              <label className="orders-comment__label" htmlFor={commentFieldId}>
-                Commentaire DHD
-              </label>
-              <textarea
-                id={commentFieldId}
-                className="orders-comment__textarea"
-                placeholder="Ajouter un commentaire pour la commande"
-                value={commentValue}
-                onChange={handleCommentInputChange}
-                disabled={submitting}
-                rows={3}
-                autoFocus
-                autoComplete="off"
-                autoCorrect="off"
-                ref={textareaRef}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              />
-              <p className="orders-comment__hint">
-                Le message sera transmis à DHD lors de l'envoi.
-              </p>
-               <div className="orders-comment__actions">
-                <button
-                  type="button"
-                  className="orders-button orders-button--success orders-comment__validate"
-                  onClick={handleConfirmComment}
-                  disabled={submitting || !hasComment || isCommentConfirmed}
-                >
-                  Valider le commentaire
-                </button>
-                {isCommentConfirmed && (
-                  <span
-                    className="orders-comment__status"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <CheckCircleIcon
-                      aria-hidden="true"
-                      className="orders-comment__status-icon"
-                    />
-                    Commentaire validé
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
         <button
           type="button"
           onClick={handleSendToApi}
@@ -1674,11 +1183,6 @@ const Orders: React.FC = () => {
     onUpdateStatus,
     onDelivered,
     onVariantClick,
-    comment,
-    onCommentValueChange,
-    onCommentConfirm,
-    onCommentClear,
-    onInteractionLock,
   }: {
     row: OrderRow;
     idx: number;
@@ -1698,11 +1202,6 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
-    comment?: OrderCommentState;
-    onCommentValueChange: (value: string) => void;
-    onCommentConfirm: () => void;
-    onCommentClear: () => void;
-    onInteractionLock: (locked: boolean) => void;
   }) {
     const summary = extractOrderSummary(row);
     const { name: nom_client, phoneDial: telephone } = summary;
@@ -1950,12 +1449,6 @@ Zm0 14H8V7h9v12Z"
             summary={summary}
             onUpdateStatus={onUpdateStatus}
             onDelivered={onDelivered}
-            
-            comment={comment}
-            onCommentValueChange={onCommentValueChange}
-            onCommentConfirm={onCommentConfirm}
-            onCommentClear={onCommentClear}
-            onInteractionLock={onInteractionLock}
           />
         </td>
         <td className="orders-table__cell orders-table__cell--status">
@@ -1971,6 +1464,13 @@ Zm0 14H8V7h9v12Z"
       </tr>
     );
   });
+
+  const [error, setError] = React.useState<string | null>(null);
+  const [query, setQuery] = React.useState<string>("");
+  const [currentPage, setCurrentPage] = React.useState<number>(1);
+  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("all");
+  const [selectedDay, setSelectedDay] = React.useState<string>("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
 
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
@@ -1992,129 +1492,7 @@ Zm0 14H8V7h9v12Z"
   }>>([]);
   const [loadingVariants, setLoadingVariants] = React.useState(false);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const stored = window.localStorage.getItem(COMMENTS_STORAGE_KEY);
-      if (!stored) {
-        return;
-      }
-
-      const parsed = JSON.parse(stored);
-      if (!parsed || typeof parsed !== "object") {
-        return;
-      }
-
-      const sanitized: OrderCommentsMap = {};
-      for (const [key, value] of Object.entries(parsed as Record<string, any>)) {
-        if (!key) continue;
-        if (!value || typeof value !== "object") continue;
-        const rawValue = typeof (value as any).value === "string" ? value.value : "";
-        const trimmed = rawValue.trim();
-        if (!trimmed) continue;
-        sanitized[key] = {
-          value: rawValue,
-          confirmed: Boolean((value as any).confirmed) && trimmed.length > 0,
-          updatedAt: Number.isFinite(Number((value as any).updatedAt))
-            ? Number((value as any).updatedAt)
-            : Date.now(),
-        };
-      }
-
-      if (Object.keys(sanitized).length > 0) {
-        setOrderComments(sanitized);
-      }
-    } catch (error) {
-      console.error("Impossible de lire les commentaires DHD :", error);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      if (Object.keys(orderComments).length === 0) {
-        window.localStorage.removeItem(COMMENTS_STORAGE_KEY);
-        return;
-      }
-      window.localStorage.setItem(
-        COMMENTS_STORAGE_KEY,
-        JSON.stringify(orderComments)
-      );
-    } catch (error) {
-      console.error("Impossible d'enregistrer les commentaires DHD :", error);
-    }
-  }, [orderComments]);
-
-  const handleCommentValueChange = React.useCallback((key: string, value: string) => {
-    setOrderComments((previous) => {
-      const trimmed = value.trim();
-      if (!trimmed) {
-        if (!previous[key]) {
-          return previous;
-        }
-        const next = { ...previous };
-        delete next[key];
-        return next;
-      }
-
-      const existing = previous[key];
-      if (existing && existing.value === value) {
-        return previous;
-      }
-
-      const nextEntry: OrderCommentState = {
-        value,
-        confirmed: existing ? existing.confirmed && existing.value === value : false,
-        updatedAt: Date.now(),
-      };
-
-      return { ...previous, [key]: nextEntry };
-    });
-  }, []);
-
-  const handleCommentConfirm = React.useCallback((key: string) => {
-    setOrderComments((previous) => {
-      const entry = previous[key];
-      if (!entry) {
-        return previous;
-      }
-
-      const trimmed = entry.value.trim();
-      if (!trimmed) {
-        const next = { ...previous };
-        delete next[key];
-        return next;
-      }
-
-      if (entry.confirmed) {
-        return previous;
-      }
-
-      return {
-        ...previous,
-        [key]: {
-          ...entry,
-          confirmed: true,
-          updatedAt: Date.now(),
-        },
-      };
-    });
-  }, []);
-
-  const handleCommentClear = React.useCallback((key: string) => {
-    setOrderComments((previous) => {
-      const { [key]: _, ...rest } = previous;
-      return rest;
-    });
-  }, []);
-
-  const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
+   const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
     if (!row) return null;
     const candidateKeys = [
       "id-sheet",
@@ -2136,43 +1514,6 @@ Zm0 14H8V7h9v12Z"
 
     return null;
   }, []);
-
-  const commentKeyForRow = React.useCallback(
-    (row: OrderRow, fallbackIndex?: number) => {
-      const identifier = getRowIdentifier(row);
-      if (identifier) {
-        return identifier;
-      }
-
-      const summary = extractOrderSummary(row);
-      const candidates: Array<unknown> = [
-        summary.rowId,
-        summary.displayRowLabel,
-        summary.rawName,
-        summary.name,
-        summary.phoneDial,
-        row["Numero"],
-        row["Numéro"],
-        row["Téléphone"],
-        row["Telephone"],
-      ];
-
-      for (const candidate of candidates) {
-        if (candidate === undefined || candidate === null) continue;
-        const value = String(candidate).trim();
-        if (value) {
-          return value;
-        }
-      }
-
-      if (typeof fallbackIndex === "number") {
-        return `idx-${fallbackIndex}`;
-      }
-
-      return "order-without-id";
-    },
-    [getRowIdentifier]
-  );
 
   React.useEffect(() => {
     if (!selectedOrder) return;
@@ -2199,233 +1540,34 @@ Zm0 14H8V7h9v12Z"
     [selectedOrder]
   );
 
-  const selectedCommentKey = React.useMemo(
-    () => (selectedOrder ? commentKeyForRow(selectedOrder) : null),
-    [commentKeyForRow, selectedOrder]
-  );
+  React.useEffect(() => {
+    if (!selectedOrder) return;
 
-  const selectedComment =
-    selectedCommentKey && orderComments[selectedCommentKey]
-      ? orderComments[selectedCommentKey]
-      : undefined;
-
-  const handleSelectedCommentChange = React.useCallback(
-    (nextValue: string) => {
-      if (!selectedCommentKey) return;
-      handleCommentValueChange(selectedCommentKey, nextValue);
-    },
-    [handleCommentValueChange, selectedCommentKey]
-  );
-
-  const handleSelectedCommentConfirm = React.useCallback(() => {
-    if (!selectedCommentKey) return;
-    handleCommentConfirm(selectedCommentKey);
-  }, [handleCommentConfirm, selectedCommentKey]);
-
-  const handleSelectedCommentClear = React.useCallback(() => {
-    if (!selectedCommentKey) return;
-    handleCommentClear(selectedCommentKey);
-  }, [handleCommentClear, selectedCommentKey]);
-
-  const handleUpdateRowStatus = React.useCallback(
-    async (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
-      if (!rowId) {
-        throw new Error("Identifiant de ligne manquant");
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedOrder(null);
       }
+    };
 
-      let previousRow: OrderRow | null = null;
-      setRows((current) =>
-        current.map((row) => {
-          const identifier = getRowIdentifier(row);
-          if (identifier === rowId) {
-            previousRow = row;
-            if (context?.row) {
-              return { ...row, ...context.row };
-            }
-            return { ...row, etat: status };
-          }
-          return row;
-        })
-      );
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", handleKeyDown);
+    }
 
-      try {
-        await syncStatus(rowId, status, context);
-      } catch (error) {
-        console.error("Impossible de synchroniser le statut", error);
-        if (previousRow) {
-          setRows((current) =>
-            current.map((row) =>
-              getRowIdentifier(row) === rowId ? previousRow! : row
-            )
-          );
-        }
-        throw (error instanceof Error ? error : new Error(String(error)));
+    const body = typeof document !== "undefined" ? document.body : null;
+    const previousOverflow = body ? body.style.overflow : "";
+    if (body) {
+      body.style.overflow = "hidden";
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("keydown", handleKeyDown);
       }
-    },
-    [getRowIdentifier, syncStatus]
-  );
-
-  const handleDelivered = React.useCallback(
-    async (
-      payload: { name?: string; code?: string; variant: string; quantity: number },
-      _rowId: string
-    ) => {
-      if (!token) {
-        throw new Error("Authentification requise pour décrémenter le stock");
+      if (body) {
+        body.style.overflow = previousOverflow;
       }
-
-      const body = {
-        items: [
-          {
-            code: payload.code,
-            name: payload.name,
-            variant: payload.variant,
-            quantity: payload.quantity,
-          },
-        ],
-      };
-
-      const response = await fetch("/api/products/decrement-bulk-allow-zero", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json().catch(() => null);
-      if (data && Array.isArray(data.results)) {
-        const failure = data.results.find((item: any) => item && item.ok === false);
-        if (failure) {
-          throw new Error(
-            failure.error || "Impossible de décrémenter le stock du produit"
-          );
-        }
-      }
-    },
-    [token]
-  );
-
-  const handleVariantClick = React.useCallback(
-    async (row: OrderRow) => {
-      const productName = String(
-        row["Produit"] ?? row["Produit 1"] ?? row["Produit principal"] ?? ""
-      ).trim();
-      const currentVariant =
-        String(
-          row["Variante"] ?? row["Variation"] ?? row["Taille"] ?? "default"
-        ).trim() || "default";
-
-      setVariantModalOpen({
-        isOpen: true,
-        orderRow: row,
-        productName: productName || "Produit inconnu",
-        currentVariant,
-      });
-      setAvailableVariants([]);
-
-      setLoadingVariants(true);
-      if (!token || !productName) {
-        setLoadingVariants(false);
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/products", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const products = await res.json();
-        if (cancelledRef.current) {
-          return;
-        }
-        const normalizedTarget = productName.toLowerCase();
-        const match = Array.isArray(products)
-          ? products.find((item: any) => {
-              const name = String(item?.name || "").toLowerCase();
-              const code = String(item?.code || "").toLowerCase();
-              return name === normalizedTarget || code === normalizedTarget;
-            })
-          : null;
-        const variants = Array.isArray(match?.variants)
-          ? match.variants.map((variant: any) => ({
-              name: String(variant?.name || ""),
-              quantity: Number(variant?.quantity ?? 0) || 0,
-            }))
-          : [];
-        setAvailableVariants(variants);
-      } catch (error) {
-        console.error("Erreur lors du chargement des variantes", error);
-        if (!cancelledRef.current) {
-          setAvailableVariants([]);
-          alert(
-            error instanceof Error
-              ? error.message
-              : "Impossible de récupérer les variantes du produit"
-          );
-        }
-      } finally {
-        if (!cancelledRef.current) {
-          setLoadingVariants(false);
-        }
-      }
-    },
-    [token]
-  );
-
-  const handleVariantSelect = React.useCallback(
-    (variantName: string) => {
-      const trimmedVariant = variantName.trim();
-      if (!trimmedVariant) {
-        return;
-      }
-
-      setVariantModalOpen((previous) => {
-        if (!previous.orderRow) {
-          return previous;
-        }
-
-        const identifier = getRowIdentifier(previous.orderRow);
-        if (identifier) {
-          setRows((current) =>
-            current.map((row) => {
-              if (getRowIdentifier(row) !== identifier) {
-                return row;
-              }
-              const nextRow: OrderRow = {
-                ...row,
-                Variante: trimmedVariant,
-              };
-              if ("Variation" in nextRow) {
-                nextRow["Variation"] = trimmedVariant;
-              }
-              if ("Taille" in nextRow) {
-                nextRow["Taille"] = trimmedVariant;
-              }
-              return nextRow;
-            })
-          );
-        }
-
-        return {
-          ...previous,
-          currentVariant: trimmedVariant,
-          orderRow: { ...previous.orderRow, Variante: trimmedVariant },
-        };
-      });
-    },
-    [getRowIdentifier]
-  );
+    };
+  }, [selectedOrder]);
 
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
@@ -2500,43 +1642,670 @@ Zm0 14H8V7h9v12Z"
     return null;
   }, [selectedReferenceDate, timeFilter]);
 
-  const searchableHeaders = React.useMemo(() => {
-    const keys = new Set<string>();
-    headers.forEach((header) => {
-      const original = header ?? "";
-      if (original) {
-        keys.add(original);
-        const trimmed = original.trim();
-        if (trimmed) {
-          keys.add(trimmed);
-        }
-      }
-    });
+  const statusOptions = React.useMemo(() => {
+    const set = new Set<string>();
     rows.forEach((row) => {
-      Object.keys(row).forEach((key) => {
-        if (key) {
-          keys.add(key);
-          const trimmed = key.trim();
-          if (trimmed) {
-            keys.add(trimmed);
-          }
-        }
-      });
+      set.add(getRowStatus(row));
     });
-    [
-      "Nom du client",
-      "Nom",
-      "Numero",
-      "Numéro",
-      "Téléphone",
-      "Telephone",
-      "Wilaya",
-      "Produit",
-      "Produit 1",
-      "Produit 2",
-    ].forEach((key) => keys.add(key));
-    return Array.from(keys);
-  }, [headers, rows]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  const dayOptionFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+    []
+  );
+
+  const dayRangeFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+    []
+  );
+
+  const monthRangeFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat("fr-FR", {
+        month: "long",
+        year: "numeric",
+      }),
+    []
+  );
+
+  const formatDayOptionLabel = React.useCallback(
+    (key: string) => {
+      const [year, month, day] = key.split("-").map(Number);
+      if ([year, month, day].some((value) => Number.isNaN(value))) return key;
+      const date = new Date(year, (month ?? 1) - 1, day ?? 1);
+      return dayOptionFormatter.format(date);
+    },
+    [dayOptionFormatter]
+  );
+
+  const timeRangeLabel = React.useMemo(() => {
+    if (timeFilter === "all") {
+      return "Période affichée : toutes les commandes (100 par page)";
+    }
+
+    if (!activeTimeRange) {
+      return availableDayOptions.length === 0
+        ? "Période affichée : aucune date disponible"
+        : "Période affichée : sélectionnez une date";
+    }
+
+    if (timeFilter === "day") {
+      return `Période affichée : ${dayRangeFormatter.format(
+        activeTimeRange.start
+      )}`;
+    }
+
+    if (timeFilter === "week") {
+      return `Période affichée : du ${dayRangeFormatter.format(
+        activeTimeRange.start
+      )} au ${dayRangeFormatter.format(activeTimeRange.end)}`;
+    }
+
+    if (timeFilter === "month") {
+      return `Période affichée : ${monthRangeFormatter.format(
+        activeTimeRange.start
+      )}`;
+    }
+
+    return "";
+  }, [
+    timeFilter,
+    activeTimeRange,
+    availableDayOptions.length,
+    dayRangeFormatter,
+    monthRangeFormatter,
+  ]);
+
+  const statusFilterLabel = React.useMemo(() => {
+    if (statusFilter === "all") return "";
+    return `Statut filtré : ${statusFilter}`;
+  }, [statusFilter]);
+
+  const isFirstLoadRef = React.useRef(true);
+  const cancelledRef = React.useRef(false);
+  const fetchingRef = React.useRef(false);
+  const disableStatusSync = React.useCallback((reason?: unknown) => {
+    if (!syncDisabledRef.current) {
+      syncDisabledRef.current = true;
+      setStatusSyncDisabled(true);
+      if (reason) {
+        console.warn(
+          "Désactivation de la synchronisation du statut (backend injoignable)",
+          reason
+        );
+      }
+    }
+  }, []);
+
+  const syncStatus = React.useCallback(
+    async (
+      rowId: string,
+      status: SheetStatus,
+      context?: UpdateStatusContext
+    ) => {
+      if (syncDisabledRef.current) {
+        return Promise.resolve();
+      }
+      if (syncDisabledRef.current) {
+        return;
+      }
+      if (!rowId) {
+        throw new Error(
+          "Identifiant de commande manquant pour la mise à jour du statut"
+        );
+      }
+      try {
+        const res = await fetch(SHEET_SYNC_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId,
+            status,
+            tracking: context?.tracking,
+            row: context?.row,
+          }),
+        });
+        const text = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+        if (!res.ok) {
+          const message = typeof data === "string" ? data : data?.message;
+          throw new Error(message || `HTTP ${res.status}`);
+        }
+        return data;
+      } catch (error) {
+        console.error(
+          "Erreur lors de la synchronisation du statut avec le Sheet",
+          error
+        );
+        if (isNetworkError(error)) {
+          disableStatusSync(error);
+          return;
+        }
+        throw error;
+      }
+    },
+    [disableStatusSync]
+  );
+
+  const loadSheetData = React.useCallback(async (withSpinner = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
+    const shouldShowSpinner = withSpinner || isFirstLoadRef.current;
+
+    if (shouldShowSpinner) {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const res = await fetch(buildCsvUrl(), { mode: "cors" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const grid = parseCsv(text);
+      if (grid.length === 0) {
+        throw new Error("CSV vide");
+      }
+      const [rawHeaderRow, ...dataRows] = grid;
+      const headerRow = rawHeaderRow.map((cell) =>
+        typeof cell === "string" ? cell.trim() : String(cell ?? "")
+      );
+
+      if (!cancelledRef.current) {
+        const normalizeHeader = (h: string) =>
+          (h || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+        const hiddenHeaderSet = new Set([
+          "date",
+          "adresse",
+          "total",
+          "net a payer",
+          "commune",
+        ]);
+
+        const originalHeaderByNormalized = new Map<string, string>();
+        headerRow.forEach((h) => {
+          const normalized = normalizeHeader(h || "");
+          if (!normalized) return;
+          if (!originalHeaderByNormalized.has(normalized)) {
+            originalHeaderByNormalized.set(normalized, h);
+          }
+        });
+
+        const cleanedHeaders = headerRow.filter((h) => {
+          const normalized = normalizeHeader(h || "");
+          if (!normalized) return false;
+          if (normalized === "etat") return false;
+          if (hiddenHeaderSet.has(normalized)) return false;
+          return true;
+        });
+
+        const uniqueHeaders: string[] = [];
+        const seenHeaders = new Set<string>();
+        cleanedHeaders.forEach((h) => {
+          const normalized = normalizeHeader(h || "");
+          if (!normalized || seenHeaders.has(normalized)) {
+            return;
+          }
+          seenHeaders.add(normalized);
+          uniqueHeaders.push(h);
+        });
+
+        const ensureHeader = (label: string) => {
+          const normalized = normalizeHeader(label);
+          if (!normalized || seenHeaders.has(normalized)) {
+            return;
+          }
+          const original = originalHeaderByNormalized.get(normalized);
+          uniqueHeaders.push(original ?? label);
+          seenHeaders.add(normalized);
+        };
+        ["Nom du client", "Numero", "ID", "id-sheet"].forEach(ensureHeader);
+
+        const desiredOrder = ["Nom du client", "Numero", "ID", "id-sheet"];
+        const prioritized = desiredOrder
+          .map((label) => {
+            const normalized = normalizeHeader(label);
+            return uniqueHeaders.find((h) => normalizeHeader(h) === normalized);
+          })
+          .filter((h): h is string => Boolean(h));
+        const prioritizedSet = new Set(
+          prioritized.map((h) => normalizeHeader(h))
+        );
+        const remaining = uniqueHeaders.filter(
+          (h) => !prioritizedSet.has(normalizeHeader(h))
+        );
+
+        setHeaders([...prioritized, ...remaining]);
+        const mapped = dataRows
+          .map((r, dataIndex) => {
+            if (!r.some((cell) => cell && cell.trim() !== "")) {
+              return null;
+            }
+            const obj: OrderRow = {};
+            headerRow.forEach((h, idx) => {
+              const headerKey = typeof h === "string" ? h.trim() : "";
+              if (!headerKey) return;
+              obj[headerKey] = r[idx] ?? "";
+            });
+
+            const idKey = Object.keys(obj).find(
+              (key) => key.trim().toLowerCase() === "id"
+            );
+            const existingIdRaw = idKey ? obj[idKey] : undefined;
+            const normalizedId =
+              typeof existingIdRaw === "string"
+                ? existingIdRaw.trim()
+                : existingIdRaw !== undefined && existingIdRaw !== null
+                ? String(existingIdRaw).trim()
+                : "";
+            const sheetRowNumber = dataIndex + 2; // +2 pour inclure la ligne d'en-tête
+            obj["id-sheet"] = String(sheetRowNumber);
+            if (normalizedId) {
+              obj["ID"] = normalizedId;
+            } else {
+              obj["ID"] = String(sheetRowNumber);
+            }
+            if (idKey && idKey !== "ID") {
+              delete obj[idKey];
+            }
+
+            const sheetStatus = String(
+              obj["etat"] ?? obj["État"] ?? obj["Etat"] ?? ""
+            ).trim();
+
+            obj["etat"] = sheetStatus;
+            const assignCanonicalValue = (targetKey: string, raw: unknown) => {
+              const value = String(raw ?? "").trim();
+              if (!value) return false;
+              obj[targetKey] = value;
+              const normalizedTargetKey = normalizeFieldKey(targetKey);
+              if (normalizedTargetKey) {
+                for (const key of Object.keys(obj)) {
+                  if (key === targetKey) continue;
+                  if (normalizeFieldKey(key) === normalizedTargetKey) {
+                    obj[key] = value;
+                  }
+                }
+              }
+              return true;
+            };
+
+            const ensureCanonicalField = (
+              targetKey: string,
+              matcher: (normalizedKey: string, tokens: string[]) => boolean
+            ) => {
+              const existing = obj[targetKey];
+              if (assignCanonicalValue(targetKey, existing)) {
+                return;
+              }
+              for (const key of Object.keys(obj)) {
+                const rawValue = obj[key];
+                if (rawValue === undefined || rawValue === null) continue;
+                const normalizedKey = normalizeFieldKey(key);
+                if (!normalizedKey) continue;
+                const tokens = normalizedKey
+                  .replace(/[^a-z0-9]+/g, " ")
+                  .trim()
+                  .split(/\s+/)
+                  .filter(Boolean);
+                if (!matcher(normalizedKey, tokens)) continue;
+                if (assignCanonicalValue(targetKey, rawValue)) {
+                  return;
+                }
+              }
+            };
+
+            ensureCanonicalField("Nom du client", (normalizedKey, tokens) => {
+              const hasClient = tokens.some(
+                (token) => token === "client" || token === "customer"
+              );
+              const hasName = tokens.some(
+                (token) => token === "nom" || token === "name"
+              );
+              if (hasClient && hasName) return true;
+              return (
+                normalizedKey.includes("client") &&
+                (normalizedKey.includes("nom") ||
+                  normalizedKey.includes("name"))
+              );
+            });
+
+            ensureCanonicalField("Numero", (normalizedKey, tokens) => {
+              if (tokens.some((token) => token === "numero")) return true;
+              if (
+                tokens.some(
+                  (token) =>
+                    token === "telephone" ||
+                    token === "tel" ||
+                    token === "phone"
+                )
+              )
+                return true;
+              return (
+                normalizedKey.includes("numero") ||
+                normalizedKey.includes("telephone") ||
+                normalizedKey.includes("tel") ||
+                normalizedKey.includes("phone")
+              );
+            });
+
+            return obj;
+          })
+          .filter((row): row is OrderRow => row !== null);
+        setRows(mapped);
+      }
+    } catch (e: any) {
+      if (!cancelledRef.current) setError(e?.message || "Erreur inconnue");
+    } finally {
+      if (!cancelledRef.current && shouldShowSpinner) {
+        setLoading(false);
+      }
+      fetchingRef.current = false;
+      if (!cancelledRef.current) {
+        isFirstLoadRef.current = false;
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    cancelledRef.current = false;
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const initialise = async () => {
+      await loadSheetData(true);
+      intervalId = setInterval(() => {
+        loadSheetData(false);
+      }, 10000);
+    };
+
+    initialise();
+
+    return () => {
+      cancelledRef.current = true;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [loadSheetData]);
+
+  const handleUpdateRowStatus = useCallback(
+    async (
+      rowId: string,
+      status: SheetStatus,
+      context: UpdateStatusContext = {}
+    ) => {
+      if (!rowId) {
+        throw new Error("Identifiant de commande manquant");
+      }
+
+      let recordedPrevious: SheetStatus | undefined;
+      const matchesRow = (candidate: OrderRow) => {
+        const candidateSheetId = String(candidate["id-sheet"] ?? "").trim();
+        if (candidateSheetId) {
+          return candidateSheetId === rowId;
+        }
+        const candidateFallbackId = String(candidate["ID"] ?? "").trim();
+        return candidateFallbackId === rowId;
+      };
+
+      setRows((prevRows) =>
+        prevRows.map((r) => {
+          if (matchesRow(r)) {
+            recordedPrevious = (String(r["etat"] ?? "") ||
+              "new") as SheetStatus;
+            return { ...r, etat: status };
+          }
+          return r;
+        })
+      );
+
+      const fallbackStatus: SheetStatus =
+        (context.previousStatus as SheetStatus) ?? recordedPrevious ?? "new";
+
+      try {
+        await syncStatus(rowId, status, context);
+      } catch (error) {
+        setRows((prevRows) =>
+          prevRows.map((r) =>
+            matchesRow(r) ? { ...r, etat: fallbackStatus } : r
+          )
+        );
+        throw error;
+      }
+    },
+    [syncStatus]
+  );
+
+  const handleDelivered = useCallback(
+    async (
+      payload: {
+        code?: string;
+        name?: string;
+        variant: string;
+        quantity: number;
+      },
+      rowId: string
+    ) => {
+      // Appelle l'API backend pour décrémenter le stock (permet stock 0)
+      try {
+        const res = await fetch("/api/products/decrement-bulk-allow-zero", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ items: [payload] }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Échec décrémentation");
+        const failures = Array.isArray(data?.results)
+          ? data.results.filter((r: any) => !r.ok)
+          : [];
+        if (failures.length) {
+          const msg = failures
+            .map(
+              (f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
+            )
+            .join("\n");
+          throw new Error(msg || "Échec partiel");
+        }
+        
+        // Vérifier si le stock final est à 0 et afficher un avertissement
+        const results = Array.isArray(data?.results) ? data.results : [];
+        const zeroStockItems = results.filter((r: any) => r.ok && r.finalStock === 0);
+        if (zeroStockItems.length > 0) {
+          const zeroStockNames = zeroStockItems
+            .map((item: any) => `${item.name || item.code || ""} (${item.variant})`)
+            .join(", ");
+          
+          // Afficher un toast d'avertissement pour le stock à 0
+          const toast = document.createElement("div");
+          toast.textContent = `⚠️ Stock épuisé pour: ${zeroStockNames}`;
+          Object.assign(toast.style, {
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            color: "#fff",
+            padding: "12px 18px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 24px rgba(245,158,11,0.3)",
+            fontSize: "0.9rem",
+            fontWeight: "600",
+            zIndex: "2000",
+            opacity: "0",
+            transition: "opacity 0.3s ease",
+          });
+          document.body.appendChild(toast);
+          setTimeout(() => (toast.style.opacity = "1"), 50);
+          setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 400);
+          }, 5000);
+        }
+      } catch (e) {
+        throw e;
+      }
+    },
+    [token]
+  );
+
+  const handleVariantClick = useCallback(async (row: OrderRow) => {
+    const productName = String(row["Produit"] || "").trim();
+    const currentVariant = String(
+      row["Variante"] || row["Variation"] || row["Taille"] || "default"
+    ).trim();
+
+    if (!productName) {
+      alert("Aucun produit trouvé pour cette commande");
+      return;
+    }
+
+    setVariantModalOpen({
+      isOpen: true,
+      orderRow: row,
+      productName,
+      currentVariant,
+    });
+
+    // Charger les variantes disponibles
+    setLoadingVariants(true);
+    try {
+      const res = await fetch("/api/products", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const products = await res.json();
+      
+      // Trouver le produit correspondant
+      const product = products.find((p: any) => 
+        p.name.toLowerCase().trim() === productName.toLowerCase().trim()
+      );
+      
+      if (product && product.variants) {
+        setAvailableVariants(product.variants);
+      } else {
+        setAvailableVariants([]);
+        alert("Aucune variante trouvée pour ce produit");
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des variantes:", error);
+      alert("Erreur lors du chargement des variantes");
+      setAvailableVariants([]);
+    } finally {
+      setLoadingVariants(false);
+    }
+  }, [token]);
+
+  const handleVariantSelect = useCallback(async (selectedVariant: string) => {
+    if (!variantModalOpen.orderRow) return;
+
+    const row = variantModalOpen.orderRow;
+    const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
+    
+    if (!rowId) {
+      alert("Impossible d'identifier la commande");
+      return;
+    }
+
+    try {
+      // Mettre à jour la variante dans le Google Sheet
+      await syncStatus(rowId, getRowStatus(row), {
+        previousStatus: getRowStatus(row),
+        row: { ...row, Variante: selectedVariant },
+      });
+
+      // Mettre à jour l'état local
+      setRows((prevRows) =>
+        prevRows.map((r) => {
+          const currentRowId = String(r["id-sheet"] || r["ID"] || "").trim();
+          if (currentRowId === rowId) {
+            return { ...r, Variante: selectedVariant };
+          }
+          return r;
+        })
+      );
+
+      // Fermer le modal
+      setVariantModalOpen({
+        isOpen: false,
+        orderRow: null,
+        productName: "",
+        currentVariant: "",
+      });
+
+      // Afficher un message de succès
+      const toast = document.createElement("div");
+      toast.textContent = `✅ Variante mise à jour vers "${selectedVariant}"`;
+      Object.assign(toast.style, {
+        position: "fixed",
+        bottom: "24px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+        color: "#fff",
+        padding: "12px 18px",
+        borderRadius: "12px",
+        boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
+        fontSize: "0.9rem",
+        fontWeight: "600",
+        zIndex: "2000",
+        opacity: "0",
+        transition: "opacity 0.3s ease",
+      });
+      document.body.appendChild(toast);
+      setTimeout(() => (toast.style.opacity = "1"), 50);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la variante:", error);
+      alert("Erreur lors de la mise à jour de la variante");
+    }
+  }, [variantModalOpen.orderRow, syncStatus]);
+
+  const searchableHeaders = React.useMemo(() => {
+    const keys: string[] = [];
+    const pushKey = (key: string) => {
+      if (!key) return;
+      if (keys.includes(key)) return;
+      keys.push(key);
+    };
+    ["Nom du client", "Numero"].forEach(pushKey);
+    headers.forEach(pushKey);
+    ["Wilaya", "Commune", "ID", "id-sheet", "Type de livraison"].forEach(
+      pushKey
+    );
+    return keys;
+  }, [headers]);
 
   const filtered = React.useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
@@ -2587,19 +2356,6 @@ Zm0 14H8V7h9v12Z"
     activeTimeRange,
   ]);
 
-  const statusOptions = React.useMemo(() => {
-    const statuses = new Set<string>();
-    rows.forEach((row) => {
-      const status = getRowStatus(row);
-      if (status) {
-        statuses.add(status);
-      }
-    });
-    return Array.from(statuses).sort((a, b) =>
-      a.localeCompare(b, "fr", { sensitivity: "base" })
-    );
-  }, [rows]);
-
   React.useEffect(() => {
     setCurrentPage(1);
   }, [query]);
@@ -2633,33 +2389,6 @@ Zm0 14H8V7h9v12Z"
     filtered.length,
     (safeCurrentPage - 1) * PAGE_SIZE + paginatedRows.length
   );
-
-  const timeRangeLabel = React.useMemo(() => {
-    if (timeFilter === "all" || !activeTimeRange) {
-      return "";
-    }
-    const formatter = new Intl.DateTimeFormat("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-    const startLabel = formatter.format(activeTimeRange.start);
-    const endLabel = formatter.format(activeTimeRange.end);
-    if (startLabel === endLabel) {
-      return `Période : ${startLabel}`;
-    }
-    return `Période : ${startLabel} – ${endLabel}`;
-  }, [activeTimeRange, timeFilter]);
-
-  const statusFilterLabel = React.useMemo(() => {
-    if (statusFilter === "all") {
-      return "";
-    }
-    const pretty = statusFilter
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (match) => match.toUpperCase());
-    return `Statut : ${pretty}`;
-  }, [statusFilter]);
 
   return (
     <div className="orders-page">
@@ -2832,35 +2561,17 @@ Zm0 14H8V7h9v12Z"
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRows.map((row, idx) => {
-                    const commentKey = commentKeyForRow(row, idx);
-                    const comment =
-                      commentKey && orderComments[commentKey]
-                        ? orderComments[commentKey]
-                        : undefined;
-
-                    return (
-                      <OrderRowItem
-                        key={row["id-sheet"] || row["ID"] || idx}
-                        row={row}
-                        idx={idx}
-                        headers={headers}
-                        onUpdateStatus={handleUpdateRowStatus}
-                        onDelivered={handleDelivered}
-                        onVariantClick={handleVariantClick}
-                         comment={comment}
-                        onCommentValueChange={(value) =>
-                          handleCommentValueChange(commentKey, value)
-                        }
-                        onCommentConfirm={() =>
-                          handleCommentConfirm(commentKey)
-                        }
-                        onCommentClear={() => handleCommentClear(commentKey)}
-                        onInteractionLock={setInteractionLock}
-                      />
-                    );
-                  })}
-
+                  {paginatedRows.map((row, idx) => (
+                    <OrderRowItem
+                      key={row["id-sheet"] || row["ID"] || idx}
+                      row={row}
+                      idx={idx}
+                      headers={headers}
+                      onUpdateStatus={handleUpdateRowStatus}
+                      onDelivered={handleDelivered}
+                      onVariantClick={handleVariantClick}
+                    />
+                  ))}
                   {filtered.length === 0 && (
                     <tr className="orders-row orders-row--empty">
                       <td
@@ -2976,11 +2687,6 @@ Zm0 14H8V7h9v12Z"
               summary={selectedSummary}
               onUpdateStatus={handleUpdateRowStatus}
               onDelivered={handleDelivered}
-              comment={selectedComment}
-              onCommentValueChange={handleSelectedCommentChange}
-              onCommentConfirm={handleSelectedCommentConfirm}
-              onCommentClear={handleSelectedCommentClear}
-              onInteractionLock={setInteractionLock}
               variant="modal"
             />
 
