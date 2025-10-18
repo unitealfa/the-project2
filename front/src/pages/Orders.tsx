@@ -592,6 +592,8 @@ const Orders: React.FC = () => {
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
+    const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
+
     // fermer la popover quand on clique ou que le focus sort de la zone
     React.useEffect(() => {
       if (!commentOpen) return;
