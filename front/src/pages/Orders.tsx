@@ -590,25 +590,68 @@ const Orders: React.FC = () => {
 
     // refs pour gestion du clic hors popover
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
-    const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
+    const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
-    // fermer la popover quand on clique/touche à l'extérieur (pointerdown + touchstart)
+    // fermer la popover quand on clique ou que le focus sort de la zone
     React.useEffect(() => {
       if (!commentOpen) return;
-      
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          popoverRef.current && 
-          !popoverRef.current.contains(event.target as Node) &&
-          toggleButtonRef.current && 
-          !toggleButtonRef.current.contains(event.target as Node)
-        ) {
-          setCommentOpen(false);
+
+      const isEventInsideComment = (target: EventTarget | null, path?: EventTarget[]) => {
+        const popoverNode = popoverRef.current;
+        const toggleNode = toggleButtonRef.current;
+        if (!target || (!(target instanceof Node) && !path?.length)) {
+          return false;
         }
+
+        const effectivePath = path && path.length > 0 ? path : undefined;
+
+        const containsTarget = (node: HTMLElement | null) => {
+          if (!node) return false;
+          if (effectivePath) {
+            return effectivePath.includes(node);
+          }
+          const domTarget = target as Node;
+          return node.contains(domTarget);
+        };
+
+        return containsTarget(popoverNode) || containsTarget(toggleNode);
       };
 
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      const handlePointerDown = (event: PointerEvent) => {
+        if (isEventInsideComment(event.target, event.composedPath())) {
+          return;
+        }
+        setCommentOpen(false);
+      };
+
+      const handleFocusIn = (event: FocusEvent) => {
+        if (isEventInsideComment(event.target, event.composedPath())) {
+          return;
+        }
+        setCommentOpen(false);
+      };
+
+      document.addEventListener('pointerdown', handlePointerDown);
+      document.addEventListener('focusin', handleFocusIn);
+
+      return () => {
+        document.removeEventListener('pointerdown', handlePointerDown);
+        document.removeEventListener('focusin', handleFocusIn);
+      };
+    }, [commentOpen]);
+
+    React.useEffect(() => {
+      if (!commentOpen) return;
+      if (!textareaRef.current) return;
+
+      textareaRef.current.focus({ preventScroll: true });
+    }, [commentOpen]);
+
+    React.useEffect(() => {
+      if (!commentOpen) return;
+      if (!textareaRef.current) return;
+
+      textareaRef.current.focus({ preventScroll: true });
     }, [commentOpen]);
 
     const trimmedCommentValue = commentValue.trim();
@@ -1269,7 +1312,7 @@ const Orders: React.FC = () => {
                 autoFocus
                 autoComplete="off"
                 autoCorrect="off"
-                spellCheck="false"
+                ref={textareaRef}
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
