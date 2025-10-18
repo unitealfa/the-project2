@@ -1571,7 +1571,8 @@ Zm0 14H8V7h9v12Z"
               className="orders-table__comment-label"
             >
               Commentaire (optionnel)
-             <button
+             </label>
+            <button
               type="button"
               id={commentFieldId}
               className="orders-table__comment-trigger"
