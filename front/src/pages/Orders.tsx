@@ -533,12 +533,38 @@ const Orders: React.FC = () => {
 
   type OrderSummary = ReturnType<typeof extractOrderSummary>;
 
+  const resolveCommentKey = (summary: OrderSummary, fallback: string) => {
+    const normalize = (value?: string | null) => {
+      if (!value) return "";
+      const trimmed = value.trim();
+      return trimmed;
+    };
+
+    const candidates = [
+      normalize(summary.rowId),
+      normalize(summary.displayRowLabel),
+      normalize(summary.rawName),
+      normalize(summary.name),
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return fallback;
+  };
+
   const OrderActionButtons = React.memo(function OrderActionButtons({
     row,
     summary,
     onUpdateStatus,
     onDelivered,
     variant = "table",
+    commentKey,
+    commentValue = "",
+    onCommentChange,
   }: {
     row: OrderRow;
     summary: OrderSummary;
@@ -557,6 +583,9 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
     variant?: "table" | "modal";
+    commentKey?: string;
+    commentValue?: string;
+    onCommentChange?: (key: string, value: string) => void;
   }) {
     const {
       name: nom_client,
@@ -565,6 +594,24 @@ const Orders: React.FC = () => {
       rowId,
       displayRowLabel,
     } = summary;
+
+    const effectiveCommentKey = React.useMemo(
+      () =>
+        commentKey ||
+        rowId ||
+        displayRowLabel ||
+        (nom_client ? `order-${nom_client}` : "order"),
+      [commentKey, rowId, displayRowLabel, nom_client]
+    );
+    const currentComment = commentValue ?? "";
+    const updateComment = React.useCallback(
+      (value: string) => {
+        if (onCommentChange) {
+          onCommentChange(effectiveCommentKey, value);
+        }
+      },
+      [effectiveCommentKey, onCommentChange]
+    );
 
     const telephone_2 = telephone;
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
@@ -719,10 +766,14 @@ const Orders: React.FC = () => {
         parseInt(String(code_wilaya)) || 16
       );
 
+      const trimmedComment = currentComment.trim();
+
       const finalData = {
         ...realClientData,
         commune: commune || "alger",
+        ...(trimmedComment ? { commentaire: trimmedComment } : {}),
       };
+
 
       console.log("Données normalisées:", {
         original_commune: row["Commune"],
@@ -891,6 +942,9 @@ const Orders: React.FC = () => {
           await syncTrackingStatus(
             trackingValue === "N/A" ? "" : trackingValue
           );
+          if (trimmedComment) {
+            updateComment("");
+          }
         } else if (response.status === 422) {
           const msg =
             responseData &&
@@ -974,6 +1028,9 @@ const Orders: React.FC = () => {
                       trackingValue === "N/A" ? "" : trackingValue
                     );
                     success = true;
+                    if (trimmedComment) {
+                      updateComment("");
+                    }
                     break;
                   }
                   console.warn(
@@ -1043,6 +1100,8 @@ const Orders: React.FC = () => {
       onUpdateStatus,
       initialSheetStatus,
       rowId,
+      currentComment,
+      updateComment,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -1095,38 +1154,67 @@ const Orders: React.FC = () => {
       variant === "modal" ? "orders-modal__actions" : "orders-table__actions";
 
     if (variant === "modal") {
+      const sanitizedCommentKey = effectiveCommentKey
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-");
+      const commentFieldId = `order-comment-${
+        sanitizedCommentKey || "field"
+      }`;
       return (
-        <div className={containerClass}>
-          <button
-            type="button"
-            onClick={handleSendToApi}
-            disabled={submitting || delivering || abandoning}
-            className={`orders-button orders-button--primary orders-modal__action-button${
-              submitting ? " is-loading" : ""
-            }`}
-          >
-            {submitting ? "Envoi…" : "Confirmer et envoyer"}
-          </button>
-          <button
-            type="button"
-            onClick={handleMarkDelivered}
-            disabled={delivering || submitting || abandoning}
-            className={`orders-button orders-button--success orders-modal__action-button${
-              delivering ? " is-loading" : ""
-            }`}
-          >
-            {delivering ? "Traitement…" : "Marquer livrée"}
-          </button>
-          <button
-            type="button"
-            onClick={handleMarkAbandoned}
-            disabled={abandoning || submitting}
-            className={`orders-button orders-button--danger orders-modal__action-button${
-              abandoning ? " is-loading" : ""
-            }`}
-          >
-            {abandoning ? "Abandon…" : "Abandonnée"}
-          </button>
+        <div className="orders-modal__actions-container">
+          <div className="orders-modal__comment">
+            <label
+              htmlFor={commentFieldId}
+              className="orders-modal__comment-label"
+            >
+              Commentaire (optionnel)
+            </label>
+            <textarea
+              id={commentFieldId}
+              className="orders-modal__comment-input"
+              placeholder="Ajouter une remarque pour la livraison"
+              value={currentComment}
+              onChange={(event) => updateComment(event.target.value)}
+              rows={3}
+            />
+            <p className="orders-modal__comment-hint">
+              Ce commentaire sera envoyé avec la commande.
+            </p>
+          </div>
+          <div className={containerClass}>
+            <button
+              type="button"
+              onClick={handleSendToApi}
+              disabled={submitting || delivering || abandoning}
+              className={`orders-button orders-button--primary orders-modal__action-button${
+                submitting ? " is-loading" : ""
+              }`}
+            >
+              {submitting ? "Envoi…" : "Confirmer et envoyer"}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkDelivered}
+              disabled={delivering || submitting || abandoning}
+              className={`orders-button orders-button--success orders-modal__action-button${
+                delivering ? " is-loading" : ""
+              }`}
+            >
+              {delivering ? "Traitement…" : "Marquer livrée"}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkAbandoned}
+              disabled={abandoning || submitting}
+              className={`orders-button orders-button--danger orders-modal__action-button${
+                abandoning ? " is-loading" : ""
+              }`}
+            >
+              {abandoning ? "Abandon…" : "Abandonnée"}
+            </button>
+          </div>
         </div>
       );
     }
@@ -1180,13 +1268,18 @@ const Orders: React.FC = () => {
     row,
     idx,
     headers,
+    summary,
     onUpdateStatus,
     onDelivered,
     onVariantClick,
+    commentKey,
+    commentValue,
+    onCommentChange,
   }: {
     row: OrderRow;
     idx: number;
     headers: string[];
+    summary: OrderSummary;
     onUpdateStatus: (
       rowId: string,
       status: SheetStatus,
@@ -1202,13 +1295,38 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
+    commentKey: string;
+    commentValue: string;
+    onCommentChange: (key: string, value: string) => void;
   }) {
-    const summary = extractOrderSummary(row);
     const { name: nom_client, phoneDial: telephone } = summary;
 
     const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
     const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
       null
+    );
+
+    const sanitizedCommentKey = React.useMemo(
+      () =>
+        (commentKey || "")
+          .toString()
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, "-"),
+      [commentKey]
+    );
+    const commentFieldId = React.useMemo(
+      () =>
+        `orders-table-comment-${
+          sanitizedCommentKey || `row-${idx}`
+        }`,
+      [sanitizedCommentKey, idx]
+    );
+    const handleCommentChange = React.useCallback(
+      (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onCommentChange(commentKey, event.target.value);
+      },
+      [commentKey, onCommentChange]
     );
 
     const handleCopyValue = React.useCallback((value: string, key: string) => {
@@ -1443,12 +1561,34 @@ Zm0 14H8V7h9v12Z"
           );
         })}
 
+        <td className="orders-table__cell orders-table__cell--comment">
+          <div className="orders-table__comment-wrapper">
+            <label
+              htmlFor={commentFieldId}
+              className="orders-table__comment-label"
+            >
+              Commentaire (optionnel)
+            </label>
+            <textarea
+              id={commentFieldId}
+              className="orders-table__comment-input"
+              placeholder="Ajouter une remarque pour DHD"
+              value={commentValue}
+              onChange={handleCommentChange}
+              rows={2}
+            />
+          </div>
+        </td>
+
         <td className="orders-table__cell orders-table__cell--actions">
           <OrderActionButtons
             row={row}
             summary={summary}
             onUpdateStatus={onUpdateStatus}
             onDelivered={onDelivered}
+            commentKey={commentKey}
+            commentValue={commentValue}
+            onCommentChange={onCommentChange}
           />
         </td>
         <td className="orders-table__cell orders-table__cell--status">
@@ -1471,6 +1611,24 @@ Zm0 14H8V7h9v12Z"
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("all");
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const [orderComments, setOrderComments] = React.useState<Record<string, string>>({});
+  const updateOrderComment = React.useCallback((key: string, value: string) => {
+    setOrderComments((prev) => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        if (!(key in prev)) {
+          return prev;
+        }
+        const { [key]: _removed, ...rest } = prev;
+        return rest;
+      }
+      if (prev[key] === value) {
+        return prev;
+      }
+      return { ...prev, [key]: value };
+    });
+  }, []);
 
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
@@ -1539,6 +1697,18 @@ Zm0 14H8V7h9v12Z"
     () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
     [selectedOrder]
   );
+
+  const selectedOrderCommentKey = selectedSummary
+    ? resolveCommentKey(
+        selectedSummary,
+        selectedSummary.displayRowLabel ||
+          selectedSummary.rowId ||
+          "selected-order"
+      )
+    : "";
+  const selectedOrderCommentValue = selectedOrderCommentKey
+    ? orderComments[selectedOrderCommentKey] ?? ""
+    : "";
 
   React.useEffect(() => {
     if (!selectedOrder) return;
@@ -2556,27 +2726,59 @@ Zm0 14H8V7h9v12Z"
                       </th>
                     ))}
 
+                    <th className="orders-table__header orders-table__header--comment">
+                      Commentaire
+                    </th>
+
                     <th className="orders-table__header">Action</th>
                     <th className="orders-table__header">Statut</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRows.map((row, idx) => (
-                    <OrderRowItem
-                      key={row["id-sheet"] || row["ID"] || idx}
-                      row={row}
-                      idx={idx}
-                      headers={headers}
-                      onUpdateStatus={handleUpdateRowStatus}
-                      onDelivered={handleDelivered}
-                      onVariantClick={handleVariantClick}
-                    />
-                  ))}
+                  {paginatedRows.map((row, idx) => {
+                    const summary = extractOrderSummary(row);
+                    const fallbackKey = (() => {
+                      const candidates = [
+                        row["id-sheet"],
+                        row["ID"],
+                        row["Num commande"],
+                        row["Numéro commande"],
+                        row["Numero commande"],
+                      ];
+                      for (const candidate of candidates) {
+                        if (candidate === undefined || candidate === null) {
+                          continue;
+                        }
+                        const asString = String(candidate).trim();
+                        if (asString) {
+                          return asString;
+                        }
+                      }
+                      return `row-${idx}`;
+                    })();
+                    const commentKey = resolveCommentKey(summary, fallbackKey);
+                    const commentValue = orderComments[commentKey] ?? "";
+                    return (
+                      <OrderRowItem
+                        key={row["id-sheet"] || row["ID"] || commentKey || idx}
+                        row={row}
+                        idx={idx}
+                        headers={headers}
+                        summary={summary}
+                        onUpdateStatus={handleUpdateRowStatus}
+                        onDelivered={handleDelivered}
+                        onVariantClick={handleVariantClick}
+                        commentKey={commentKey}
+                        commentValue={commentValue}
+                        onCommentChange={updateOrderComment}
+                      />
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <tr className="orders-row orders-row--empty">
                       <td
                         className="orders-table__cell"
-                        colSpan={headers.length + 2}
+                        colSpan={headers.length + 3}
                       >
                         Aucune commande trouvée.
                       </td>
@@ -2688,6 +2890,9 @@ Zm0 14H8V7h9v12Z"
               onUpdateStatus={handleUpdateRowStatus}
               onDelivered={handleDelivered}
               variant="modal"
+              commentKey={selectedOrderCommentKey}
+              commentValue={selectedOrderCommentValue}
+              onCommentChange={updateOrderComment}
             />
 
             <div className="orders-modal__details">
