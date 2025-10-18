@@ -274,6 +274,41 @@
   color: #4b5563;
 }
 
+.orders-table__comment-trigger {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  color: #1f2937;
+  min-height: 46px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.orders-table__comment-trigger:hover,
+.orders-table__comment-trigger:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: #ffffff;
+}
+
+.orders-table__comment-content {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
+}
+
+.orders-table__comment-placeholder {
+  color: #6b7280;
+}
+
+
 .orders-table__comment-input {
   width: 100%;
   border-radius: 10px;

@@ -1275,6 +1275,7 @@ const Orders: React.FC = () => {
     commentKey,
     commentValue,
     onCommentChange,
+    onCommentEdit,
   }: {
     row: OrderRow;
     idx: number;
@@ -1298,6 +1299,11 @@ const Orders: React.FC = () => {
     commentKey: string;
     commentValue: string;
     onCommentChange: (key: string, value: string) => void;
+    onCommentEdit: (
+      commentKey: string,
+      commentValue: string,
+      summary: OrderSummary
+    ) => void;
   }) {
     const { name: nom_client, phoneDial: telephone } = summary;
 
@@ -1322,12 +1328,9 @@ const Orders: React.FC = () => {
         }`,
       [sanitizedCommentKey, idx]
     );
-    const handleCommentChange = React.useCallback(
-      (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        onCommentChange(commentKey, event.target.value);
-      },
-      [commentKey, onCommentChange]
-    );
+    const handleCommentEdit = React.useCallback(() => {
+      onCommentEdit(commentKey, commentValue, summary);
+    }, [commentKey, commentValue, onCommentEdit, summary]);
 
     const handleCopyValue = React.useCallback((value: string, key: string) => {
       const text = (value || "").toString().trim();
@@ -1568,15 +1571,23 @@ Zm0 14H8V7h9v12Z"
               className="orders-table__comment-label"
             >
               Commentaire (optionnel)
-            </label>
-            <textarea
+             <button
+              type="button"
               id={commentFieldId}
-              className="orders-table__comment-input"
-              placeholder="Ajouter une remarque pour DHD"
-              value={commentValue}
-              onChange={handleCommentChange}
-              rows={2}
-            />
+              className="orders-table__comment-trigger"
+              onClick={handleCommentEdit}
+              aria-haspopup="dialog"
+            >
+              {commentValue.trim() ? (
+                <span className="orders-table__comment-content">
+                  {commentValue}
+                </span>
+              ) : (
+                <span className="orders-table__comment-placeholder">
+                  Ajouter une remarque pour DHD
+                </span>
+              )}
+            </button>
           </div>
         </td>
 
@@ -1629,6 +1640,69 @@ Zm0 14H8V7h9v12Z"
       return { ...prev, [key]: value };
     });
   }, []);
+
+  const [commentEditor, setCommentEditor] = React.useState<{
+    isOpen: boolean;
+    commentKey: string;
+    value: string;
+    summary: OrderSummary | null;
+  }>({
+    isOpen: false,
+    commentKey: "",
+    value: "",
+    summary: null,
+  });
+
+  const handleCommentEditRequest = React.useCallback(
+    (key: string, value: string, summary: OrderSummary) => {
+      setCommentEditor({
+        isOpen: true,
+        commentKey: key,
+        value,
+        summary,
+      });
+    },
+    []
+  );
+
+  const handleCommentModalChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const { value } = event.target;
+      setCommentEditor((prev) =>
+        prev.isOpen
+          ? {
+              ...prev,
+              value,
+            }
+          : prev
+      );
+    },
+    []
+  );
+
+  const handleCommentModalClose = React.useCallback(() => {
+    setCommentEditor({
+      isOpen: false,
+      commentKey: "",
+      value: "",
+      summary: null,
+    });
+  }, []);
+
+  const handleCommentModalSave = React.useCallback(() => {
+    setCommentEditor((prev) => {
+      if (!prev.isOpen) {
+        return prev;
+      }
+      updateOrderComment(prev.commentKey, prev.value);
+      return {
+        isOpen: false,
+        commentKey: "",
+        value: "",
+        summary: null,
+      };
+    });
+  }, [updateOrderComment]);
 
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
@@ -2771,6 +2845,7 @@ Zm0 14H8V7h9v12Z"
                         commentKey={commentKey}
                         commentValue={commentValue}
                         onCommentChange={updateOrderComment}
+                        onCommentEdit={handleCommentEditRequest}
                       />
                     );
                   })}
@@ -2827,6 +2902,79 @@ Zm0 14H8V7h9v12Z"
           </div>
         )}
       </div>
+
+       {commentEditor.isOpen && (
+        <div
+          className="orders-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="comment-modal-title"
+        >
+          <div
+            className="orders-modal__backdrop"
+            onClick={handleCommentModalClose}
+            aria-hidden="true"
+          />
+          <div className="orders-modal__content" role="document">
+            <button
+              type="button"
+              className="orders-modal__close"
+              onClick={handleCommentModalClose}
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+
+            <h2 id="comment-modal-title" className="orders-modal__title">
+              {commentEditor.summary?.rawName ||
+                commentEditor.summary?.name ||
+                "Commentaire"}
+            </h2>
+            {commentEditor.summary?.displayRowLabel && (
+              <p className="orders-modal__reference">
+                Référence : {commentEditor.summary.displayRowLabel}
+              </p>
+            )}
+
+            <div className="orders-modal__comment">
+              <label
+                htmlFor="comment-modal-field"
+                className="orders-modal__comment-label"
+              >
+                Commentaire (optionnel)
+              </label>
+              <textarea
+                id="comment-modal-field"
+                className="orders-modal__comment-input"
+                placeholder="Ajouter une remarque pour la livraison"
+                value={commentEditor.value}
+                onChange={handleCommentModalChange}
+                rows={4}
+              />
+              <p className="orders-modal__comment-hint">
+                Ce commentaire sera enregistré pour cette commande.
+              </p>
+            </div>
+
+            <div className="orders-modal__actions">
+              <button
+                type="button"
+                onClick={handleCommentModalSave}
+                className="orders-button orders-button--primary orders-modal__action-button"
+              >
+                Enregistrer le commentaire
+              </button>
+              <button
+                type="button"
+                onClick={handleCommentModalClose}
+                className="orders-button orders-button--ghost orders-modal__action-button"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedOrder && selectedSummary && (
         <div
