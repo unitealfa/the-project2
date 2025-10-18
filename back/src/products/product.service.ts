@@ -87,6 +87,27 @@ export class ProductService {
     return updated as IProduct;
   }
 
+ 
+  async decrementByCodeNameVariantAllowZero(
+    code: string | undefined,
+    name: string | undefined,
+    variant: string,
+    quantity: number
+  ): Promise<IProduct> {
+    if (quantity <= 0) throw new Error('Quantité invalide');
+    const base: any = {};
+    if (code) base.code = code;
+    if (name) base.name = name;
+    if (!variant) throw new Error('Variante requise');
+    const updated = await Product.findOneAndUpdate(
+      { ...base, 'variants.name': variant },
+      { $inc: { 'variants.$.quantity': -quantity } },
+      { new: true }
+    );
+    if (!updated) throw new Error('Variante introuvable');
+    return updated as IProduct;
+  }
+
   // Increments
   async incrementByCodeNameVariant(
     code: string | undefined,

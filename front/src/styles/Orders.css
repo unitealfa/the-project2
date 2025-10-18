@@ -438,6 +438,40 @@
   opacity: 0.8;
 }
 
+.orders-table__cell--variant {
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.orders-table__variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  font-size: 0.85rem;
+}
+
+.orders-table__variant:hover {
+  background: #e0e7ff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
+}
+
+.orders-table__variant-name {
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-table__variant-icon {
+  color: currentColor;
+  opacity: 0.8;
+}
+
 .orders-table__copy-feedback {
   font-size: 0.75rem;
   font-weight: 600;
@@ -697,6 +731,91 @@
   font-size: 0.98rem;
   color: #0f172a;
   word-break: break-word;
+}
+
+.orders-modal__variants {
+  margin-top: 24px;
+}
+
+.orders-modal__loading {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.orders-modal__empty {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.orders-modal__variants-list {
+  display: grid;
+  gap: 12px;
+}
+
+.orders-modal__variant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.orders-modal__variant-item:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.orders-modal__variant-item.is-current {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.orders-modal__variant-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.orders-modal__variant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orders-modal__variant-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.orders-modal__variant-stock {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.orders-modal__variant-stock.is-zero {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.orders-modal__variant-current {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #22c55e;
+  background: #dcfce7;
+  padding: 4px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .orders-scroll-top {

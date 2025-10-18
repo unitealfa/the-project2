@@ -1182,6 +1182,7 @@ const Orders: React.FC = () => {
     headers,
     onUpdateStatus,
     onDelivered,
+    onVariantClick,
   }: {
     row: OrderRow;
     idx: number;
@@ -1200,6 +1201,7 @@ const Orders: React.FC = () => {
       },
       rowId: string
     ) => Promise<void>;
+    onVariantClick: (row: OrderRow) => void;
   }) {
     const summary = extractOrderSummary(row);
     const { name: nom_client, phoneDial: telephone } = summary;
@@ -1309,7 +1311,56 @@ const Orders: React.FC = () => {
               normalizedHeader.includes("tel") ||
               /\b(n|no|num)\b/.test(normalizedHeader)) &&
             !isIdSheetColumn;
+          const isVariantColumn =
+            normalizedHeader.includes("variante") ||
+            normalizedHeader.includes("variation") ||
+            normalizedHeader.includes("taille");
           const copyKey = `${idx}-${normalizedHeader || h}`;
+
+          if (isVariantColumn) {
+            if (!trimmedDisplayText) {
+              return (
+                <td
+                  key={h}
+                  className="orders-table__cell orders-table__cell--variant"
+                >
+                  <span className="orders-table__muted">—</span>
+                </td>
+              );
+            }
+
+            return (
+              <td
+                key={h}
+                className="orders-table__cell orders-table__cell--variant"
+              >
+                <button
+                  type="button"
+                  className="orders-table__variant"
+                  onClick={() => onVariantClick(row)}
+                  title="Cliquer pour changer la variante"
+                >
+                  <span className="orders-table__variant-name">
+                    {trimmedDisplayText}
+                  </span>
+                  <svg
+                    className="orders-table__variant-icon"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8.59 16.59L13.17 12L8.59 7.41L10 6l6 6-6 6-1.41-1.41z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+              </td>
+            );
+          }
 
           if (isPhoneColumn) {
             const rawPhoneValue = String(
@@ -1424,6 +1475,22 @@ Zm0 14H8V7h9v12Z"
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
   );
+  const [variantModalOpen, setVariantModalOpen] = React.useState<{
+    isOpen: boolean;
+    orderRow: OrderRow | null;
+    productName: string;
+    currentVariant: string;
+  }>({
+    isOpen: false,
+    orderRow: null,
+    productName: "",
+    currentVariant: "",
+  });
+  const [availableVariants, setAvailableVariants] = React.useState<Array<{
+    name: string;
+    quantity: number;
+  }>>([]);
+  const [loadingVariants, setLoadingVariants] = React.useState(false);
 
    const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
     if (!row) return null;
@@ -2043,9 +2110,9 @@ Zm0 14H8V7h9v12Z"
       },
       rowId: string
     ) => {
-      // Appelle l'API backend pour décrémenter le stock
+      // Appelle l'API backend pour décrémenter le stock (permet stock 0)
       try {
-        const res = await fetch("/api/products/decrement-bulk", {
+        const res = await fetch("/api/products/decrement-bulk-allow-zero", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2066,12 +2133,164 @@ Zm0 14H8V7h9v12Z"
             .join("\n");
           throw new Error(msg || "Échec partiel");
         }
+        
+        // Vérifier si le stock final est à 0 et afficher un avertissement
+        const results = Array.isArray(data?.results) ? data.results : [];
+        const zeroStockItems = results.filter((r: any) => r.ok && r.finalStock === 0);
+        if (zeroStockItems.length > 0) {
+          const zeroStockNames = zeroStockItems
+            .map((item: any) => `${item.name || item.code || ""} (${item.variant})`)
+            .join(", ");
+          
+          // Afficher un toast d'avertissement pour le stock à 0
+          const toast = document.createElement("div");
+          toast.textContent = `⚠️ Stock épuisé pour: ${zeroStockNames}`;
+          Object.assign(toast.style, {
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            color: "#fff",
+            padding: "12px 18px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 24px rgba(245,158,11,0.3)",
+            fontSize: "0.9rem",
+            fontWeight: "600",
+            zIndex: "2000",
+            opacity: "0",
+            transition: "opacity 0.3s ease",
+          });
+          document.body.appendChild(toast);
+          setTimeout(() => (toast.style.opacity = "1"), 50);
+          setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 400);
+          }, 5000);
+        }
       } catch (e) {
         throw e;
       }
     },
     [token]
   );
+
+  const handleVariantClick = useCallback(async (row: OrderRow) => {
+    const productName = String(row["Produit"] || "").trim();
+    const currentVariant = String(
+      row["Variante"] || row["Variation"] || row["Taille"] || "default"
+    ).trim();
+
+    if (!productName) {
+      alert("Aucun produit trouvé pour cette commande");
+      return;
+    }
+
+    setVariantModalOpen({
+      isOpen: true,
+      orderRow: row,
+      productName,
+      currentVariant,
+    });
+
+    // Charger les variantes disponibles
+    setLoadingVariants(true);
+    try {
+      const res = await fetch("/api/products", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const products = await res.json();
+      
+      // Trouver le produit correspondant
+      const product = products.find((p: any) => 
+        p.name.toLowerCase().trim() === productName.toLowerCase().trim()
+      );
+      
+      if (product && product.variants) {
+        setAvailableVariants(product.variants);
+      } else {
+        setAvailableVariants([]);
+        alert("Aucune variante trouvée pour ce produit");
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des variantes:", error);
+      alert("Erreur lors du chargement des variantes");
+      setAvailableVariants([]);
+    } finally {
+      setLoadingVariants(false);
+    }
+  }, [token]);
+
+  const handleVariantSelect = useCallback(async (selectedVariant: string) => {
+    if (!variantModalOpen.orderRow) return;
+
+    const row = variantModalOpen.orderRow;
+    const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
+    
+    if (!rowId) {
+      alert("Impossible d'identifier la commande");
+      return;
+    }
+
+    try {
+      // Mettre à jour la variante dans le Google Sheet
+      await syncStatus(rowId, getRowStatus(row), {
+        previousStatus: getRowStatus(row),
+        row: { ...row, Variante: selectedVariant },
+      });
+
+      // Mettre à jour l'état local
+      setRows((prevRows) =>
+        prevRows.map((r) => {
+          const currentRowId = String(r["id-sheet"] || r["ID"] || "").trim();
+          if (currentRowId === rowId) {
+            return { ...r, Variante: selectedVariant };
+          }
+          return r;
+        })
+      );
+
+      // Fermer le modal
+      setVariantModalOpen({
+        isOpen: false,
+        orderRow: null,
+        productName: "",
+        currentVariant: "",
+      });
+
+      // Afficher un message de succès
+      const toast = document.createElement("div");
+      toast.textContent = `✅ Variante mise à jour vers "${selectedVariant}"`;
+      Object.assign(toast.style, {
+        position: "fixed",
+        bottom: "24px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+        color: "#fff",
+        padding: "12px 18px",
+        borderRadius: "12px",
+        boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
+        fontSize: "0.9rem",
+        fontWeight: "600",
+        zIndex: "2000",
+        opacity: "0",
+        transition: "opacity 0.3s ease",
+      });
+      document.body.appendChild(toast);
+      setTimeout(() => (toast.style.opacity = "1"), 50);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la variante:", error);
+      alert("Erreur lors de la mise à jour de la variante");
+    }
+  }, [variantModalOpen.orderRow, syncStatus]);
 
   const searchableHeaders = React.useMemo(() => {
     const keys: string[] = [];
@@ -2350,6 +2569,7 @@ Zm0 14H8V7h9v12Z"
                       headers={headers}
                       onUpdateStatus={handleUpdateRowStatus}
                       onDelivered={handleDelivered}
+                      onVariantClick={handleVariantClick}
                     />
                   ))}
                   {filtered.length === 0 && (
@@ -2511,6 +2731,96 @@ Zm0 14H8V7h9v12Z"
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de sélection de variante */}
+      {variantModalOpen.isOpen && (
+        <div
+          className="orders-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="variant-modal-title"
+        >
+          <div
+            className="orders-modal__backdrop"
+            onClick={() => setVariantModalOpen({
+              isOpen: false,
+              orderRow: null,
+              productName: "",
+              currentVariant: "",
+            })}
+            aria-hidden="true"
+          />
+          <div className="orders-modal__content" role="document">
+            <button
+              type="button"
+              className="orders-modal__close"
+              onClick={() => setVariantModalOpen({
+                isOpen: false,
+                orderRow: null,
+                productName: "",
+                currentVariant: "",
+              })}
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+
+            <h2 id="variant-modal-title" className="orders-modal__title">
+              Changer la variante
+            </h2>
+            <p className="orders-modal__reference">
+              Produit : {variantModalOpen.productName}
+            </p>
+            <p className="orders-modal__reference">
+              Variante actuelle : {variantModalOpen.currentVariant}
+            </p>
+
+            <div className="orders-modal__variants">
+              {loadingVariants ? (
+                <div className="orders-modal__loading">
+                  Chargement des variantes...
+                </div>
+              ) : availableVariants.length === 0 ? (
+                <div className="orders-modal__empty">
+                  Aucune variante disponible pour ce produit
+                </div>
+              ) : (
+                <div className="orders-modal__variants-list">
+                  {availableVariants.map((variant, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className={`orders-modal__variant-item ${
+                        variant.name === variantModalOpen.currentVariant
+                          ? "is-current"
+                          : ""
+                      }`}
+                      onClick={() => handleVariantSelect(variant.name)}
+                      disabled={variant.name === variantModalOpen.currentVariant}
+                    >
+                      <div className="orders-modal__variant-info">
+                        <span className="orders-modal__variant-name">
+                          {variant.name}
+                        </span>
+                        <span className={`orders-modal__variant-stock ${
+                          variant.quantity === 0 ? "is-zero" : ""
+                        }`}>
+                          Stock: {variant.quantity}
+                        </span>
+                      </div>
+                      {variant.name === variantModalOpen.currentVariant && (
+                        <span className="orders-modal__variant-current">
+                          Actuelle
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
