@@ -757,7 +757,7 @@ const Orders: React.FC = () => {
         stock: "0",
         fragile: "0",
         produit: produit,
-        remarque: remarque,
+        Remarque: remarque,
       };
 
       const commune = smartCommuneResolver(
@@ -771,7 +771,7 @@ const Orders: React.FC = () => {
       const finalData = {
         ...realClientData,
         commune: commune || "alger",
-        ...(trimmedComment ? { commentaire: trimmedComment } : {}),
+        ...(trimmedComment ? { Remarque: trimmedComment } : {}),
       };
 
 
