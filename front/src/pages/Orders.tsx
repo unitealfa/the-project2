@@ -126,6 +126,19 @@ const CommentIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <path
+      d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14.17-3.59-3.58 1.41-1.42L11 13.34l4.17-4.17 1.41 1.42L11 16.17Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
 
@@ -588,66 +601,68 @@ const Orders: React.FC = () => {
 
     const [commentOpen, setCommentOpen] = React.useState<boolean>(false);
 
+    const [commentConfirmed, setCommentConfirmed] = React.useState<boolean>(false);
+
     // refs pour gestion du clic hors popover
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
     const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
-    // fermer la popover quand on clique ou que le focus sort de la zone
+    const previousCommentValueRef = React.useRef(commentValue);
+    React.useEffect(() => {
+       if (previousCommentValueRef.current !== commentValue) {
+        previousCommentValueRef.current = commentValue;
+        setCommentConfirmed(false);
+      }
+    }, [commentValue]);
+
+    const isTargetWithinComment = React.useCallback((target: EventTarget | null) => {
+      if (!(target instanceof Node)) {
+        return false;
+      }
+      const popoverNode = popoverRef.current;
+      const toggleNode = toggleButtonRef.current;
+      const isInsidePopover = popoverNode ? popoverNode.contains(target) : false;
+      const isInsideToggle = toggleNode ? toggleNode.contains(target) : false;
+      return isInsidePopover || isInsideToggle;
+    }, []);
+
+    // fermer la popover quand on clique hors zone ou que le focus sort du bloc
     React.useEffect(() => {
       if (!commentOpen) return;
 
-      const isEventInsideComment = (target: EventTarget | null, path?: EventTarget[]) => {
-        const popoverNode = popoverRef.current;
-        const toggleNode = toggleButtonRef.current;
-        if (!target || (!(target instanceof Node) && !path?.length)) {
-          return false;
-        }
-
-        const effectivePath = path && path.length > 0 ? path : undefined;
-
-        const containsTarget = (node: HTMLElement | null) => {
-          if (!node) return false;
-          if (effectivePath) {
-            return effectivePath.includes(node);
-          }
-          const domTarget = target as Node;
-          return node.contains(domTarget);
-        };
-
-        return containsTarget(popoverNode) || containsTarget(toggleNode);
-      };
+      const popoverNode = popoverRef.current;
 
       const handlePointerDown = (event: PointerEvent) => {
-        if (isEventInsideComment(event.target, event.composedPath())) {
+        if (isTargetWithinComment(event.target)) {
           return;
         }
         setCommentOpen(false);
       };
 
-      const handleFocusIn = (event: FocusEvent) => {
-        if (isEventInsideComment(event.target, event.composedPath())) {
+      const handleFocusOut = (event: FocusEvent) => {
+        const nextTarget = event.relatedTarget as EventTarget | null;
+        if (isTargetWithinComment(nextTarget)) {
           return;
         }
-        setCommentOpen(false);
+        if (popoverNode && event.target instanceof Node && popoverNode.contains(event.target)) {
+          setCommentOpen(false);
+        }
       };
 
-      document.addEventListener('pointerdown', handlePointerDown);
-      document.addEventListener('focusin', handleFocusIn);
+      document.addEventListener("pointerdown", handlePointerDown);
+      if (popoverNode) {
+        popoverNode.addEventListener("focusout", handleFocusOut);
+      }
 
       return () => {
-        document.removeEventListener('pointerdown', handlePointerDown);
-        document.removeEventListener('focusin', handleFocusIn);
+        document.removeEventListener("pointerdown", handlePointerDown);
+        if (popoverNode) {
+          popoverNode.removeEventListener("focusout", handleFocusOut);
+        }
       };
-    }, [commentOpen]);
-
-    React.useEffect(() => {
-      if (!commentOpen) return;
-      if (!textareaRef.current) return;
-
-      textareaRef.current.focus({ preventScroll: true });
-    }, [commentOpen]);
+    }, [commentOpen, isTargetWithinComment]);
 
     React.useEffect(() => {
       if (!commentOpen) return;
@@ -658,6 +673,19 @@ const Orders: React.FC = () => {
 
     const trimmedCommentValue = commentValue.trim();
     const hasComment = trimmedCommentValue.length > 0;
+
+    const handleConfirmComment = React.useCallback(() => {
+      if (!trimmedCommentValue) {
+        return;
+      }
+      setCommentConfirmed(true);
+      if (variant !== "modal") {
+        setCommentOpen(false);
+      }
+      if (textareaRef.current) {
+        textareaRef.current.blur();
+      }
+    }, [trimmedCommentValue, variant]);
 
     const commentFieldId = React.useMemo(() => {
       const base = (rowId || displayRowLabel || rawName || nom_client || "order")
@@ -802,7 +830,19 @@ const Orders: React.FC = () => {
       [onCommentChange]
     );
 
+    // début de la fonction manquante : encapsule le flux d'envoi vers DHD
     const handleSendToApi = React.useCallback(async () => {
+      
+      if (trimmedCommentValue && !commentConfirmed) {
+        alert("Veuillez valider le commentaire avant de l'envoyer à DHD.");
+        if (variant !== "modal") {
+          setCommentOpen(true);
+        }
+        setTimeout(() => {
+          textareaRef.current?.focus({ preventScroll: true });
+        }, 0);
+        return;
+      }
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
@@ -1172,6 +1212,8 @@ const Orders: React.FC = () => {
       rowId,
       trimmedCommentValue,
       hasComment,
+      commentConfirmed,
+      variant,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -1238,10 +1280,34 @@ const Orders: React.FC = () => {
               onChange={handleCommentInputChange}
               disabled={submitting}
               rows={3}
+              ref={textareaRef}
             />
             <p className="orders-modal__comment-hint">
               Ce commentaire sera envoyé avec la commande.
             </p>
+            <div className="orders-modal__comment-actions">
+              <button
+                type="button"
+                className="orders-button orders-button--success orders-modal__comment-validate"
+                onClick={handleConfirmComment}
+                disabled={submitting || !hasComment || commentConfirmed}
+              >
+                Valider le commentaire
+              </button>
+              {commentConfirmed && (
+                <span
+                  className="orders-modal__comment-status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <CheckCircleIcon
+                    aria-hidden="true"
+                    className="orders-modal__comment-status-icon"
+                  />
+                  Commentaire validé
+                </span>
+              )}
+            </div>
           </div>
           <div className={containerClass}>
             <button
@@ -1288,7 +1354,9 @@ const Orders: React.FC = () => {
             onClick={() => setCommentOpen((open) => !open)}
             className={`orders-button orders-button--ghost orders-button--icon orders-comment__toggle${
               commentOpen ? " is-open" : ""
-            }${hasComment ? " has-comment" : ""}`}
+            }${hasComment ? " has-comment" : ""}${
+              commentConfirmed ? " is-confirmed" : ""
+            }`}
           >
             <CommentIcon aria-hidden="true" className="orders-button__icon" />
           </button>
@@ -1322,6 +1390,29 @@ const Orders: React.FC = () => {
               <p className="orders-comment__hint">
                 Le message sera transmis à DHD lors de l'envoi.
               </p>
+               <div className="orders-comment__actions">
+                <button
+                  type="button"
+                  className="orders-button orders-button--success orders-comment__validate"
+                  onClick={handleConfirmComment}
+                  disabled={submitting || !hasComment || commentConfirmed}
+                >
+                  Valider le commentaire
+                </button>
+                {commentConfirmed && (
+                  <span
+                    className="orders-comment__status"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <CheckCircleIcon
+                      aria-hidden="true"
+                      className="orders-comment__status-icon"
+                    />
+                    Commentaire validé
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -2174,7 +2265,6 @@ Zm0 14H8V7h9v12Z"
           prioritized.map((h) => normalizeHeader(h))
         );
         const remaining = uniqueHeaders.filter(
-         
           (h) => !prioritizedSet.has(normalizeHeader(h))
         );  // Ajout de la parenthèse fermante manquante
 
