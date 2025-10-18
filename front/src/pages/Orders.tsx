@@ -700,6 +700,7 @@ const Orders: React.FC = () => {
     onCommentValueChange: (nextValue: string) => void;
     onCommentConfirm: () => void;
     onCommentClear: () => void;
+    onInteractionLock: (locked: boolean) => void;
     variant?: "table" | "modal";
   }) {
     const {
