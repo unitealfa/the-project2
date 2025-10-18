@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useContext } from "react";
+import React, { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/Orders.css";
 
@@ -93,6 +93,22 @@ const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
   { value: "week", label: "Semaine" },
   { value: "month", label: "Mois" },
 ];
+
+const formatDayOptionLabel = (value: string) => {
+  const [yearStr, monthStr, dayStr] = value.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+  const day = Number(dayStr);
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return value;
+  }
+  const date = new Date(year, month, day);
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+};
 
 const PaperPlaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -361,6 +377,14 @@ const Orders: React.FC = () => {
   const fetchingRef = React.useRef<boolean>(false);
   const interactionLockRef = React.useRef<boolean>(false);
   const isFirstLoadRef = React.useRef<boolean>(true);
+
+    React.useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
+
 
   const syncStatus = React.useCallback(async (
     rowId: string,
@@ -704,6 +728,16 @@ const Orders: React.FC = () => {
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
     const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
+
+        const isTargetWithinComment = React.useCallback((target: Node | null) => {
+      if (!target) return false;
+      const elements: Array<Element | null> = [
+        popoverRef.current,
+        textareaRef.current,
+        toggleButtonRef.current,
+      ];
+      return elements.some((element) => element?.contains(target as Node));
+    }, []);
 
     const commentValue = comment?.value ?? "";
     const trimmedCommentValue = commentValue.trim();
@@ -1537,6 +1571,7 @@ const Orders: React.FC = () => {
     onCommentValueChange,
     onCommentConfirm,
     onCommentClear,
+    onInteractionLock,
   }: {
     row: OrderRow;
     idx: number;
@@ -1830,12 +1865,6 @@ Zm0 14H8V7h9v12Z"
     );
   });
 
-  const [query, setQuery] = React.useState<string>("");
-  const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("all");
-  const [selectedDay, setSelectedDay] = React.useState<string>("");
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
-
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
   );
@@ -1979,82 +2008,64 @@ Zm0 14H8V7h9v12Z"
   }, []);
 
   const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
-     if (!row) return null;
-     const candidateKeys = [
-       "id-sheet",
-       "ID",
-       "Num commande",
-       "Numéro commande",
-       "Numero commande",
-     ];
+    if (!row) return null;
+    const candidateKeys = [
+      "id-sheet",
+      "ID",
+      "Num commande",
+      "Numéro commande",
+      "Numero commande",
+    ];
 
-     for (const key of candidateKeys) {
-       const value = row[key];
-       if (value !== undefined && value !== null) {
-         const trimmed = String(value).trim();
-         if (trimmed) {
-           return trimmed;
-         }
-       }
-     }
-
-     return null;
-   }, []);
-
-   const commentKeyForRow = React.useCallback(
-     (row: OrderRow, fallbackIndex?: number) => {
-       const identifier = getRowIdentifier(row);
-       if (identifier) {
-         return identifier;
-       }
-
-       const summary = extractOrderSummary(row);
-       const candidates: Array<unknown> = [
-         summary.rowId,
-         summary.displayRowLabel,
-         summary.rawName,
-         summary.name,
-         summary.phoneDial,
-         row["Numero"],
-         row["Numéro"],
-         row["Téléphone"],
-         row["Telephone"],
-       ];
-
-       for (const candidate of candidates) {
-         if (candidate === undefined || candidate === null) continue;
-         const value = String(candidate).trim();
-         if (value) {
-           return value;
-         }
-       }
-
-       if (typeof fallbackIndex === "number") {
-         return `idx-${fallbackIndex}`;
-       }
-
-       return "order-without-id";
-     },
-     [getRowIdentifier]
-   );
-
-   const handleCommentChange = React.useCallback((key: string, value: string) => {
-     setOrderComments(prev => {
-      const trimmed = value.trim();
-      if (!trimmed) {
-        const { [key]: _, ...rest } = prev;
-        return rest;
-      }
-      return {
-        ...prev,
-        [key]: {
-          value,
-          confirmed: false,
-          updatedAt: Date.now()
+    for (const key of candidateKeys) {
+      const value = row[key];
+      if (value !== undefined && value !== null) {
+        const trimmed = String(value).trim();
+        if (trimmed) {
+          return trimmed;
         }
-      };
-    });
-   }, []);
+      }
+    }
+
+    return null;
+  }, []);
+
+  const commentKeyForRow = React.useCallback(
+    (row: OrderRow, fallbackIndex?: number) => {
+      const identifier = getRowIdentifier(row);
+      if (identifier) {
+        return identifier;
+      }
+
+      const summary = extractOrderSummary(row);
+      const candidates: Array<unknown> = [
+        summary.rowId,
+        summary.displayRowLabel,
+        summary.rawName,
+        summary.name,
+        summary.phoneDial,
+        row["Numero"],
+        row["Numéro"],
+        row["Téléphone"],
+        row["Telephone"],
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
+        const value = String(candidate).trim();
+        if (value) {
+          return value;
+        }
+      }
+
+      if (typeof fallbackIndex === "number") {
+        return `idx-${fallbackIndex}`;
+      }
+
+      return "order-without-id";
+    },
+    [getRowIdentifier]
+  );
 
   React.useEffect(() => {
     if (!selectedOrder) return;
@@ -2108,6 +2119,206 @@ Zm0 14H8V7h9v12Z"
     if (!selectedCommentKey) return;
     handleCommentClear(selectedCommentKey);
   }, [handleCommentClear, selectedCommentKey]);
+
+  const handleUpdateRowStatus = React.useCallback(
+    async (rowId: string, status: SheetStatus, context?: UpdateStatusContext) => {
+      if (!rowId) {
+        throw new Error("Identifiant de ligne manquant");
+      }
+
+      let previousRow: OrderRow | null = null;
+      setRows((current) =>
+        current.map((row) => {
+          const identifier = getRowIdentifier(row);
+          if (identifier === rowId) {
+            previousRow = row;
+            if (context?.row) {
+              return { ...row, ...context.row };
+            }
+            return { ...row, etat: status };
+          }
+          return row;
+        })
+      );
+
+      try {
+        await syncStatus(rowId, status, context);
+      } catch (error) {
+        console.error("Impossible de synchroniser le statut", error);
+        if (previousRow) {
+          setRows((current) =>
+            current.map((row) =>
+              getRowIdentifier(row) === rowId ? previousRow! : row
+            )
+          );
+        }
+        throw (error instanceof Error ? error : new Error(String(error)));
+      }
+    },
+    [getRowIdentifier, syncStatus]
+  );
+
+  const handleDelivered = React.useCallback(
+    async (
+      payload: { name?: string; code?: string; variant: string; quantity: number },
+      _rowId: string
+    ) => {
+      if (!token) {
+        throw new Error("Authentification requise pour décrémenter le stock");
+      }
+
+      const body = {
+        items: [
+          {
+            code: payload.code,
+            name: payload.name,
+            variant: payload.variant,
+            quantity: payload.quantity,
+          },
+        ],
+      };
+
+      const response = await fetch("/api/products/decrement-bulk-allow-zero", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json().catch(() => null);
+      if (data && Array.isArray(data.results)) {
+        const failure = data.results.find((item: any) => item && item.ok === false);
+        if (failure) {
+          throw new Error(
+            failure.error || "Impossible de décrémenter le stock du produit"
+          );
+        }
+      }
+    },
+    [token]
+  );
+
+  const handleVariantClick = React.useCallback(
+    async (row: OrderRow) => {
+      const productName = String(
+        row["Produit"] ?? row["Produit 1"] ?? row["Produit principal"] ?? ""
+      ).trim();
+      const currentVariant =
+        String(
+          row["Variante"] ?? row["Variation"] ?? row["Taille"] ?? "default"
+        ).trim() || "default";
+
+      setVariantModalOpen({
+        isOpen: true,
+        orderRow: row,
+        productName: productName || "Produit inconnu",
+        currentVariant,
+      });
+      setAvailableVariants([]);
+
+      setLoadingVariants(true);
+      if (!token || !productName) {
+        setLoadingVariants(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/products", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const products = await res.json();
+        if (cancelledRef.current) {
+          return;
+        }
+        const normalizedTarget = productName.toLowerCase();
+        const match = Array.isArray(products)
+          ? products.find((item: any) => {
+              const name = String(item?.name || "").toLowerCase();
+              const code = String(item?.code || "").toLowerCase();
+              return name === normalizedTarget || code === normalizedTarget;
+            })
+          : null;
+        const variants = Array.isArray(match?.variants)
+          ? match.variants.map((variant: any) => ({
+              name: String(variant?.name || ""),
+              quantity: Number(variant?.quantity ?? 0) || 0,
+            }))
+          : [];
+        setAvailableVariants(variants);
+      } catch (error) {
+        console.error("Erreur lors du chargement des variantes", error);
+        if (!cancelledRef.current) {
+          setAvailableVariants([]);
+          alert(
+            error instanceof Error
+              ? error.message
+              : "Impossible de récupérer les variantes du produit"
+          );
+        }
+      } finally {
+        if (!cancelledRef.current) {
+          setLoadingVariants(false);
+        }
+      }
+    },
+    [token]
+  );
+
+  const handleVariantSelect = React.useCallback(
+    (variantName: string) => {
+      const trimmedVariant = variantName.trim();
+      if (!trimmedVariant) {
+        return;
+      }
+
+      setVariantModalOpen((previous) => {
+        if (!previous.orderRow) {
+          return previous;
+        }
+
+        const identifier = getRowIdentifier(previous.orderRow);
+        if (identifier) {
+          setRows((current) =>
+            current.map((row) => {
+              if (getRowIdentifier(row) !== identifier) {
+                return row;
+              }
+              const nextRow: OrderRow = {
+                ...row,
+                Variante: trimmedVariant,
+              };
+              if ("Variation" in nextRow) {
+                nextRow["Variation"] = trimmedVariant;
+              }
+              if ("Taille" in nextRow) {
+                nextRow["Taille"] = trimmedVariant;
+              }
+              return nextRow;
+            })
+          );
+        }
+
+        return {
+          ...previous,
+          currentVariant: trimmedVariant,
+          orderRow: { ...previous.orderRow, Variante: trimmedVariant },
+        };
+      });
+    },
+    [getRowIdentifier]
+  );
 
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
@@ -2173,12 +2384,52 @@ Zm0 14H8V7h9v12Z"
         0,
         23,
         59,
+        59,
+        999
       );
       return { start: startOfMonth, end: endOfMonth } as const;
     }
 
     return null;
   }, [selectedReferenceDate, timeFilter]);
+
+  const searchableHeaders = React.useMemo(() => {
+    const keys = new Set<string>();
+    headers.forEach((header) => {
+      const original = header ?? "";
+      if (original) {
+        keys.add(original);
+        const trimmed = original.trim();
+        if (trimmed) {
+          keys.add(trimmed);
+        }
+      }
+    });
+    rows.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        if (key) {
+          keys.add(key);
+          const trimmed = key.trim();
+          if (trimmed) {
+            keys.add(trimmed);
+          }
+        }
+      });
+    });
+    [
+      "Nom du client",
+      "Nom",
+      "Numero",
+      "Numéro",
+      "Téléphone",
+      "Telephone",
+      "Wilaya",
+      "Produit",
+      "Produit 1",
+      "Produit 2",
+    ].forEach((key) => keys.add(key));
+    return Array.from(keys);
+  }, [headers, rows]);
 
   const filtered = React.useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
@@ -2229,6 +2480,19 @@ Zm0 14H8V7h9v12Z"
     activeTimeRange,
   ]);
 
+  const statusOptions = React.useMemo(() => {
+    const statuses = new Set<string>();
+    rows.forEach((row) => {
+      const status = getRowStatus(row);
+      if (status) {
+        statuses.add(status);
+      }
+    });
+    return Array.from(statuses).sort((a, b) =>
+      a.localeCompare(b, "fr", { sensitivity: "base" })
+    );
+  }, [rows]);
+
   React.useEffect(() => {
     setCurrentPage(1);
   }, [query]);
@@ -2262,6 +2526,33 @@ Zm0 14H8V7h9v12Z"
     filtered.length,
     (safeCurrentPage - 1) * PAGE_SIZE + paginatedRows.length
   );
+
+  const timeRangeLabel = React.useMemo(() => {
+    if (timeFilter === "all" || !activeTimeRange) {
+      return "";
+    }
+    const formatter = new Intl.DateTimeFormat("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const startLabel = formatter.format(activeTimeRange.start);
+    const endLabel = formatter.format(activeTimeRange.end);
+    if (startLabel === endLabel) {
+      return `Période : ${startLabel}`;
+    }
+    return `Période : ${startLabel} – ${endLabel}`;
+  }, [activeTimeRange, timeFilter]);
+
+  const statusFilterLabel = React.useMemo(() => {
+    if (statusFilter === "all") {
+      return "";
+    }
+    const pretty = statusFilter
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+    return `Statut : ${pretty}`;
+  }, [statusFilter]);
 
   return (
     <div className="orders-page">
@@ -2323,7 +2614,7 @@ Zm0 14H8V7h9v12Z"
                       {formatDayOptionLabel(option)}
                     </option>
                   ))
-                }
+                )}
               </select>
             )}
 
@@ -2436,10 +2727,10 @@ Zm0 14H8V7h9v12Z"
                 <tbody>
                   {paginatedRows.map((row, idx) => {
                     const commentKey = commentKeyForRow(row, idx);
-                    const commentValue =
+                    const comment =
                       commentKey && orderComments[commentKey]
                         ? orderComments[commentKey]
-                        : "";
+                        : undefined;
 
                     return (
                       <OrderRowItem
@@ -2450,10 +2741,14 @@ Zm0 14H8V7h9v12Z"
                         onUpdateStatus={handleUpdateRowStatus}
                         onDelivered={handleDelivered}
                         onVariantClick={handleVariantClick}
-                        commentValue={commentValue}
-                        onCommentChange={(value) =>
-                          handleCommentChange(commentKey, value)
+                         comment={comment}
+                        onCommentValueChange={(value) =>
+                          handleCommentValueChange(commentKey, value)
                         }
+                        onCommentConfirm={() =>
+                          handleCommentConfirm(commentKey)
+                        }
+                        onCommentClear={() => handleCommentClear(commentKey)}
                         onInteractionLock={setInteractionLock}
                       />
                     );
@@ -2574,8 +2869,10 @@ Zm0 14H8V7h9v12Z"
               summary={selectedSummary}
               onUpdateStatus={handleUpdateRowStatus}
               onDelivered={handleDelivered}
-              commentValue={selectedCommentValue}
-              onCommentChange={handleSelectedCommentChange}
+              comment={selectedComment}
+              onCommentValueChange={handleSelectedCommentChange}
+              onCommentConfirm={handleSelectedCommentConfirm}
+              onCommentClear={handleSelectedCommentClear}
               onInteractionLock={setInteractionLock}
               variant="modal"
             />
