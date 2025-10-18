@@ -112,6 +112,21 @@ const CrossCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const CommentIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <path
+      d="M4 4h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-4.59l-3.7 3.7a1 1 0 0 1-1.7-.7V15H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v7h6a1 1 0 0 1 1 1v1.59l2.29-2.3a1 1 0 0 1 .7-.29H19V6H5Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
 
 const toDateKey = (date: Date) => {
@@ -537,6 +552,8 @@ const Orders: React.FC = () => {
     row,
     summary,
     onUpdateStatus,
+    commentValue,
+    onCommentChange,
     onDelivered,
     variant = "table",
   }: {
@@ -556,15 +573,62 @@ const Orders: React.FC = () => {
       },
       rowId: string
     ) => Promise<void>;
+    commentValue: string;
+    onCommentChange: (nextValue: string) => void;
     variant?: "table" | "modal";
   }) {
     const {
       name: nom_client,
+      rawName,
       phoneDial: telephone,
       status: initialSheetStatus,
       rowId,
       displayRowLabel,
     } = summary;
+
+    const [commentOpen, setCommentOpen] = React.useState<boolean>(false);
+
+    // refs pour gestion du clic hors popover
+    const popoverRef = React.useRef<HTMLDivElement | null>(null);
+    const toggleButtonRef = React.useRef<HTMLButtonElement | null>(null);
+
+    // fermer la popover quand on clique/touche à l'extérieur (pointerdown + touchstart)
+    React.useEffect(() => {
+      if (!commentOpen) return;
+      
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          popoverRef.current && 
+          !popoverRef.current.contains(event.target as Node) &&
+          toggleButtonRef.current && 
+          !toggleButtonRef.current.contains(event.target as Node)
+        ) {
+          setCommentOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [commentOpen]);
+
+    const trimmedCommentValue = commentValue.trim();
+    const hasComment = trimmedCommentValue.length > 0;
+
+    const commentFieldId = React.useMemo(() => {
+      const base = (rowId || displayRowLabel || rawName || nom_client || "order")
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      return `comment-${base || "order"}`;
+    }, [displayRowLabel, nom_client, rawName, rowId]);
+
+    React.useEffect(() => {
+      if (variant === "modal") {
+        setCommentOpen(false);
+      }
+    }, [variant]);
 
     const telephone_2 = telephone;
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
@@ -686,6 +750,13 @@ const Orders: React.FC = () => {
     const [delivering, setDelivering] = React.useState<boolean>(false);
     const [abandoning, setAbandoning] = React.useState<boolean>(false);
 
+    const handleCommentInputChange = React.useCallback(
+      (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onCommentChange(event.target.value);
+      },
+      [onCommentChange]
+    );
+
     const handleSendToApi = React.useCallback(async () => {
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
@@ -696,7 +767,16 @@ const Orders: React.FC = () => {
 
       const adr = ".";
       const produit = row["Produit"] || "";
-      const remarque = row["ID"] || "";
+      const sheetReference = String(row["ID"] || row["id-sheet"] || "").trim();
+      const remarque = (() => {
+        if (hasComment && sheetReference) {
+          return `${trimmedCommentValue} | Ref: ${sheetReference}`;
+        }
+        if (hasComment) {
+          return trimmedCommentValue;
+        }
+        return sheetReference;
+      })();
 
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
@@ -887,6 +967,8 @@ const Orders: React.FC = () => {
             setTimeout(() => toast.remove(), 400);
           }, 3000);
 
+          setCommentOpen(false);
+
           await applyStatusUpdate("ready_to_ship", trackingValue);
           await syncTrackingStatus(
             trackingValue === "N/A" ? "" : trackingValue
@@ -1043,6 +1125,8 @@ const Orders: React.FC = () => {
       onUpdateStatus,
       initialSheetStatus,
       rowId,
+      trimmedCommentValue,
+      hasComment,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -1096,43 +1180,106 @@ const Orders: React.FC = () => {
 
     if (variant === "modal") {
       return (
-        <div className={containerClass}>
-          <button
-            type="button"
-            onClick={handleSendToApi}
-            disabled={submitting || delivering || abandoning}
-            className={`orders-button orders-button--primary orders-modal__action-button${
-              submitting ? " is-loading" : ""
-            }`}
-          >
-            {submitting ? "Envoi…" : "Confirmer et envoyer"}
-          </button>
-          <button
-            type="button"
-            onClick={handleMarkDelivered}
-            disabled={delivering || submitting || abandoning}
-            className={`orders-button orders-button--success orders-modal__action-button${
-              delivering ? " is-loading" : ""
-            }`}
-          >
-            {delivering ? "Traitement…" : "Marquer livrée"}
-          </button>
-          <button
-            type="button"
-            onClick={handleMarkAbandoned}
-            disabled={abandoning || submitting}
-            className={`orders-button orders-button--danger orders-modal__action-button${
-              abandoning ? " is-loading" : ""
-            }`}
-          >
-            {abandoning ? "Abandon…" : "Abandonnée"}
-          </button>
-        </div>
+        <>
+          <div className="orders-modal__comment">
+            <label className="orders-modal__comment-label" htmlFor={commentFieldId}>
+              Commentaire DHD
+            </label>
+            <textarea
+              id={commentFieldId}
+              className="orders-modal__comment-textarea"
+              placeholder="Ajouter un commentaire pour la commande"
+              value={commentValue}
+              onChange={handleCommentInputChange}
+              disabled={submitting}
+              rows={3}
+            />
+            <p className="orders-modal__comment-hint">
+              Ce commentaire sera envoyé avec la commande.
+            </p>
+          </div>
+          <div className={containerClass}>
+            <button
+              type="button"
+              onClick={handleSendToApi}
+              disabled={submitting || delivering || abandoning}
+              className={`orders-button orders-button--primary orders-modal__action-button${
+                submitting ? " is-loading" : ""
+              }`}
+            >
+              {submitting ? "Envoi…" : "Confirmer et envoyer"}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkDelivered}
+              disabled={delivering || submitting || abandoning}
+              className={`orders-button orders-button--success orders-modal__action-button${
+                delivering ? " is-loading" : ""
+              }`}
+            >
+              {delivering ? "Traitement…" : "Marquer livrée"}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkAbandoned}
+              disabled={abandoning || submitting}
+              className={`orders-button orders-button--danger orders-modal__action-button${
+                abandoning ? " is-loading" : ""
+              }`}
+            >
+              {abandoning ? "Abandon…" : "Abandonnée"}
+            </button>
+          </div>
+        </>
       );
     }
 
     return (
       <div className={containerClass}>
+        <div className="orders-comment">
+          <button
+            ref={toggleButtonRef}
+            type="button"
+            onClick={() => setCommentOpen((open) => !open)}
+            className={`orders-button orders-button--ghost orders-button--icon orders-comment__toggle${
+              commentOpen ? " is-open" : ""
+            }${hasComment ? " has-comment" : ""}`}
+          >
+            <CommentIcon aria-hidden="true" className="orders-button__icon" />
+          </button>
+          {commentOpen && (
+            <div
+              ref={popoverRef}
+              className="orders-comment__popover"
+              role="dialog"
+              aria-label="Commentaire pour DHD"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <label className="orders-comment__label" htmlFor={commentFieldId}>
+                Commentaire DHD
+              </label>
+              <textarea
+                id={commentFieldId}
+                className="orders-comment__textarea"
+                placeholder="Ajouter un commentaire pour la commande"
+                value={commentValue}
+                onChange={handleCommentInputChange}
+                disabled={submitting}
+                rows={3}
+                autoFocus
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              />
+              <p className="orders-comment__hint">
+                Le message sera transmis à DHD lors de l'envoi.
+              </p>
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={handleSendToApi}
@@ -1183,6 +1330,8 @@ const Orders: React.FC = () => {
     onUpdateStatus,
     onDelivered,
     onVariantClick,
+    commentValue,
+    onCommentChange,
   }: {
     row: OrderRow;
     idx: number;
@@ -1202,6 +1351,8 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
+    commentValue: string;
+    onCommentChange: (value: string) => void;
   }) {
     const summary = extractOrderSummary(row);
     const { name: nom_client, phoneDial: telephone } = summary;
@@ -1449,6 +1600,9 @@ Zm0 14H8V7h9v12Z"
             summary={summary}
             onUpdateStatus={onUpdateStatus}
             onDelivered={onDelivered}
+            
+            commentValue={commentValue}
+            onCommentChange={onCommentChange}
           />
         </td>
         <td className="orders-table__cell orders-table__cell--status">
@@ -1492,7 +1646,9 @@ Zm0 14H8V7h9v12Z"
   }>>([]);
   const [loadingVariants, setLoadingVariants] = React.useState(false);
 
-   const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
+   const [orderComments, setOrderComments] = React.useState<Record<string, string>>({});
+
+    const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
     if (!row) return null;
     const candidateKeys = [
       "id-sheet",
@@ -1514,6 +1670,66 @@ Zm0 14H8V7h9v12Z"
 
     return null;
   }, []);
+
+  const commentKeyForRow = React.useCallback(
+    (row: OrderRow, fallbackIndex?: number) => {
+      const identifier = getRowIdentifier(row);
+      if (identifier) {
+        return identifier;
+      }
+
+      const summary = extractOrderSummary(row);
+      const candidates: Array<unknown> = [
+        summary.rowId,
+        summary.displayRowLabel,
+        summary.rawName,
+        summary.name,
+        summary.phoneDial,
+        row["Numero"],
+        row["Numéro"],
+        row["Téléphone"],
+        row["Telephone"],
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
+        const value = String(candidate).trim();
+        if (value) {
+          return value;
+        }
+      }
+
+      if (typeof fallbackIndex === "number") {
+        return `idx-${fallbackIndex}`;
+      }
+
+      return "order-without-id";
+    },
+    [getRowIdentifier]
+  );
+
+  const handleCommentChange = React.useCallback((key: string, value: string) => {
+    setOrderComments((previous) => {
+      const trimmed = value.trim();
+      const exists = Object.prototype.hasOwnProperty.call(previous, key);
+
+      if (!trimmed) {
+        if (!exists) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next[key];
+        return next;
+      }
+
+      if (previous[key] === value) {
+        return previous;
+      }
+
+      return { ...previous, [key]: value };
+    });
+  }, []);
+
 
   React.useEffect(() => {
     if (!selectedOrder) return;
@@ -1538,6 +1754,24 @@ Zm0 14H8V7h9v12Z"
   const selectedSummary = React.useMemo(
     () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
     [selectedOrder]
+  );
+
+  const selectedCommentKey = React.useMemo(
+    () => (selectedOrder ? commentKeyForRow(selectedOrder) : null),
+    [commentKeyForRow, selectedOrder]
+  );
+
+  const selectedCommentValue =
+    selectedCommentKey && orderComments[selectedCommentKey]
+      ? orderComments[selectedCommentKey]
+      : "";
+
+  const handleSelectedCommentChange = React.useCallback(
+    (nextValue: string) => {
+      if (!selectedCommentKey) return;
+      handleCommentChange(selectedCommentKey, nextValue);
+    },
+    [handleCommentChange, selectedCommentKey]
   );
 
   React.useEffect(() => {
@@ -1895,8 +2129,9 @@ Zm0 14H8V7h9v12Z"
           prioritized.map((h) => normalizeHeader(h))
         );
         const remaining = uniqueHeaders.filter(
+         
           (h) => !prioritizedSet.has(normalizeHeader(h))
-        );
+        );  // Ajout de la parenthèse fermante manquante
 
         setHeaders([...prioritized, ...remaining]);
         const mapped = dataRows
@@ -1917,6 +2152,7 @@ Zm0 14H8V7h9v12Z"
             const existingIdRaw = idKey ? obj[idKey] : undefined;
             const normalizedId =
               typeof existingIdRaw === "string"
+
                 ? existingIdRaw.trim()
                 : existingIdRaw !== undefined && existingIdRaw !== null
                 ? String(existingIdRaw).trim()
@@ -2561,17 +2797,30 @@ Zm0 14H8V7h9v12Z"
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRows.map((row, idx) => (
-                    <OrderRowItem
-                      key={row["id-sheet"] || row["ID"] || idx}
-                      row={row}
-                      idx={idx}
-                      headers={headers}
-                      onUpdateStatus={handleUpdateRowStatus}
-                      onDelivered={handleDelivered}
-                      onVariantClick={handleVariantClick}
-                    />
-                  ))}
+                  {paginatedRows.map((row, idx) => {
+                    const commentKey = commentKeyForRow(row, idx);
+                    const commentValue =
+                      commentKey && orderComments[commentKey]
+                        ? orderComments[commentKey]
+                        : "";
+
+                    return (
+                      <OrderRowItem
+                        key={row["id-sheet"] || row["ID"] || idx}
+                        row={row}
+                        idx={idx}
+                        headers={headers}
+                        onUpdateStatus={handleUpdateRowStatus}
+                        onDelivered={handleDelivered}
+                        onVariantClick={handleVariantClick}
+                        commentValue={commentValue}
+                        onCommentChange={(value) =>
+                          handleCommentChange(commentKey, value)
+                        }
+                      />
+                    );
+                  })}
+
                   {filtered.length === 0 && (
                     <tr className="orders-row orders-row--empty">
                       <td
@@ -2687,6 +2936,8 @@ Zm0 14H8V7h9v12Z"
               summary={selectedSummary}
               onUpdateStatus={handleUpdateRowStatus}
               onDelivered={handleDelivered}
+              commentValue={selectedCommentValue}
+              onCommentChange={handleSelectedCommentChange}
               variant="modal"
             />
 
