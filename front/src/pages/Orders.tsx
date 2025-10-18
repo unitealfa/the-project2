@@ -378,7 +378,113 @@ const Orders: React.FC = () => {
   const interactionLockRef = React.useRef<boolean>(false);
   const isFirstLoadRef = React.useRef<boolean>(true);
 
-    React.useEffect(() => {
+    
+  React.useEffect(() => {
+    if (fetchingRef.current) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    let isActive = true;
+
+    const loadOrders = async () => {
+      fetchingRef.current = true;
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(buildCsvUrl(), {
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const text = await response.text();
+        if (!isActive || cancelledRef.current) {
+          return;
+        }
+
+        const grid = parseCsv(text);
+        if (grid.length === 0) {
+          setHeaders([]);
+          setRows([]);
+          return;
+        }
+
+        const [rawHeaders, ...dataRows] = grid;
+        const seenHeaders = new Map<string, number>();
+        const headerConfigs = rawHeaders.map((header, index) => {
+          const trimmed = (header ?? "").trim();
+          const base = trimmed || header || `Colonne ${index + 1}`;
+          const count = seenHeaders.get(base) ?? 0;
+          seenHeaders.set(base, count + 1);
+          const key = count === 0 ? base : `${base} (${count + 1})`;
+          return { key, base, raw: header ?? "", occurrence: count };
+        });
+
+        const headersToDisplay = headerConfigs.map(({ key }) => key);
+
+        const mappedRows = dataRows
+          .map((rowValues) => {
+            const row: OrderRow = {};
+            headerConfigs.forEach(({ key, base, raw, occurrence }, index) => {
+              const cell = rowValues[index] ?? "";
+              row[key] = cell ?? "";
+              if (base && base !== key && occurrence === 0) {
+                row[base] = cell ?? "";
+              }
+              if (raw && raw !== key && raw !== base && occurrence === 0) {
+                row[raw] = cell ?? "";
+              }
+            });
+            return row;
+          })
+          .filter((row) =>
+            headerConfigs.some(({ key }) =>
+              typeof row[key] === "string"
+                ? row[key].trim() !== ""
+                : Boolean(row[key])
+            )
+          );
+
+        if (!isActive || cancelledRef.current) {
+          return;
+        }
+
+        setHeaders(headersToDisplay);
+        setRows(mappedRows);
+        setError(null);
+      } catch (error) {
+        if (!isActive || cancelledRef.current) {
+          return;
+        }
+        console.error("Erreur lors du chargement des commandes", error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger les commandes";
+        setError(message);
+      } finally {
+        fetchingRef.current = false;
+        if (!isActive || cancelledRef.current) {
+          return;
+        }
+        isFirstLoadRef.current = false;
+        setLoading(false);
+      }
+    };
+
+    loadOrders();
+
+    return () => {
+      isActive = false;
+      abortController.abort();
+    };
+  }, []);
+
+  React.useEffect(() => {
     cancelledRef.current = false;
     return () => {
       cancelledRef.current = true;
