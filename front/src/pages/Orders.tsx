@@ -643,10 +643,18 @@ const Orders: React.FC = () => {
 
       const handleFocusOut = (event: FocusEvent) => {
         const nextTarget = event.relatedTarget as EventTarget | null;
+
+         if (!nextTarget) {
+          return;
+        }
         if (isTargetWithinComment(nextTarget)) {
           return;
         }
-        if (popoverNode && event.target instanceof Node && popoverNode.contains(event.target)) {
+        if (
+          popoverNode &&
+          event.target instanceof Node &&
+          popoverNode.contains(event.target)
+        ) {
           setCommentOpen(false);
         }
       };
