@@ -743,7 +743,30 @@ const Orders: React.FC = () => {
 
       const adr = ".";
       const produit = row["Produit"] || "";
-      const remarque = row["ID"] || "";
+            const remarkFromSheet = (() => {
+        const remarkKeys = [
+          "Remarque",
+          "Remarques",
+          "Commentaire",
+          "Commentaires",
+          "Note",
+          "Notes",
+          "Observation",
+          "Observations",
+        ];
+        for (const key of remarkKeys) {
+          const value = row[key];
+          if (value === undefined || value === null) {
+            continue;
+          }
+          const trimmed = String(value).trim();
+          if (trimmed) {
+            return trimmed;
+          }
+        }
+        return "";
+      })();
+
 
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
@@ -757,7 +780,6 @@ const Orders: React.FC = () => {
         stock: "0",
         fragile: "0",
         produit: produit,
-        Remarque: remarque,
       };
 
       const commune = smartCommuneResolver(
@@ -767,11 +789,13 @@ const Orders: React.FC = () => {
       );
 
       const trimmedComment = currentComment.trim();
+      const finalRemark = trimmedComment || remarkFromSheet;
 
       const finalData = {
         ...realClientData,
         commune: commune || "alger",
-        ...(trimmedComment ? { Remarque: trimmedComment } : {}),
+        Remarque: finalRemark,
+        remarque: finalRemark,
       };
 
 
