@@ -18,6 +18,14 @@ const PRIVATE_KEY = `
 const SPREADSHEET_ID = '1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q';
 const SHEET_NAME = 'Mirocho';
 const STATUS_COLUMN_LETTER = 'L';
+const VARIANT_HEADER_CANDIDATES = [
+  'Variante',
+  'Variation',
+  'Taille',
+  'Variante produit',
+  'Variant',
+];
+const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const extractRowNumber = (value: unknown): number | null => {
   if (value === undefined || value === null) {
@@ -53,6 +61,7 @@ const extractRowNumber = (value: unknown): number | null => {
 
 export class SheetSyncService {
   private sheetsClientPromise?: Promise<sheets_v4.Sheets>;
+  private headerCache?: { headers: string[]; fetchedAt: number };
 
   private async getSheetsClient(): Promise<sheets_v4.Sheets> {
     if (!this.sheetsClientPromise) {
@@ -68,6 +77,88 @@ export class SheetSyncService {
     }
 
     return this.sheetsClientPromise;
+  }
+
+  private normalizeHeaderName(header: string): string {
+    return header
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]+/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private columnIndexToLetter(index: number): string {
+    let result = '';
+    let current = index;
+    while (current >= 0) {
+      result = String.fromCharCode((current % 26) + 65) + result;
+      current = Math.floor(current / 26) - 1;
+    }
+    return result;
+  }
+
+  private async getHeaderRow(): Promise<string[]> {
+    if (
+      this.headerCache &&
+      Date.now() - this.headerCache.fetchedAt < HEADER_CACHE_TTL_MS
+    ) {
+      return this.headerCache.headers;
+    }
+
+    const sheets = await this.getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!1:1`,
+    });
+    const headers = (response.data.values?.[0] ?? []).map((cell) =>
+      typeof cell === 'string' ? cell : String(cell ?? '')
+    );
+    this.headerCache = { headers, fetchedAt: Date.now() };
+    return headers;
+  }
+
+  private async resolveColumnLetter(
+    candidates: string[]
+  ): Promise<string | null> {
+    const headers = await this.getHeaderRow();
+    const normalizedHeaders = headers.map((header) =>
+      this.normalizeHeaderName(header)
+    );
+    const normalizedCandidates = candidates.map((candidate) =>
+      this.normalizeHeaderName(candidate)
+    );
+
+    for (let index = 0; index < normalizedHeaders.length; index++) {
+      const header = normalizedHeaders[index];
+      if (normalizedCandidates.includes(header)) {
+        return this.columnIndexToLetter(index);
+      }
+    }
+    return null;
+  }
+
+  private extractVariantValue(
+    row: Record<string, unknown> | undefined
+  ): string | undefined {
+    if (!row) {
+      return undefined;
+    }
+    for (const [key, value] of Object.entries(row)) {
+      if (!value && value !== 0) continue;
+      const normalizedKey = this.normalizeHeaderName(String(key));
+      if (
+        VARIANT_HEADER_CANDIDATES.some(
+          (candidate) =>
+            this.normalizeHeaderName(candidate) === normalizedKey
+        )
+      ) {
+        const trimmed = String(value ?? '').trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+    return undefined;
   }
 
   private resolveRowNumber(
@@ -121,17 +212,34 @@ export class SheetSyncService {
 
     const sheets = await this.getSheetsClient();
     const rowNumber = this.resolveRowNumber(rowId, row);
-    const range = `${SHEET_NAME}!${STATUS_COLUMN_LETTER}${rowNumber}`;
+    const updates: Array<{ range: string; values: string[][] }> = [];
 
-    await sheets.spreadsheets.values.update({
+    const statusRange = `${SHEET_NAME}!${STATUS_COLUMN_LETTER}${rowNumber}`;
+    updates.push({ range: statusRange, values: [[status]] });
+
+    const variantValue = this.extractVariantValue(row);
+    if (variantValue) {
+      const variantColumn = await this.resolveColumnLetter(
+        VARIANT_HEADER_CANDIDATES
+      );
+      if (variantColumn) {
+        updates.push({
+          range: `${SHEET_NAME}!${variantColumn}${rowNumber}`,
+          values: [[variantValue]],
+        });
+      }
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [[status]] },
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: updates,
+      },
     });
 
     return {
-      updatedRanges: [range],
+      updatedRanges: updates.map((update) => update.range),
       status,
       tracking: tracking ?? null,
     };

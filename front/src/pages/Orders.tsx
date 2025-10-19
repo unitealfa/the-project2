@@ -57,6 +57,61 @@ const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
 const buildCsvUrl = () =>
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
 
+const VARIANT_KEY_CANDIDATES = [
+  "Variante",
+  "Variation",
+  "Taille",
+  "Variante produit",
+  "Variant",
+];
+
+const normalizeKey = (key: string) => key.trim().toLowerCase();
+
+const VARIANT_KEY_CANDIDATE_SET = new Set(
+  VARIANT_KEY_CANDIDATES.map((candidate) => normalizeKey(candidate))
+);
+
+const extractVariantValue = (row: OrderRow): string => {
+  for (const [rawKey, value] of Object.entries(row)) {
+    const normalizedKey = normalizeKey(rawKey);
+    if (VARIANT_KEY_CANDIDATE_SET.has(normalizedKey)) {
+      const trimmed = String(value ?? "").trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return "default";
+};
+
+const extractQuantityValue = (row: OrderRow): number => {
+  const rawQuantity = String(
+    row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
+  ).replace(/[^\d]/g, "");
+  const parsed = parseInt(rawQuantity, 10);
+  return Number.isNaN(parsed) || parsed <= 0 ? 1 : parsed;
+};
+
+const extractProductCode = (row: OrderRow): string => {
+  const candidates = [
+    "Code",
+    "code",
+    "SKU",
+    "Sku",
+    "Référence",
+    "Reference",
+  ];
+  for (const key of candidates) {
+    if (key in row) {
+      const trimmed = String(row[key] ?? "").trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return "";
+};
+
 type UpdateStatusContext = {
   previousStatus?: string;
   row?: OrderRow;
@@ -742,8 +797,27 @@ const Orders: React.FC = () => {
       }
 
       const adr = ".";
-      const produit = row["Produit"] || "";
-            const remarkFromSheet = (() => {
+      const produit = String(row["Produit"] ?? "").trim();
+      const variantForStock = extractVariantValue(row);
+      const quantityForStock = extractQuantityValue(row);
+      const productCode = extractProductCode(row);
+      let stockDecremented = false;
+      const ensureStockDecremented = async () => {
+        if (stockDecremented) {
+          return;
+        }
+        await onDelivered(
+          {
+            code: productCode || undefined,
+            name: produit || undefined,
+            variant: variantForStock,
+            quantity: quantityForStock,
+          },
+          rowId
+        );
+        stockDecremented = true;
+      };
+      const remarkFromSheet = (() => {
         const remarkKeys = [
           "Remarque",
           "Remarques",
@@ -937,6 +1011,8 @@ const Orders: React.FC = () => {
         ) {
           const trackingValue = resolveTracking(responseData) || "N/A";
 
+           await ensureStockDecremented();
+
           const toast = document.createElement("div");
           toast.textContent = `✅ Commande envoyée avec succès (${nom_client})`;
           Object.assign(toast.style, {
@@ -1047,6 +1123,7 @@ const Orders: React.FC = () => {
                   clearTimeout(timeoutRetry);
                   if (r2.ok && (r2.status === 200 || r2.status === 201)) {
                     const trackingValue = resolveTracking(d2) || "N/A";
+                    await ensureStockDecremented();
                     await applyStatusUpdate("ready_to_ship", trackingValue);
                     await syncTrackingStatus(
                       trackingValue === "N/A" ? "" : trackingValue
@@ -1122,6 +1199,7 @@ const Orders: React.FC = () => {
       stop_desk,
       row,
       onUpdateStatus,
+      onDelivered,
       initialSheetStatus,
       rowId,
       currentComment,
@@ -1151,18 +1229,19 @@ const Orders: React.FC = () => {
     const handleMarkDelivered = React.useCallback(async () => {
       try {
         setDelivering(true);
-        const quantity =
-          parseInt(
-            String(
-              row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-            ).replace(/[^\d]/g, "")
-          ) || 1;
-        const name = String(row["Produit"] || "").trim();
-        const variant =
-          String(
-            row["Variante"] || row["Variation"] || row["Taille"] || "default"
-          ).trim() || "default";
-        await onDelivered({ name, variant, quantity }, rowId);
+        const quantity = extractQuantityValue(row);
+        const name = String(row["Produit"] ?? "").trim();
+        const variant = extractVariantValue(row);
+        const code = extractProductCode(row);
+        await onDelivered(
+          {
+            code: code || undefined,
+            name: name || undefined,
+            variant,
+            quantity,
+          },
+          rowId
+        );
         await onUpdateStatus(rowId, "delivered", {
           previousStatus: initialSheetStatus,
           row: { ...row, etat: "delivered" },
@@ -2504,10 +2583,22 @@ Zm0 14H8V7h9v12Z"
     }
 
     try {
+      const trimmedVariant = selectedVariant.trim() || "default";
+      const updatedRow: OrderRow = { ...row };
+      let variantKeyUpdated = false;
+      for (const key of Object.keys(updatedRow)) {
+        if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
+          updatedRow[key] = trimmedVariant;
+          variantKeyUpdated = true;
+        }
+      }
+      if (!variantKeyUpdated) {
+        updatedRow["Variante"] = trimmedVariant;
+      }
       // Mettre à jour la variante dans le Google Sheet
       await syncStatus(rowId, getRowStatus(row), {
         previousStatus: getRowStatus(row),
-        row: { ...row, Variante: selectedVariant },
+        row: updatedRow,
       });
 
       // Mettre à jour l'état local
@@ -2515,7 +2606,18 @@ Zm0 14H8V7h9v12Z"
         prevRows.map((r) => {
           const currentRowId = String(r["id-sheet"] || r["ID"] || "").trim();
           if (currentRowId === rowId) {
-            return { ...r, Variante: selectedVariant };
+            const nextRow: OrderRow = { ...r };
+            let updated = false;
+            for (const key of Object.keys(nextRow)) {
+              if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
+                nextRow[key] = trimmedVariant;
+                updated = true;
+              }
+            }
+            if (!updated) {
+              nextRow["Variante"] = trimmedVariant;
+            }
+            return nextRow;
           }
           return r;
         })
@@ -2526,12 +2628,12 @@ Zm0 14H8V7h9v12Z"
         isOpen: false,
         orderRow: null,
         productName: "",
-        currentVariant: "",
+        currentVariant: trimmedVariant,
       });
 
       // Afficher un message de succès
       const toast = document.createElement("div");
-      toast.textContent = `✅ Variante mise à jour vers "${selectedVariant}"`;
+      toast.textContent = `✅ Variante mise à jour vers "${trimmedVariant}"`;
       Object.assign(toast.style, {
         position: "fixed",
         bottom: "24px",
