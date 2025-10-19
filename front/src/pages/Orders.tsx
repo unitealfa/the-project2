@@ -265,24 +265,24 @@ const normalizeStatus = (status: string) =>
     .toLowerCase()
     .trim();
 
-const DHD_STATUS_MAP: Record<string, SheetStatus> = {
-  "vers station": "shipped",
-  "en station": "shipped",
-  "vers wilaya": "shipped",
-  "en preparation": "shipped",
-  "en livraison": "shipped",
-  suspendus: "shipped",
-  livred: "delivered",
-  delivered: "delivered",
-  "return asked": "returned",
-  "return in transit": "returned",
-  "return received": "returned",
-};
+const DHD_SHIPPED_STATUSES = new Set<string>([
+  "vers station",
+  "en station",
+  "vers wilaya",
+  "en preparation",
+  "en prepa",
+  "en livraison",
+]);
 
 const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
   if (typeof status !== "string") return null;
-  const normalized = normalizeStatus(status);
-  return DHD_STATUS_MAP[normalized] ?? null;
+  const trimmedStatus = status.trim();
+  if (!trimmedStatus) return null;
+  const normalized = normalizeStatus(trimmedStatus);
+  if (DHD_SHIPPED_STATUSES.has(normalized)) {
+    return "SHIPPED";
+  }
+  return trimmedStatus;
 };
 
 const normalizeFieldKey = (key: string) =>
