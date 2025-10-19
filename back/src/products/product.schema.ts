@@ -9,7 +9,7 @@ export const ProductSchema = new Schema({
   variants:  [
     {
       name:     { type: String, required: true },
-      quantity: { type: Number, required: true, min: 0 },
+      quantity: { type: Number, required: true },
       // Optionnel: prix spécifiques à la variante (non utilisé pour l'instant)
       // costPrice: { type: Number, min: 0 },
       // salePrice: { type: Number, min: 0 },

@@ -842,7 +842,7 @@ const Orders: React.FC = () => {
         if (stockDecremented) {
           return;
         }
-        await onDelivered(
+        await handleDelivered(
           {
             code: productCode || undefined,
             name: produit || undefined,
@@ -2620,9 +2620,9 @@ Zm0 14H8V7h9v12Z"
       },
       rowId: string
     ) => {
-      // Appelle l'API backend pour décrémenter le stock (permet stock 0)
+      // Appelle l'API backend pour décrémenter le stock (permet stock négatif)
       try {
-        const res = await fetch("/api/products/decrement-bulk-allow-zero", {
+        const res = await fetch("/api/products/decrement-bulk-allow-negative", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2661,18 +2661,21 @@ Zm0 14H8V7h9v12Z"
           });
         });
 
-        // Vérifier si le stock final est à 0 et afficher un avertissement
-        const zeroStockItems = results.filter(
-          (r: any) => r.ok && r.finalStock === 0
+        // Vérifier si le stock final est négatif ou à 0 et afficher un avertissement
+        const lowStockItems = results.filter(
+          (r: any) => r.ok && r.finalStock <= 0
         );
-        if (zeroStockItems.length > 0) {
-          const zeroStockNames = zeroStockItems
-            .map((item: any) => `${item.name || item.code || ""} (${item.variant})`)
+        if (lowStockItems.length > 0) {
+          const lowStockNames = lowStockItems
+            .map((item: any) => {
+              const stockStatus = item.finalStock < 0 ? "négatif" : "épuisé";
+              return `${item.name || item.code || ""} (${item.variant}) - Stock ${stockStatus}: ${item.finalStock}`;
+            })
             .join(", ");
           
-          // Afficher un toast d'avertissement pour le stock à 0
+          // Afficher un toast d'avertissement pour le stock faible/négatif
           const toast = document.createElement("div");
-          toast.textContent = `⚠️ Stock épuisé pour: ${zeroStockNames}`;
+          toast.textContent = `⚠️ Stock faible/négatif pour: ${lowStockNames}`;
           Object.assign(toast.style, {
             position: "fixed",
             bottom: "24px",
