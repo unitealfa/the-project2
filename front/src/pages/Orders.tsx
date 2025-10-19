@@ -67,6 +67,42 @@ const VARIANT_KEY_CANDIDATES = [
 
 const normalizeKey = (key: string) => key.trim().toLowerCase();
 
+const normalizeTextValue = (value: string | null | undefined): string => {
+  if (!value) return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+};
+
+const normalizeProductNameForCache = (value: string | null | undefined) =>
+  normalizeTextValue(value);
+
+const normalizeProductCodeForCache = (value: string | null | undefined) =>
+  value ? value.trim().toLowerCase() : "";
+
+const normalizeVariantNameForCache = (value: string | null | undefined) =>
+  normalizeTextValue(value);
+
+const buildProductCacheKeys = (
+  code?: string | null,
+  name?: string | null
+): string[] => {
+  const keys: string[] = [];
+  const normalizedCode = normalizeProductCodeForCache(code);
+  if (normalizedCode) {
+    keys.push(`code:${normalizedCode}`);
+  }
+  const normalizedName = normalizeProductNameForCache(name);
+  if (normalizedName) {
+    keys.push(`name:${normalizedName}`);
+  }
+  return keys;
+};
+
+
 const VARIANT_KEY_CANDIDATE_SET = new Set(
   VARIANT_KEY_CANDIDATES.map((candidate) => normalizeKey(candidate))
 );
@@ -1828,6 +1864,132 @@ Zm0 14H8V7h9v12Z"
   }>>([]);
   const [loadingVariants, setLoadingVariants] = React.useState(false);
 
+  const productVariantCacheRef = React.useRef<
+    Map<
+      string,
+      {
+        name: string;
+        code?: string;
+        variants: Array<{ name: string; quantity: number }>;
+      }
+    >
+  >(new Map());
+  const productsCacheLoadedRef = React.useRef(false);
+  const missingProductKeysRef = React.useRef(new Set<string>());
+
+  const getCacheKeysForProduct = React.useCallback(
+    (code?: string | null, name?: string | null) =>
+      buildProductCacheKeys(code, name),
+    []
+  );
+
+  const readProductFromCache = React.useCallback(
+    (code?: string | null, name?: string | null) => {
+      const cache = productVariantCacheRef.current;
+      const keys = getCacheKeysForProduct(code, name);
+      for (const key of keys) {
+        const entry = cache.get(key);
+        if (entry) {
+          return entry;
+        }
+      }
+      return null;
+    },
+    [getCacheKeysForProduct]
+  );
+
+  const registerProductsInCache = React.useCallback(
+    (products: any[]) => {
+      const cache = productVariantCacheRef.current;
+      products.forEach((product) => {
+        if (!product) return;
+        const entry = {
+          name: String(product.name ?? '').trim(),
+          code:
+            typeof product.code === 'string'
+              ? product.code.trim()
+              : undefined,
+          variants: Array.isArray(product.variants)
+            ? product.variants.map((variant: any) => ({
+                name: String(variant?.name ?? '').trim(),
+                quantity: Number(variant?.quantity ?? 0) || 0,
+              }))
+            : [],
+        };
+        const keys = getCacheKeysForProduct(entry.code, entry.name);
+        keys.forEach((key) => cache.set(key, entry));
+      });
+    },
+    [getCacheKeysForProduct]
+  );
+
+  const applyStockUpdateToCache = React.useCallback(
+    (options: {
+      code?: string;
+      name?: string;
+      variant: string;
+      finalQuantity?: number;
+      decrementBy?: number;
+    }) => {
+      const cache = productVariantCacheRef.current;
+      const keys = getCacheKeysForProduct(options.code, options.name);
+      const normalizedVariant = normalizeVariantNameForCache(options.variant);
+      let impacted = false;
+
+      keys.forEach((key) => {
+        const entry = cache.get(key);
+        if (!entry) return;
+        entry.variants = entry.variants.map((variant) => {
+          if (
+            normalizeVariantNameForCache(variant.name) === normalizedVariant
+          ) {
+            const current = Number(variant.quantity) || 0;
+            const next =
+              options.finalQuantity !== undefined
+                ? Math.max(0, Number(options.finalQuantity))
+                : Math.max(0, current - (options.decrementBy ?? 0));
+            impacted = true;
+            return { ...variant, quantity: next };
+          }
+          return variant;
+        });
+      });
+
+      if (
+        impacted &&
+        variantModalOpen.isOpen &&
+        variantModalOpen.orderRow
+      ) {
+        const modalCode = extractProductCode(variantModalOpen.orderRow);
+        const modalKeys = getCacheKeysForProduct(
+          modalCode,
+          variantModalOpen.productName
+        );
+        const intersects = keys.some((key) => modalKeys.includes(key));
+        if (intersects) {
+          const modalEntry = readProductFromCache(
+            modalCode,
+            variantModalOpen.productName
+          );
+          if (modalEntry) {
+            setAvailableVariants(
+              modalEntry.variants.map((variant) => ({ ...variant }))
+            );
+          }
+        }
+      }
+
+      return impacted;
+    },
+    [
+      getCacheKeysForProduct,
+      readProductFromCache,
+      variantModalOpen.isOpen,
+      variantModalOpen.orderRow,
+      variantModalOpen.productName,
+    ]
+  );
+
    const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
     if (!row) return null;
     const candidateKeys = [
@@ -2481,10 +2643,28 @@ Zm0 14H8V7h9v12Z"
             .join("\n");
           throw new Error(msg || "Échec partiel");
         }
-        
-        // Vérifier si le stock final est à 0 et afficher un avertissement
+      
         const results = Array.isArray(data?.results) ? data.results : [];
-        const zeroStockItems = results.filter((r: any) => r.ok && r.finalStock === 0);
+          results.forEach((result: any) => {
+          if (!result || !result.ok) return;
+          const finalStockValue =
+            typeof result.finalStock === "number"
+              ? Number(result.finalStock)
+              : undefined;
+          applyStockUpdateToCache({
+            code: payload.code,
+            name: payload.name,
+            variant: payload.variant,
+            finalQuantity: finalStockValue,
+            decrementBy:
+              finalStockValue === undefined ? payload.quantity : undefined,
+          });
+        });
+
+        // Vérifier si le stock final est à 0 et afficher un avertissement
+        const zeroStockItems = results.filter(
+          (r: any) => r.ok && r.finalStock === 0
+        );
         if (zeroStockItems.length > 0) {
           const zeroStockNames = zeroStockItems
             .map((item: any) => `${item.name || item.code || ""} (${item.variant})`)
@@ -2520,7 +2700,7 @@ Zm0 14H8V7h9v12Z"
         throw e;
       }
     },
-    [token]
+    [applyStockUpdateToCache, token]
   );
 
   const handleVariantClick = useCallback(async (row: OrderRow) => {
@@ -2541,7 +2721,30 @@ Zm0 14H8V7h9v12Z"
       currentVariant,
     });
 
-    // Charger les variantes disponibles
+const productCode = extractProductCode(row);
+    const cacheKeys = getCacheKeysForProduct(productCode, productName);
+    const cachedEntry = readProductFromCache(productCode, productName);
+
+    if (cachedEntry) {
+      setAvailableVariants(
+        cachedEntry.variants.map((variant) => ({ ...variant }))
+      );
+      setLoadingVariants(false);
+      cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
+      return;
+    }
+
+    const alreadyMarkedMissing = cacheKeys.every((key) =>
+      missingProductKeysRef.current.has(key)
+    );
+
+    if (productsCacheLoadedRef.current && alreadyMarkedMissing) {
+      setAvailableVariants([]);
+      setLoadingVariants(false);
+      alert("Aucune variante trouvée pour ce produit");
+      return;
+    }
+
     setLoadingVariants(true);
     try {
       const res = await fetch("/api/products", {
@@ -2549,27 +2752,42 @@ Zm0 14H8V7h9v12Z"
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
+       if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       const products = await res.json();
       
-      // Trouver le produit correspondant
-      const product = products.find((p: any) => 
-        p.name.toLowerCase().trim() === productName.toLowerCase().trim()
-      );
-      
-      if (product && product.variants) {
-        setAvailableVariants(product.variants);
-      } else {
-        setAvailableVariants([]);
-        alert("Aucune variante trouvée pour ce produit");
+      if (Array.isArray(products)) {
+        registerProductsInCache(products);
       }
+      productsCacheLoadedRef.current = true;
     } catch (error) {
       console.error("Erreur lors du chargement des variantes:", error);
       alert("Erreur lors du chargement des variantes");
       setAvailableVariants([]);
+      return;
     } finally {
       setLoadingVariants(false);
     }
-  }, [token]);
+  const refreshedEntry = readProductFromCache(productCode, productName);
+    if (refreshedEntry && refreshedEntry.variants.length > 0) {
+      setAvailableVariants(
+        refreshedEntry.variants.map((variant) => ({ ...variant }))
+      );
+      cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
+    } else {
+      setAvailableVariants([]);
+      cacheKeys.forEach((key) => missingProductKeysRef.current.add(key));
+      alert("Aucune variante trouvée pour ce produit");
+    }
+  }, [
+    getCacheKeysForProduct,
+    missingProductKeysRef,
+    readProductFromCache,
+    registerProductsInCache,
+    token,
+  ]);
+
 
   const handleVariantSelect = useCallback(async (selectedVariant: string) => {
     if (!variantModalOpen.orderRow) return;
