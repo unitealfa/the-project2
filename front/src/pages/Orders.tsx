@@ -166,6 +166,8 @@ type SheetStatus =
 const SHEET_SYNC_ENDPOINT =
   import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? "/api/orders/status";
 
+  const OFFICIAL_STATUS_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
 type TimeFilter = "all" | "day" | "week" | "month";
 
 const TIME_FILTER_OPTIONS: { value: TimeFilter; label: string }[] = [
@@ -364,6 +366,16 @@ const DHD_SHIPPED_STATUSES = new Set<string>([
   "en preparation",
   "en prepa",
   "en livraison",
+  "en cours de livraison",
+  "ramassage",
+  "ramasse",
+  "collecte",
+  "prise en charge",
+  "en cours",
+  "depart station",
+  "depart wilaya",
+  "pret a expedier",
+  "prete a expedier",
 ]);
 
 const toNormalizedKeywords = (values: readonly string[]) =>
@@ -379,9 +391,15 @@ const DHD_SHIPPED_KEYWORDS = toNormalizedKeywords([
   "ramasse",
   "collecte",
   "en cours de livraison",
+  "en cours",
+  "en cours de traitement",
   "en route",
   "depart station",
   "depart wilaya",
+  "pret a expedier",
+  "prete a expedier",
+  "ready to ship",
+  "en chemin",
 ]);
 
 const DHD_DELIVERED_KEYWORDS = toNormalizedKeywords([
@@ -393,6 +411,8 @@ const DHD_DELIVERED_KEYWORDS = toNormalizedKeywords([
   "livraison reussie",
   "delivered",
   "delivery done",
+  "paye et archive",
+  "paye et archivee",
 ]);
 
 const DHD_RETURNED_KEYWORDS = toNormalizedKeywords([
@@ -408,6 +428,17 @@ const DHD_RETURNED_KEYWORDS = toNormalizedKeywords([
   "client refuse",
   "colis refuse",
   "refusee",
+]);
+
+const DHD_CANCELLED_KEYWORDS = toNormalizedKeywords([
+  "annule",
+  "annulee",
+  "annule par client",
+  "commande annulee",
+  "cancelled",
+  "canceled",
+  "annulation",
+  "annule marchand",
 ]);
 
 const DHD_DELIVERED_KEYWORDS_AR = [
@@ -429,6 +460,13 @@ const DHD_SHIPPED_KEYWORDS_AR = [
   "تم الشحن",
   "في الطريق",
   "في التوصيل",
+];
+
+const DHD_CANCELLED_KEYWORDS_AR = [
+  "تم الإلغاء",
+  "تم الالغاء",
+  "ملغاة",
+  "ألغيت",
 ];
 
 const containsNormalizedKeyword = (
@@ -466,6 +504,13 @@ const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
     containsRawKeyword(trimmedStatus, DHD_SHIPPED_KEYWORDS_AR)
   ) {
     return "SHIPPED";
+  }
+
+    if (
+    containsNormalizedKeyword(normalized, DHD_CANCELLED_KEYWORDS) ||
+    containsRawKeyword(trimmedStatus, DHD_CANCELLED_KEYWORDS_AR)
+  ) {
+    return "abandoned";
   }
 
   return trimmedStatus;
@@ -588,6 +633,106 @@ const normalizeFieldKey = (key: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+const INVALID_TRACKING_VALUES = new Set([
+  "N/A",
+  "NA",
+  "N A",
+  "NONE",
+  "0",
+  "000",
+  "0000",
+  "00000",
+]);
+
+const isLikelyTrackingValue = (value: string): boolean => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (INVALID_TRACKING_VALUES.has(trimmed.toUpperCase())) return false;
+  if (/^\d{1,3}$/.test(trimmed)) return false;
+  return true;
+};
+
+const extractValueWithPredicate = (
+  row: OrderRow,
+  predicate: (normalizedKey: string, tokens: string[]) => boolean
+): string => {
+  for (const [key, rawValue] of Object.entries(row)) {
+    if (rawValue === undefined || rawValue === null) continue;
+    const normalizedKey = normalizeFieldKey(key);
+    if (!normalizedKey) continue;
+    const tokens = normalizedKey
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!predicate(normalizedKey, tokens)) continue;
+    const trimmed = String(rawValue ?? "").trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return "";
+};
+
+const extractTrackingValue = (row: OrderRow): string => {
+  const directCandidates = [
+    row["Tracking"],
+    row["tracking"],
+    row["Tracking number"],
+    row["Numéro de suivi"],
+    row["Numero de suivi"],
+    row["Num de suivi"],
+    row["AWB"],
+  ];
+  for (const candidate of directCandidates) {
+    const trimmed = String(candidate ?? "").trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return extractValueWithPredicate(row, (normalizedKey, tokens) => {
+    if (tokens.some((token) => token === "tracking")) return true;
+    if (tokens.some((token) => token === "suivi")) return true;
+    if (tokens.some((token) => token === "awb")) return true;
+    return (
+      normalizedKey.includes("tracking") ||
+      normalizedKey.includes("suivi") ||
+      normalizedKey.includes("awb")
+    );
+  });
+};
+
+const extractReferenceValue = (row: OrderRow): string => {
+  const directCandidates = [
+    row["Référence"],
+    row["Reference"],
+    row["REF"],
+    row["Ref"],
+  ];
+  for (const candidate of directCandidates) {
+    const trimmed = String(candidate ?? "").trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return extractValueWithPredicate(row, (normalizedKey, tokens) => {
+    if (tokens.some((token) => token === "reference")) return true;
+    if (tokens.some((token) => token === "ref")) return true;
+    return (
+      normalizedKey.includes("reference") ||
+      normalizedKey === "ref" ||
+      normalizedKey.includes("commande_ref")
+    );
+  });
+};
+
+type OfficialStatusOrderPayload = {
+  rowId: string;
+  tracking: string;
+  reference?: string;
+  currentStatus?: string;
+};
+
 const extractTrackingStatus = (payload: any): string | null => {
   if (!payload || typeof payload !== "object") return null;
   if (typeof payload.status === "string") return payload.status;
@@ -608,6 +753,12 @@ const Orders: React.FC = () => {
   const [statusSyncDisabled, setStatusSyncDisabled] =
     React.useState<boolean>(false);
   const syncDisabledRef = React.useRef<boolean>(false);
+  const officialStatusSyncRef = React.useRef<{ lastSync: number; pending: boolean }>(
+    {
+      lastSync: 0,
+      pending: false,
+    }
+  );
   // Adresse saisie par l'utilisateur pour chaque commande (indexée par idx)
 
   // Composant optimisé pour une ligne de commande
@@ -2784,6 +2935,27 @@ Zm0 14H8V7h9v12Z"
               );
             });
 
+             ensureCanonicalField("Tracking", (normalizedKey, tokens) => {
+              if (tokens.some((token) => token === "tracking")) return true;
+              if (tokens.some((token) => token === "suivi")) return true;
+              if (tokens.some((token) => token === "awb")) return true;
+              return (
+                normalizedKey.includes("tracking") ||
+                normalizedKey.includes("suivi") ||
+                normalizedKey.includes("awb")
+              );
+            });
+
+            ensureCanonicalField("Référence", (normalizedKey, tokens) => {
+              if (tokens.some((token) => token === "reference")) return true;
+              if (tokens.some((token) => token === "ref")) return true;
+              return (
+                normalizedKey.includes("reference") ||
+                normalizedKey === "ref" ||
+                normalizedKey.includes("commande_ref")
+              );
+            });
+
             return obj;
           })
           .filter((row): row is OrderRow => row !== null);
@@ -2823,6 +2995,119 @@ Zm0 14H8V7h9v12Z"
       }
     };
   }, [loadSheetData]);
+
+   React.useEffect(() => {
+    if (!rows.length) return;
+    if (syncDisabledRef.current) return;
+
+    const now = Date.now();
+    if (officialStatusSyncRef.current.pending) return;
+    if (
+      now - officialStatusSyncRef.current.lastSync <
+      OFFICIAL_STATUS_SYNC_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    const payloadMap = new Map<string, OfficialStatusOrderPayload>();
+
+    rows.forEach((row) => {
+      const summary = extractOrderSummary(row);
+      const rowId = summary.rowId.trim();
+      if (!rowId) return;
+      const trackingRaw = extractTrackingValue(row);
+      if (!trackingRaw) return;
+      if (!isLikelyTrackingValue(trackingRaw)) return;
+      const tracking = trackingRaw.trim();
+      if (!tracking) return;
+      if (!payloadMap.has(rowId)) {
+        const referenceValue = extractReferenceValue(row).trim();
+        payloadMap.set(rowId, {
+          rowId,
+          tracking,
+          reference: referenceValue ? referenceValue : undefined,
+          currentStatus: summary.status,
+        });
+      }
+    });
+
+    if (payloadMap.size === 0) {
+      return;
+    }
+
+    officialStatusSyncRef.current.pending = true;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/orders/sync-statuses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orders: Array.from(payloadMap.values()),
+          }),
+        });
+        const text = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+        if (!res.ok) {
+          const message =
+            typeof data === 'string' ? data : data?.message ?? '';
+          throw new Error(message || `HTTP ${res.status}`);
+        }
+
+        const updates = Array.isArray(data?.updates) ? data.updates : [];
+        if (updates.length > 0) {
+          const updatesMap = new Map<string, string>();
+          updates.forEach((update: any) => {
+            const updateRowId =
+              typeof update?.rowId === 'string'
+                ? update.rowId.trim()
+                : '';
+            const newStatus =
+              typeof update?.newStatus === 'string'
+                ? update.newStatus
+                : '';
+            if (updateRowId && newStatus) {
+              updatesMap.set(updateRowId, newStatus);
+            }
+          });
+
+          if (updatesMap.size > 0) {
+            setRows((prevRows) =>
+              prevRows.map((row) => {
+                const sheetRowId = String(row['id-sheet'] ?? '').trim();
+                const fallbackRowId = String(row['ID'] ?? '').trim();
+                const candidateIds = [sheetRowId, fallbackRowId].filter(
+                  (value) => Boolean(value)
+                );
+                for (const id of candidateIds) {
+                  const nextStatus = updatesMap.get(id);
+                  if (nextStatus) {
+                    return { ...row, etat: nextStatus };
+                  }
+                }
+                return row;
+              })
+            );
+          }
+        }
+      } catch (error) {
+        console.error(
+          'Erreur lors de la synchronisation des statuts officiels',
+          error
+        );
+      } finally {
+        officialStatusSyncRef.current.pending = false;
+        officialStatusSyncRef.current.lastSync = Date.now();
+      }
+    })();
+  }, [rows]);
 
   const handleUpdateRowStatus = useCallback(
     async (

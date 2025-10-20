@@ -25,6 +25,25 @@ const VARIANT_HEADER_CANDIDATES = [
   'Variante produit',
   'Variant',
 ];
+const TRACKING_HEADER_CANDIDATES = [
+  'Tracking',
+  'tracking',
+  'Tracking number',
+  'tracking number',
+  'Numéro de suivi',
+  'numero de suivi',
+  'Num de suivi',
+  'num de suivi',
+  'Code de suivi',
+  'code de suivi',
+  'Code suivi',
+  'code suivi',
+  'AWB',
+  'awb',
+  'AWB number',
+  'awb number',
+];
+
 const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const extractRowNumber = (value: unknown): number | null => {
@@ -227,6 +246,21 @@ export class SheetSyncService {
           range: `${SHEET_NAME}!${variantColumn}${rowNumber}`,
           values: [[variantValue]],
         });
+      }
+    }
+
+     if (tracking) {
+      const trimmedTracking = tracking.trim();
+      if (trimmedTracking) {
+        const trackingColumn = await this.resolveColumnLetter(
+          TRACKING_HEADER_CANDIDATES
+        );
+        if (trackingColumn) {
+          updates.push({
+            range: `${SHEET_NAME}!${trackingColumn}${rowNumber}`,
+            values: [[trimmedTracking]],
+          });
+        }
       }
     }
 
