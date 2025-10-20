@@ -139,6 +139,21 @@ export class ProductService {
     return product;
   }
 
+  async decrementByCodeNameVariantAllowNegative(
+    code: string | undefined,
+    name: string | undefined,
+    variant: string,
+    quantity: number
+  ): Promise<IProduct> {
+    if (quantity <= 0) throw new Error('Quantité invalide');
+    if (!variant) throw new Error('Variante requise');
+
+    const product = await this.resolveProduct(code, name);
+    this.applyVariantDelta(product, variant, -quantity, true, false);
+    await product.save();
+    return product;
+  }
+
   // Increments
   async incrementByCodeNameVariant(
     code: string | undefined,

@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { ProductDto } from '../types';
+import '../styles/Products.css';
 
 const emptyForm: ProductDto = {
   code: '',
@@ -158,124 +159,246 @@ const Products: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Produits</h2>
-
-      <div style={{ display: 'flex', gap: 8, margin: '0.5rem 0' }}>
-        <input
-          placeholder="Rechercher par nom ou variante"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{ padding: '0.4rem 0.6rem', width: 280 }}
-        />
+    <div className="products-page">
+      <div className="products-page__header">
+        <h1 className="products-page__title">Produits</h1>
+        <p className="products-page__subtitle">
+          Gérez votre catalogue de produits et leurs variantes
+        </p>
       </div>
 
-      {canEdit && (
-        <form onSubmit={submit} style={{ display: 'grid', gap: 8, maxWidth: 960, gridTemplateColumns: 'repeat(6, 1fr)', alignItems: 'end', margin: '1rem 0' }}>
-          <label style={{ display: 'grid' }}>
-            <span>Code</span>
-            <input name="code" value={form.code || ''} onChange={handleChange} />
-          </label>
-          <label style={{ display: 'grid' }}>
-            <span>Nom</span>
-            <input name="name" value={form.name} onChange={handleChange} required />
-          </label>
-          <label style={{ display: 'grid' }}>
-            <span>Prix d'achat</span>
-            <input type="number" step="0.01" name="costPrice" value={form.costPrice} onChange={handleChange} required />
-          </label>
-          <label style={{ display: 'grid' }}>
-            <span>Prix de vente</span>
-            <input type="number" step="0.01" name="salePrice" value={form.salePrice} onChange={handleChange} required />
-          </label>
-          <div style={{ display: 'grid' }}>
-            <span>Image</span>
-            <input type="file" accept="image/*" onChange={handleImageChange} />
-            {(imagePreview || form.image) && (
-              <div style={{ marginTop: 8 }}>
-                <img
-                  src={imagePreview || form.image}
-                  alt={form.name || 'prévisualisation'}
-                  style={{ maxHeight: 80 }}
-                />
-              </div>
-            )}
+      <div className="products-panel">
+        <div className="products-toolbar">
+          <div className="products-toolbar__row">
+            <input
+              className="products-input"
+              placeholder="Rechercher par nom ou variante..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
           </div>
-          <div style={{ gridColumn: '1 / -1', border: '1px solid #eee', padding: 8, borderRadius: 4 }}>
-            <strong>Variantes</strong>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-              {(form.variants || []).map((v, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                  <label style={{ display: 'grid' }}>
-                    <span>Nom de variante</span>
-                    <input value={v.name} onChange={e => updateVariant(idx, 'name', e.target.value)} required />
-                  </label>
-                  <label style={{ display: 'grid' }}>
-                    <span>Quantité</span>
-                    <input type="number" step="1" value={v.quantity} onChange={e => updateVariant(idx, 'quantity', e.target.value)} required />
-                  </label>
-                  <button type="button" onClick={() => removeVariant(idx)}>Supprimer</button>
+        </div>
+
+        {canEdit && (
+          <form onSubmit={submit} className="products-form">
+            <div className="products-form__field">
+              <label className="products-form__label">Code</label>
+              <input 
+                className="products-form__input"
+                name="code" 
+                value={form.code || ''} 
+                onChange={handleChange} 
+                placeholder="Code produit (optionnel)"
+              />
+            </div>
+            <div className="products-form__field">
+              <label className="products-form__label">Nom *</label>
+              <input 
+                className="products-form__input"
+                name="name" 
+                value={form.name} 
+                onChange={handleChange} 
+                required 
+                placeholder="Nom du produit"
+              />
+            </div>
+            <div className="products-form__field">
+              <label className="products-form__label">Prix d'achat *</label>
+              <input 
+                className="products-form__input"
+                type="number" 
+                step="0.01" 
+                name="costPrice" 
+                value={form.costPrice} 
+                onChange={handleChange} 
+                required 
+                placeholder="0.00"
+              />
+            </div>
+            <div className="products-form__field">
+              <label className="products-form__label">Prix de vente *</label>
+              <input 
+                className="products-form__input"
+                type="number" 
+                step="0.01" 
+                name="salePrice" 
+                value={form.salePrice} 
+                onChange={handleChange} 
+                required 
+                placeholder="0.00"
+              />
+            </div>
+            <div className="products-form__image-field">
+              <label className="products-form__label">Image</label>
+              <input 
+                className="products-form__input"
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange} 
+              />
+              {(imagePreview || form.image) && (
+                <div className="products-form__image-preview">
+                  <img
+                    src={imagePreview || form.image}
+                    alt={form.name || 'prévisualisation'}
+                  />
                 </div>
-              ))}
-              <div>
-                <button type="button" onClick={addVariant}>+ Ajouter une variante</button>
+              )}
+            </div>
+            <div className="products-form__variants">
+              <h3 className="products-form__variants-title">Variantes</h3>
+              <div className="products-form__variants-list">
+                {(form.variants || []).map((v, idx) => (
+                  <div key={idx} className="products-form__variant-item">
+                    <div className="products-form__variant-field">
+                      <label className="products-form__variant-label">Nom de variante</label>
+                      <input 
+                        className="products-form__variant-input"
+                        value={v.name} 
+                        onChange={e => updateVariant(idx, 'name', e.target.value)} 
+                        required 
+                        placeholder="ex: Rouge, Taille M"
+                      />
+                    </div>
+                    <div className="products-form__variant-field">
+                      <label className="products-form__variant-label">Quantité</label>
+                      <input 
+                        className="products-form__variant-input"
+                        type="number" 
+                        step="1" 
+                        value={v.quantity} 
+                        onChange={e => updateVariant(idx, 'quantity', e.target.value)} 
+                        required 
+                        placeholder="0"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      className="products-form__variant-remove"
+                      onClick={() => removeVariant(idx)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  className="products-form__add-variant"
+                  onClick={addVariant}
+                >
+                  + Ajouter une variante
+                </button>
               </div>
             </div>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <button type="submit">{editingId ? 'Mettre à jour' : 'Ajouter'}</button>
-            {editingId && (
-              <button type="button" style={{ marginLeft: 8 }} onClick={() => { setForm(emptyForm); setEditingId(null); }}>Annuler</button>
-            )}
-          </div>
-        </form>
-      )}
-
-      {loading && <p>Chargement…</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {!loading && !error && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 8 }}>Code</th>
-                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 8 }}>Nom</th>
-                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 8 }}>Variantes (stock)</th>
-                <th style={{ textAlign: 'right', borderBottom: '1px solid #ccc', padding: 8 }}>Prix d'achat</th>
-                <th style={{ textAlign: 'right', borderBottom: '1px solid #ccc', padding: 8 }}>Prix de vente</th>
-                <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 8 }}>Image</th>
-                {canEdit && <th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => (
-                <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 8 }}>{p.code || '-'}</td>
-                  <td style={{ padding: 8 }}>{p.name}</td>
-                  <td style={{ padding: 8 }}>{(p.variants && p.variants.length) ? p.variants.map(v => `${v.name} (${v.quantity})`).join(', ') : '-'}</td>
-                  <td style={{ padding: 8, textAlign: 'right' }}>{p.costPrice?.toFixed(2)}</td>
-                  <td style={{ padding: 8, textAlign: 'right' }}>{p.salePrice?.toFixed(2)}</td>
-                  <td style={{ padding: 8 }}>
-                    {p.image ? <img src={p.image} alt={p.name} style={{ maxHeight: 40 }} /> : '-'}
-                  </td>
-                  {canEdit && (
-                    <td style={{ padding: 8 }}>
-                      <button onClick={() => edit(p)}>Modifier</button>
-                      <button style={{ marginLeft: 8 }} onClick={() => del(p.id)}>Supprimer</button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={canEdit ? 6 : 5} style={{ padding: 12 }}>Aucun produit trouvé.</td>
-                </tr>
+            <div className="products-form__actions">
+              <button 
+                type="submit" 
+                className="products-button products-button--primary"
+              >
+                {editingId ? 'Mettre à jour' : 'Ajouter le produit'}
+              </button>
+              {editingId && (
+                <button 
+                  type="button" 
+                  className="products-button products-button--secondary"
+                  onClick={() => { setForm(emptyForm); setEditingId(null); }}
+                >
+                  Annuler
+                </button>
               )}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </div>
+          </form>
+        )}
+
+        {loading && <div className="products-state products-state--loading">Chargement des produits...</div>}
+        {error && <div className="products-state products-state--error">{error}</div>}
+
+        {!loading && !error && (
+          <>
+            {filtered.length === 0 ? (
+              <div className="products-empty">
+                <div className="products-empty__icon">📦</div>
+                <div className="products-empty__title">Aucun produit trouvé</div>
+                <div className="products-empty__subtitle">
+                  {query ? 'Essayez de modifier votre recherche' : 'Commencez par ajouter votre premier produit'}
+                </div>
+              </div>
+            ) : (
+              <div className="products-table-wrapper">
+                <table className="products-table">
+                  <thead>
+                    <tr>
+                      <th className="products-table__header">Code</th>
+                      <th className="products-table__header">Nom</th>
+                      <th className="products-table__header">Variantes</th>
+                      <th className="products-table__header">Prix d'achat</th>
+                      <th className="products-table__header">Prix de vente</th>
+                      <th className="products-table__header">Image</th>
+                      {canEdit && <th className="products-table__header">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(p => (
+                      <tr key={p.id} className="products-row">
+                        <td className="products-table__cell">{p.code || '-'}</td>
+                        <td className="products-table__cell">
+                          <strong>{p.name}</strong>
+                        </td>
+                        <td className="products-table__cell products-table__cell--variants">
+                          {(p.variants && p.variants.length) ? (
+                            <div className="products-table__variants">
+                              {p.variants.map((v, idx) => (
+                                <span 
+                                  key={idx}
+                                  className={`products-table__variant ${
+                                    v.quantity <= 0 ? 'products-table__variant--out-of-stock' :
+                                    v.quantity <= 5 ? 'products-table__variant--low-stock' : ''
+                                  }`}
+                                >
+                                  {v.name} ({v.quantity})
+                                </span>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="products-table__cell products-table__cell--price">
+                          {p.costPrice?.toFixed(2)} €
+                        </td>
+                        <td className="products-table__cell products-table__cell--price">
+                          {p.salePrice?.toFixed(2)} €
+                        </td>
+                        <td className="products-table__cell products-table__cell--image">
+                          {p.image ? (
+                            <img src={p.image} alt={p.name} />
+                          ) : '-'}
+                        </td>
+                        {canEdit && (
+                          <td className="products-table__cell">
+                            <div className="products-table__actions">
+                              <button 
+                                className="products-table__action-button products-table__action-button--edit"
+                                onClick={() => edit(p)}
+                              >
+                                Modifier
+                              </button>
+                              <button 
+                                className="products-table__action-button products-table__action-button--delete"
+                                onClick={() => del(p.id)}
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
