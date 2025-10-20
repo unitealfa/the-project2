@@ -345,6 +345,7 @@ const DHD_API_TOKEN =
   "FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i";
 const DHD_CREATE_PATH = "/api/v1/create/order";
 const DHD_TRACKING_PATH = "/api/v1/get/tracking/info";
+const DHD_UPDATES_PATH = "/api/v1/get/maj";
 
 const buildDhdUrl = (path: string) => `${DHD_API_BASE_URL}${path}`;
 
@@ -365,15 +366,219 @@ const DHD_SHIPPED_STATUSES = new Set<string>([
   "en livraison",
 ]);
 
+const toNormalizedKeywords = (values: readonly string[]) =>
+  values
+    .map((value) => normalizeStatus(value))
+    .filter((value) => Boolean(value)) as string[];
+
+const DHD_SHIPPED_KEYWORDS = toNormalizedKeywords([
+  ...Array.from(DHD_SHIPPED_STATUSES),
+  "livraison",
+  "prise en charge",
+  "ramassage",
+  "ramasse",
+  "collecte",
+  "en cours de livraison",
+  "en route",
+  "depart station",
+  "depart wilaya",
+]);
+
+const DHD_DELIVERED_KEYWORDS = toNormalizedKeywords([
+  "livre",
+  "livree",
+  "colis livre",
+  "commande livree",
+  "livre au client",
+  "livraison reussie",
+  "delivered",
+  "delivery done",
+]);
+
+const DHD_RETURNED_KEYWORDS = toNormalizedKeywords([
+  "retour",
+  "retours",
+  "retourne",
+  "retournee",
+  "retour vers expediteur",
+  "return to sender",
+  "returned",
+  "refus",
+  "refuse",
+  "client refuse",
+  "colis refuse",
+  "refusee",
+]);
+
+const DHD_DELIVERED_KEYWORDS_AR = [
+  "تم التسليم",
+  "تم التوصيل",
+  "سلمت",
+  "سُلِّم",
+];
+
+const DHD_RETURNED_KEYWORDS_AR = [
+  "راجع",
+  "تم الارجاع",
+  "تم الإرجاع",
+  "مرتجع",
+  "رفض الاستلام",
+];
+
+const DHD_SHIPPED_KEYWORDS_AR = [
+  "تم الشحن",
+  "في الطريق",
+  "في التوصيل",
+];
+
+const containsNormalizedKeyword = (
+  normalizedText: string,
+  keywords: readonly string[]
+) => keywords.some((keyword) => normalizedText.includes(keyword));
+
+const containsRawKeyword = (text: string, keywords: readonly string[]) =>
+  keywords.some((keyword) => keyword && text.includes(keyword));
+
+
 const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
   if (typeof status !== "string") return null;
   const trimmedStatus = status.trim();
   if (!trimmedStatus) return null;
   const normalized = normalizeStatus(trimmedStatus);
-  if (DHD_SHIPPED_STATUSES.has(normalized)) {
+  
+  if (
+    containsNormalizedKeyword(normalized, DHD_RETURNED_KEYWORDS) ||
+    containsRawKeyword(trimmedStatus, DHD_RETURNED_KEYWORDS_AR)
+  ) {
+    return "retours";
+  }
+
+  if (
+    containsNormalizedKeyword(normalized, DHD_DELIVERED_KEYWORDS) ||
+    containsRawKeyword(trimmedStatus, DHD_DELIVERED_KEYWORDS_AR)
+  ) {
+    return "livrée";
+  }
+
+  if (
+    DHD_SHIPPED_STATUSES.has(normalized) ||
+    containsNormalizedKeyword(normalized, DHD_SHIPPED_KEYWORDS) ||
+    containsRawKeyword(trimmedStatus, DHD_SHIPPED_KEYWORDS_AR)
+  ) {
     return "SHIPPED";
   }
+
   return trimmedStatus;
+};
+
+const extractDhdUpdates = (payload: unknown): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === "object") {
+    const candidates = [
+      (payload as any).data,
+      (payload as any).result,
+      (payload as any).updates,
+    ];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+  }
+  return [];
+};
+
+const parseUpdateTimestamp = (value: unknown): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return Number.NEGATIVE_INFINITY;
+    const isoCandidate = trimmed.replace(" ", "T");
+    const withTimezone = /\d{2}:\d{2}:\d{2}$/.test(isoCandidate)
+      ? `${isoCandidate}Z`
+      : isoCandidate;
+    const parsed = Date.parse(withTimezone);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+    const fallback = Number(trimmed);
+    if (Number.isFinite(fallback)) {
+      return fallback;
+    }
+  }
+  return Number.NEGATIVE_INFINITY;
+};
+
+const deriveStatusFromUpdateEntry = (entry: any): SheetStatus | null => {
+  if (entry == null) {
+    return null;
+  }
+  if (typeof entry === "string") {
+    return mapDhdStatusToSheet(entry);
+  }
+  if (typeof entry !== "object") {
+    return null;
+  }
+  const candidateKeys = [
+    "remarque",
+    "remark",
+    "status",
+    "statut",
+    "message",
+    "comment",
+    "commentaire",
+    "description",
+    "etat",
+  ];
+  for (const key of candidateKeys) {
+    const value = (entry as Record<string, unknown>)[key];
+    if (typeof value === "string") {
+      const mapped = mapDhdStatusToSheet(value);
+      if (mapped) {
+        return mapped;
+      }
+    }
+  }
+  return null;
+};
+
+const deriveStatusFromUpdates = (updates: any[]): SheetStatus | null => {
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return null;
+  }
+
+  const decorated = updates.map((entry, index) => ({
+    entry,
+    index,
+    timestamp: parseUpdateTimestamp(
+      entry?.created_at ??
+        entry?.createdAt ??
+        entry?.updated_at ??
+        entry?.updatedAt ??
+        entry?.date ??
+        entry?.datetime ??
+        entry?.timestamp ??
+        null
+    ),
+  }));
+
+  decorated.sort((a, b) => {
+    if (a.timestamp === b.timestamp) {
+      return b.index - a.index;
+    }
+    return b.timestamp - a.timestamp;
+  });
+
+  for (const item of decorated) {
+    const mapped = deriveStatusFromUpdateEntry(item.entry);
+    if (mapped) {
+      return mapped;
+    }
+  }
+
+  return null;
 };
 
 const normalizeFieldKey = (key: string) =>
@@ -935,6 +1140,61 @@ const Orders: React.FC = () => {
 
       const syncTrackingStatus = async (trackingValue: string) => {
         if (!trackingValue) return;
+
+        const updatesUrl = `${buildDhdUrl(
+          DHD_UPDATES_PATH
+        )}?tracking=${encodeURIComponent(trackingValue)}`;
+        const controllerUpdates = new AbortController();
+        const timeoutUpdates = setTimeout(
+          () => controllerUpdates.abort(),
+          10000
+        );
+
+        try {
+          const respUpdates = await fetch(updatesUrl, {
+            method: "GET",
+            headers: {
+              ...(DHD_API_TOKEN
+                ? { Authorization: `Bearer ${DHD_API_TOKEN}` }
+                : {}),
+            },
+            signal: controllerUpdates.signal,
+          });
+          const textUpdates = await respUpdates.text();
+          let dataUpdates: any;
+          try {
+            dataUpdates = JSON.parse(textUpdates);
+          } catch {
+            dataUpdates = textUpdates;
+          }
+
+          if (respUpdates.ok) {
+            const updatesList = extractDhdUpdates(dataUpdates);
+            const statusFromUpdates = deriveStatusFromUpdates(updatesList);
+            if (
+              statusFromUpdates &&
+              statusFromUpdates !== currentStatus
+            ) {
+              await applyStatusUpdate(statusFromUpdates, trackingValue);
+              return;
+            }
+          } else {
+            console.warn(
+              `HTTP ${respUpdates.status} lors de la récupération des mises à jour DHD`,
+              dataUpdates
+            );
+          }
+        } catch (updatesError) {
+          if (!isNetworkError(updatesError)) {
+            console.error(
+              "Erreur lors de la récupération des mises à jour DHD",
+              updatesError
+            );
+          }
+        } finally {
+          clearTimeout(timeoutUpdates);
+        }
+
         const trackingUrl = `${buildDhdUrl(
           DHD_TRACKING_PATH
         )}?tracking=${encodeURIComponent(trackingValue)}`;
@@ -976,10 +1236,12 @@ const Orders: React.FC = () => {
             await applyStatusUpdate(mappedStatus, trackingValue);
           }
         } catch (trackingError) {
-          console.error(
-            "Erreur lors de la récupération du statut DHD",
-            trackingError
-          );
+          if (!isNetworkError(trackingError)) {
+            console.error(
+              "Erreur lors de la récupération du statut DHD",
+              trackingError
+            );
+          }
         } finally {
           clearTimeout(timeoutTracking);
         }
