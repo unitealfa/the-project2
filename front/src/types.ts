@@ -6,16 +6,16 @@ export interface User {
   firstName: string;
   lastName:  string;
   email:     string;
-  role:      'admin' | 'gestionnaire' | 'confirmateur';
+  role:      'admin' | 'gestionnaire' | 'confirmateur' | 'livreur';
 }
 
-/** DTO pour la création d’un nouvel utilisateur */
+/** DTO pour la création d'un nouvel utilisateur */
 export interface CreateUserDto {
   firstName: string;
   lastName:  string;
   email:     string;
   password:  string;
-  role:      'gestionnaire' | 'confirmateur';
+  role:      'gestionnaire' | 'confirmateur' | 'livreur';
 }
 
 export interface ProductDto {

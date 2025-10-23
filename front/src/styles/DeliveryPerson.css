@@ -1,0 +1,244 @@
+.delivery-person-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  color: #111827;
+}
+
+.delivery-person-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.delivery-person-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.delivery-person-header p {
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.delivery-person-loading,
+.delivery-person-error {
+  text-align: center;
+  padding: 48px 20px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.delivery-person-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.delivery-person-error h2 {
+  color: #dc2626;
+  margin-bottom: 16px;
+}
+
+.delivery-person-error p {
+  color: #991b1b;
+  margin-bottom: 20px;
+}
+
+.delivery-person-retry {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delivery-person-retry:hover {
+  background: #b91c1c;
+}
+
+.delivery-person-empty {
+  text-align: center;
+  padding: 64px 20px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.delivery-person-empty h3 {
+  color: #374151;
+  margin-bottom: 12px;
+  font-size: 1.5rem;
+}
+
+.delivery-person-empty p {
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.delivery-person-orders {
+  display: grid;
+  gap: 24px;
+}
+
+.delivery-person-order {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.delivery-person-order:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.delivery-person-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.delivery-person-order-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.delivery-person-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-assigned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-in-progress {
+  background: #fde68a;
+  color: #b45309;
+}
+
+.status-delivered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.delivery-person-order-details {
+  margin-bottom: 24px;
+}
+
+.delivery-person-order-info {
+  margin-bottom: 20px;
+}
+
+.delivery-person-order-info p {
+  margin: 8px 0;
+  color: #374151;
+}
+
+.delivery-person-order-client {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.delivery-person-order-client h4 {
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.delivery-person-order-client p {
+  margin: 6px 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.delivery-person-order-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.delivery-person-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.delivery-person-btn--success {
+  background: #10b981;
+  color: white;
+}
+
+.delivery-person-btn--success:hover {
+  background: #059669;
+}
+
+.delivery-person-btn--danger {
+  background: #ef4444;
+  color: white;
+}
+
+.delivery-person-btn--danger:hover {
+  background: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .delivery-person-page {
+    padding: 20px 16px;
+  }
+  
+  .delivery-person-header h1 {
+    font-size: 2rem;
+  }
+  
+  .delivery-person-order {
+    padding: 20px;
+  }
+  
+  .delivery-person-order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .delivery-person-order-actions {
+    flex-direction: column;
+  }
+  
+  .delivery-person-btn {
+    width: 100%;
+  }
+}

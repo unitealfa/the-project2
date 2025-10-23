@@ -6,7 +6,7 @@ export interface IUser extends Document {
   lastName:  string;
   email:     string;
   password:  string;
-  role:      'admin' | 'gestionnaire' | 'confirmateur';
+  role:      'admin' | 'gestionnaire' | 'confirmateur' | 'livreur';
 }
 
 export default model<IUser>('User', UserSchema);

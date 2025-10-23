@@ -7,6 +7,7 @@ const roleLabels: Record<string, string> = {
   admin: 'Admin',
   gestionnaire: 'Gestionnaire',
   confirmateur: 'Confirmateur',
+  livreur: 'Livreur',
 };
 
 type NavItem = {
@@ -83,6 +84,7 @@ const Header: React.FC = () => {
     if (user.role === 'admin') return `/admin/${user.id}`;
     if (user.role === 'gestionnaire') return `/gestionnaire/${user.id}`;
     if (user.role === 'confirmateur') return `/confirmateur/${user.id}`;
+    if (user.role === 'livreur') return `/livreur/${user.id}`;
     return '/';
   }, [user.id, user.role]);
 
@@ -103,6 +105,10 @@ const Header: React.FC = () => {
         return [
           { label: 'Accueil', to: homePath },
           { label: 'Commandes', to: `/confirmateur/${user.id}/orders` },
+        ];
+      case 'livreur':
+        return [
+          { label: 'Mes Commandes', to: homePath },
         ];
       default:
         return [{ label: 'Accueil', to: homePath }];

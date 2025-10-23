@@ -29,6 +29,13 @@ const roleOptions: Array<{
     description:
       'Valide les demandes en attente et assure le contrôle qualité avant la mise à disposition.',
   },
+  {
+    value: 'livreur',
+    label: 'Livreur',
+    badge: 'Livraison',
+    description:
+      'Gère les livraisons et peut valider ou annuler les commandes qui lui sont assignées.',
+  },
 ];
 
 const CreateUser: React.FC = () => {

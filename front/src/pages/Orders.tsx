@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import DeliverySelection from "../components/DeliverySelection";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -152,6 +153,8 @@ type UpdateStatusContext = {
   previousStatus?: string;
   row?: OrderRow;
   tracking?: string;
+  deliveryType?: 'api_dhd' | 'livreur';
+  deliveryPersonId?: string;
 };
 
 type SheetStatus =
@@ -1179,12 +1182,24 @@ const Orders: React.FC = () => {
     const [submitting, setSubmitting] = React.useState<boolean>(false);
     const [delivering, setDelivering] = React.useState<boolean>(false);
     const [abandoning, setAbandoning] = React.useState<boolean>(false);
+    const [deliveryType, setDeliveryType] = React.useState<'api_dhd' | 'livreur'>('api_dhd');
+    const [deliveryPersonId, setDeliveryPersonId] = React.useState<string | null>(null);
 
     const handleSendToApi = React.useCallback(async () => {
+      // Récupérer les paramètres de livraison pour cette commande
+      const currentRowId = String(row["id-sheet"] || row["ID"] || "");
+      const deliverySettings = orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
+      const { deliveryType, deliveryPersonId } = deliverySettings;
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
       if (!confirmed) {
+        return;
+      }
+
+      // Validation : si le type de livraison est "livreur", un livreur doit être sélectionné
+      if (deliveryType === 'livreur' && !deliveryPersonId) {
+        alert('Veuillez sélectionner un livreur pour cette commande.');
         return;
       }
 
@@ -1285,6 +1300,8 @@ const Orders: React.FC = () => {
           previousStatus: currentStatus,
           row: { ...row, etat: nextStatus },
           tracking: trackingValue || undefined,
+          deliveryType: deliveryType,
+          deliveryPersonId: deliveryPersonId || undefined,
         });
         currentStatus = nextStatus;
       };
@@ -1653,6 +1670,7 @@ const Orders: React.FC = () => {
       rowId,
       currentComment,
       updateComment,
+      orderDeliverySettings,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -1735,6 +1753,14 @@ const Orders: React.FC = () => {
               Ce commentaire sera envoyé avec la commande.
             </p>
           </div>
+          
+          <DeliverySelection
+            onDeliveryTypeChange={setDeliveryType}
+            onDeliveryPersonChange={setDeliveryPersonId}
+            deliveryType={deliveryType}
+            deliveryPersonId={deliveryPersonId}
+          />
+          
           <div className={containerClass}>
             <button
               type="button"
@@ -2144,6 +2170,36 @@ Zm0 14H8V7h9v12Z"
           </div>
         </td>
 
+        <td className="orders-table__cell orders-table__cell--delivery">
+          <DeliverySelection
+            compact={true}
+            onDeliveryTypeChange={(type) => {
+              // Mettre à jour l'état local pour cette commande
+              const rowId = String(row["id-sheet"] || row["ID"] || "");
+              setOrderDeliverySettings(prev => ({
+                ...prev,
+                [rowId]: {
+                  ...prev[rowId],
+                  deliveryType: type,
+                  deliveryPersonId: type === 'api_dhd' ? null : prev[rowId]?.deliveryPersonId || null
+                }
+              }));
+            }}
+            onDeliveryPersonChange={(personId) => {
+              const rowId = String(row["id-sheet"] || row["ID"] || "");
+              setOrderDeliverySettings(prev => ({
+                ...prev,
+                [rowId]: {
+                  ...prev[rowId],
+                  deliveryPersonId: personId
+                }
+              }));
+            }}
+            deliveryType={orderDeliverySettings[String(row["id-sheet"] || row["ID"] || "")]?.deliveryType || 'api_dhd'}
+            deliveryPersonId={orderDeliverySettings[String(row["id-sheet"] || row["ID"] || "")]?.deliveryPersonId || null}
+          />
+        </td>
+
         <td className="orders-table__cell orders-table__cell--actions">
           <OrderActionButtons
             row={row}
@@ -2205,6 +2261,12 @@ Zm0 14H8V7h9v12Z"
     value: "",
     summary: null,
   });
+
+  // État pour gérer les paramètres de livraison de chaque commande
+  const [orderDeliverySettings, setOrderDeliverySettings] = React.useState<Record<string, {
+    deliveryType: 'api_dhd' | 'livreur';
+    deliveryPersonId: string | null;
+  }>>({});
 
   const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
@@ -2700,6 +2762,8 @@ Zm0 14H8V7h9v12Z"
             status,
             tracking: context?.tracking,
             row: context?.row,
+            deliveryType: context?.deliveryType,
+            deliveryPersonId: context?.deliveryPersonId,
           }),
         });
         const text = await res.text();
@@ -3699,6 +3763,7 @@ const productCode = extractProductCode(row);
                       Commentaire
                     </th>
 
+                    <th className="orders-table__header">Livraison</th>
                     <th className="orders-table__header">Action</th>
                     <th className="orders-table__header">Statut</th>
                   </tr>
