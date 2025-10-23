@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
+import DeliveryCell from "../components/DeliveryCell";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -2171,32 +2172,11 @@ Zm0 14H8V7h9v12Z"
         </td>
 
         <td className="orders-table__cell orders-table__cell--delivery">
-          <DeliverySelection
-            compact={true}
-            onDeliveryTypeChange={(type) => {
-              // Mettre à jour l'état local pour cette commande
-              const rowId = String(row["id-sheet"] || row["ID"] || "");
-              setOrderDeliverySettings(prev => ({
-                ...prev,
-                [rowId]: {
-                  ...prev[rowId],
-                  deliveryType: type,
-                  deliveryPersonId: type === 'api_dhd' ? null : prev[rowId]?.deliveryPersonId || null
-                }
-              }));
-            }}
-            onDeliveryPersonChange={(personId) => {
-              const rowId = String(row["id-sheet"] || row["ID"] || "");
-              setOrderDeliverySettings(prev => ({
-                ...prev,
-                [rowId]: {
-                  ...prev[rowId],
-                  deliveryPersonId: personId
-                }
-              }));
-            }}
-            deliveryType={orderDeliverySettings[String(row["id-sheet"] || row["ID"] || "")]?.deliveryType || 'api_dhd'}
-            deliveryPersonId={orderDeliverySettings[String(row["id-sheet"] || row["ID"] || "")]?.deliveryPersonId || null}
+          <DeliveryCell
+            row={row}
+            orderDeliverySettings={orderDeliverySettings}
+            setOrderDeliverySettings={setOrderDeliverySettings}
+            deliveryPersons={deliveryPersons}
           />
         </td>
 
@@ -2267,6 +2247,26 @@ Zm0 14H8V7h9v12Z"
     deliveryType: 'api_dhd' | 'livreur';
     deliveryPersonId: string | null;
   }>>({});
+
+  // État pour gérer la liste des livreurs
+  const [deliveryPersons, setDeliveryPersons] = React.useState<Array<{ id: string; name: string; email: string }>>([]);
+
+  // Charger la liste des livreurs une seule fois
+  React.useEffect(() => {
+    const fetchDeliveryPersons = async () => {
+      try {
+        const response = await fetch('/api/orders/delivery-persons');
+        const data = await response.json();
+        if (data.success) {
+          setDeliveryPersons(data.deliveryPersons);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des livreurs:', error);
+      }
+    };
+
+    fetchDeliveryPersons();
+  }, []);
 
   const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {

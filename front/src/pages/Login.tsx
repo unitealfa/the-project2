@@ -25,9 +25,24 @@ const Login: React.FC = () => {
   // Si déjà logué, on redirige automatiquement vers sa page home
   useEffect(() => {
     if (!user) return;
-    if (user.role === 'admin')        navigate(`/admin/${user.id}`,        { replace: true });
-    else if (user.role === 'gestionnaire') navigate(`/gestionnaire/${user.id}`, { replace: true });
-    else                               navigate(`/confirmateur/${user.id}`, { replace: true });
+    
+    const currentPath = window.location.pathname;
+    let targetPath = '';
+    
+    if (user.role === 'admin') {
+      targetPath = `/admin/${user.id}`;
+    } else if (user.role === 'gestionnaire') {
+      targetPath = `/gestionnaire/${user.id}`;
+    } else if (user.role === 'confirmateur') {
+      targetPath = `/confirmateur/${user.id}`;
+    } else if (user.role === 'livreur') {
+      targetPath = `/livreur/${user.id}`;
+    }
+    
+    // Ne naviguer que si on n'est pas déjà sur la bonne page
+    if (targetPath && currentPath !== targetPath) {
+      navigate(targetPath, { replace: true });
+    }
   }, [user, navigate]);
 
 

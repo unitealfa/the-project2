@@ -13,7 +13,7 @@ export interface IOrder extends Document {
 }
 
 const OrderSchema = new Schema({
-  rowId: { type: String, required: true },
+  rowId: { type: String, required: true, unique: true },
   status: { type: String, required: true },
   tracking: { type: String },
   deliveryType: { 
@@ -29,4 +29,4 @@ const OrderSchema = new Schema({
   timestamps: true
 });
 
-export default model<IOrder>('Order', OrderSchema);
+export default model<IOrder>('OrderDelivery', OrderSchema);

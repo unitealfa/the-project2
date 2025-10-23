@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface DeliverySelectionProps {
   onDeliveryTypeChange: (type: 'api_dhd' | 'livreur') => void;
@@ -6,6 +6,7 @@ interface DeliverySelectionProps {
   deliveryType: 'api_dhd' | 'livreur';
   deliveryPersonId: string | null;
   compact?: boolean; // Nouveau prop pour le mode compact
+  rowId?: string; // ID unique pour éviter les conflits
 }
 
 interface DeliveryPerson {
@@ -14,12 +15,13 @@ interface DeliveryPerson {
   email: string;
 }
 
-const DeliverySelection: React.FC<DeliverySelectionProps> = ({
+const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
   onDeliveryTypeChange,
   onDeliveryPersonChange,
   deliveryType,
   deliveryPersonId,
-  compact = false
+  compact = false,
+  rowId = 'default'
 }) => {
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,34 +45,49 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = ({
     fetchDeliveryPersons();
   }, []);
 
+  const currentValue = useMemo(() => {
+    return deliveryType === 'api_dhd' ? 'api_dhd' : deliveryPersonId || 'api_dhd';
+  }, [deliveryType, deliveryPersonId]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'api_dhd') {
+      onDeliveryTypeChange('api_dhd');
+      onDeliveryPersonChange(null);
+    } else {
+      onDeliveryTypeChange('livreur');
+      onDeliveryPersonChange(value);
+    }
+  }, [onDeliveryTypeChange, onDeliveryPersonChange]);
+
+  const dropdownOptions = useMemo(() => {
+    return (
+      <>
+        <option value="api_dhd">DHD (par défaut)</option>
+        {deliveryPersons.length === 0 && !loading ? (
+          <option value="" disabled>Aucun livreur disponible</option>
+        ) : (
+          deliveryPersons.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.name}
+            </option>
+          ))
+        )}
+      </>
+    );
+  }, [deliveryPersons, loading]);
+
   if (compact) {
     return (
       <div className="delivery-selection-compact">
         <select
-          value={deliveryType === 'api_dhd' ? 'api_dhd' : deliveryPersonId || ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value === 'api_dhd') {
-              onDeliveryTypeChange('api_dhd');
-              onDeliveryPersonChange(null);
-            } else {
-              onDeliveryTypeChange('livreur');
-              onDeliveryPersonChange(value);
-            }
-          }}
+          key={`delivery-select-${rowId}`}
+          value={currentValue}
+          onChange={handleChange}
           className="delivery-selection-compact__select"
           disabled={loading}
         >
-          <option value="api_dhd">DHD (par défaut)</option>
-          {deliveryPersons.length === 0 && !loading ? (
-            <option value="" disabled>Aucun livreur disponible</option>
-          ) : (
-            deliveryPersons.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))
-          )}
+          {dropdownOptions}
         </select>
       </div>
     );
@@ -128,6 +145,8 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = ({
       )}
     </div>
   );
-};
+});
+
+DeliverySelection.displayName = 'DeliverySelection';
 
 export default DeliverySelection;

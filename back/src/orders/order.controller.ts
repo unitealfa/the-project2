@@ -47,11 +47,28 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       row
     };
 
-    await Order.findOneAndUpdate(
+    console.log('💾 Sauvegarde de la commande:', {
+      rowId: String(rowId),
+      status: String(status),
+      deliveryType: deliveryType || 'api_dhd',
+      deliveryPersonId: deliveryType === 'livreur' ? deliveryPersonId : undefined,
+      deliveryPersonName
+    });
+
+    const savedOrder = await Order.findOneAndUpdate(
       { rowId: String(rowId) },
       orderData,
       { upsert: true, new: true }
     );
+
+    console.log('✅ Commande sauvegardée:', {
+      _id: savedOrder._id,
+      rowId: savedOrder.rowId,
+      status: savedOrder.status,
+      deliveryType: savedOrder.deliveryType,
+      deliveryPersonId: savedOrder.deliveryPersonId,
+      deliveryPersonName: savedOrder.deliveryPersonName
+    });
 
     return res.json({
       success: true,
@@ -94,11 +111,53 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
   try {
     const { deliveryPersonId } = req.params;
     
-    const orders = await Order.find({ 
-      deliveryPersonId,
+    console.log('🔍 Recherche des commandes pour le livreur:', deliveryPersonId);
+    
+    // Rechercher avec l'ID exact (string) et aussi avec ObjectId si c'est un ObjectId valide
+    const query: any = {
       deliveryType: 'livreur',
-      status: { $in: ['En cours', 'Assigné', 'En attente'] }
-    }).sort({ updatedAt: -1 });
+      status: { 
+        $in: [
+          'En cours', 
+          'Assigné', 
+          'En attente', 
+          'ready_to_ship',
+          'En préparation',
+          'Prêt à expédier',
+          'En livraison',
+          'En cours de livraison',
+          'delivered',
+          'returned'
+        ] 
+      }
+    };
+    
+    // Essayer de matcher l'ID comme string d'abord
+    query.deliveryPersonId = deliveryPersonId;
+    
+    let orders = await Order.find(query).sort({ updatedAt: -1 });
+    
+    console.log(`📦 Trouvé ${orders.length} commandes avec deliveryPersonId string`);
+    
+    // Si aucune commande trouvée, essayer avec ObjectId
+    if (orders.length === 0) {
+      try {
+        const mongoose = require('mongoose');
+        const objectId = new mongoose.Types.ObjectId(deliveryPersonId);
+        query.deliveryPersonId = objectId;
+        orders = await Order.find(query).sort({ updatedAt: -1 });
+        console.log(`📦 Trouvé ${orders.length} commandes avec deliveryPersonId ObjectId`);
+      } catch (objectIdError) {
+        console.log('❌ Erreur lors de la conversion en ObjectId:', objectIdError);
+      }
+    }
+    
+    // Debug: afficher toutes les commandes avec deliveryType 'livreur'
+    const allDeliveryOrders = await Order.find({ deliveryType: 'livreur' });
+    console.log(`📦 Total des commandes pour livreurs: ${allDeliveryOrders.length}`);
+    allDeliveryOrders.forEach(order => {
+      console.log(`   - Commande ${order.rowId}: deliveryPersonId="${order.deliveryPersonId}" (type: ${typeof order.deliveryPersonId})`);
+    });
     
     return res.json({
       success: true,
@@ -106,6 +165,7 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des commandes';
+    console.error('❌ Erreur dans getDeliveryPersonOrders:', error);
     return res.status(500).json({
       success: false,
       message,

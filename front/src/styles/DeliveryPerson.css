@@ -215,6 +215,21 @@
   background: #dc2626;
 }
 
+.delivery-person-order-completed {
+  text-align: center;
+  padding: 16px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+.delivery-person-completed-message {
+  margin: 0;
+  font-weight: 500;
+  color: #0369a1;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 768px) {
   .delivery-person-page {
     padding: 20px 16px;

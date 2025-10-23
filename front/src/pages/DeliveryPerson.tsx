@@ -54,7 +54,7 @@ const DeliveryPerson: React.FC = () => {
         },
         body: JSON.stringify({
           rowId: orderId,
-          status: action === 'validate' ? 'Livrée' : 'Annulée',
+          status: action === 'validate' ? 'delivered' : 'returned',
           deliveryType: 'livreur',
           deliveryPersonId: user?.id,
         }),
@@ -88,8 +88,10 @@ const DeliveryPerson: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'delivered':
       case 'livrée':
         return 'status-delivered';
+      case 'returned':
       case 'annulée':
         return 'status-cancelled';
       case 'en cours':
@@ -172,20 +174,32 @@ const DeliveryPerson: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="delivery-person-order-actions">
-                    <button
-                      onClick={() => handleOrderAction(order.rowId, 'validate')}
-                      className="delivery-person-btn delivery-person-btn--success"
-                    >
-                      Valider la livraison
-                    </button>
-                    <button
-                      onClick={() => handleOrderAction(order.rowId, 'cancel')}
-                      className="delivery-person-btn delivery-person-btn--danger"
-                    >
-                      Annuler (Retour)
-                    </button>
-                  </div>
+                  {order.status !== 'delivered' && order.status !== 'returned' && order.status !== 'Livrée' && order.status !== 'Annulée' && (
+                    <div className="delivery-person-order-actions">
+                      <button
+                        onClick={() => handleOrderAction(order.rowId, 'validate')}
+                        className="delivery-person-btn delivery-person-btn--success"
+                      >
+                        Valider la livraison
+                      </button>
+                      <button
+                        onClick={() => handleOrderAction(order.rowId, 'cancel')}
+                        className="delivery-person-btn delivery-person-btn--danger"
+                      >
+                        Annuler (Retour)
+                      </button>
+                    </div>
+                  )}
+                  
+                  {(order.status === 'delivered' || order.status === 'returned' || order.status === 'Livrée' || order.status === 'Annulée') && (
+                    <div className="delivery-person-order-completed">
+                      <p className="delivery-person-completed-message">
+                        {(order.status === 'delivered' || order.status === 'Livrée')
+                          ? '✅ Commande livrée avec succès' 
+                          : '❌ Commande annulée'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
