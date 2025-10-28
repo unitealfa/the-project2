@@ -1233,6 +1233,59 @@ const Orders: React.FC = () => {
         orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
       const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
       const apiConfig = resolveDeliveryApiConfig(selectedDeliveryType);
+      const showToast = (
+        message: string,
+        variant: 'success' | 'warning' = 'success',
+        duration = variant === 'success' ? 3000 : 5000
+      ) => {
+        if (typeof document === "undefined") {
+          return;
+        }
+
+        const baseStyles: Record<string, string> = {
+          position: "fixed",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          color: "#fff",
+          padding: "12px 18px",
+          borderRadius: "12px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          fontSize: "0.9rem",
+          fontWeight: "600",
+          zIndex: "2000",
+          opacity: "0",
+          transition: "opacity 0.3s ease",
+          maxWidth: "90%",
+          textAlign: "center",
+          pointerEvents: "none",
+        };
+
+        const gradients: Record<'success' | 'warning', string> = {
+          success: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+          warning: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        };
+
+        const toast = document.createElement("div");
+        toast.textContent = message;
+        Object.assign(toast.style, baseStyles, { background: gradients[variant] });
+        document.body.appendChild(toast);
+
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => {
+            toast.style.opacity = "1";
+          });
+        } else {
+          setTimeout(() => {
+            toast.style.opacity = "1";
+          }, 0);
+        }
+
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 400);
+        }, duration);
+      };
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
@@ -1488,19 +1541,25 @@ const Orders: React.FC = () => {
       };
 
       try {
-        
-        
+        let stockUpdateFailedMessage: string | null = null;
         try {
           await ensureStockDecremented();
         } catch (stockError) {
-          const stockMessage =
+          stockUpdateFailedMessage =
             stockError instanceof Error
               ? stockError.message
               : String(stockError);
-          alert(
-            `❌ Stock indisponible\n\nClient: ${nom_client}\n\nErreur: ${stockMessage}`
+          console.error(
+            "Échec de la décrémentation du stock avant envoi de commande:",
+            stockError
           );
-          return;
+          const productLabel =
+            stockPayload.name || stockPayload.code || "ce produit";
+          showToast(
+            `⚠️ Stock non mis à jour pour ${productLabel}. La commande sera envoyée quand même.\n(${stockUpdateFailedMessage})`,
+            "warning",
+            6000
+          );
         }
 
         const url = buildDeliveryApiUrl(apiConfig.baseUrl, DHD_CREATE_PATH);
@@ -1554,30 +1613,19 @@ const Orders: React.FC = () => {
           const trackingValue = resolveTracking(responseData) || "N/A";
 
 
-          const toast = document.createElement("div");
-          toast.textContent = `✅ Commande envoyée avec succès (${nom_client}) via ${apiConfig.label}`;
-          Object.assign(toast.style, {
-            position: "fixed",
-            bottom: "24px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-            color: "#fff",
-            padding: "12px 18px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
-            fontSize: "0.9rem",
-            fontWeight: "600",
-            zIndex: "2000",
-            opacity: "0",
-            transition: "opacity 0.3s ease",
-          });
-          document.body.appendChild(toast);
-          setTimeout(() => (toast.style.opacity = "1"), 50);
-          setTimeout(() => {
-            toast.style.opacity = "0";
-            setTimeout(() => toast.remove(), 400);
-          }, 3000);
+          showToast(
+            `✅ Commande envoyée avec succès (${nom_client}) via ${apiConfig.label}`,
+            "success",
+            3200
+          );
+          if (stockUpdateFailedMessage) {
+            showToast(
+              `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"}.`,
+              "warning",
+              6000
+            );
+            stockUpdateFailedMessage = null;
+          }
 
           await applyStatusUpdate("ready_to_ship", trackingValue);
           await syncTrackingStatus(
