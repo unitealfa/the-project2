@@ -144,6 +144,182 @@ const computeRowSaleAmount = (row: Record<string, string>, quantity: number): nu
   return Number.isNaN(fallback) ? 0 : fallback;
 };
 
+const DEFAULT_WILAYA_ID = 16;
+
+const WILAYAS: { id: number; name: string }[] = [
+  { id: 1, name: "Adrar" },
+  { id: 2, name: "Chlef" },
+  { id: 3, name: "Laghouat" },
+  { id: 4, name: "Oum El Bouaghi" },
+  { id: 5, name: "Batna" },
+  { id: 6, name: "Béjaïa" },
+  { id: 7, name: "Biskra" },
+  { id: 8, name: "Béchar" },
+  { id: 9, name: "Blida" },
+  { id: 10, name: "Bouira" },
+  { id: 11, name: "Tamanrasset" },
+  { id: 12, name: "Tébessa" },
+  { id: 13, name: "Tlemcen" },
+  { id: 14, name: "Tiaret" },
+  { id: 15, name: "Tizi Ouzou" },
+  { id: 16, name: "Alger" },
+  { id: 17, name: "Djelfa" },
+  { id: 18, name: "Jijel" },
+  { id: 19, name: "Sétif" },
+  { id: 20, name: "Saïda" },
+  { id: 21, name: "Skikda" },
+  { id: 22, name: "Sidi Bel Abbès" },
+  { id: 23, name: "Annaba" },
+  { id: 24, name: "Guelma" },
+  { id: 25, name: "Constantine" },
+  { id: 26, name: "Médéa" },
+  { id: 27, name: "Mostaganem" },
+  { id: 28, name: "M'Sila" },
+  { id: 29, name: "Mascara" },
+  { id: 30, name: "Ouargla" },
+  { id: 31, name: "Oran" },
+  { id: 32, name: "El Bayadh" },
+  { id: 33, name: "Illizi" },
+  { id: 34, name: "Bordj Bou Arreridj" },
+  { id: 35, name: "Boumerdès" },
+  { id: 36, name: "El Tarf" },
+  { id: 37, name: "Tindouf" },
+  { id: 38, name: "Tissemsilt" },
+  { id: 39, name: "El Oued" },
+  { id: 40, name: "Khenchela" },
+  { id: 41, name: "Souk Ahras" },
+  { id: 42, name: "Tipaza" },
+  { id: 43, name: "Mila" },
+  { id: 44, name: "Aïn Defla" },
+  { id: 45, name: "Naâma" },
+  { id: 46, name: "Aïn Témouchent" },
+  { id: 47, name: "Ghardaïa" },
+  { id: 48, name: "Relizane" },
+  { id: 49, name: "Timimoun" },
+  { id: 51, name: "Ouled Djellal" },
+  { id: 52, name: "Beni Abbes" },
+  { id: 53, name: "In Salah" },
+  { id: 55, name: "Touggourt" },
+  { id: 57, name: "El M'Ghair" },
+  { id: 58, name: "El Meniaa" },
+];
+
+type DeliveryTariffs = { domicile: number; stop: number };
+
+const DELIVERY_TARIFFS: Record<number, DeliveryTariffs> = {
+  1: { domicile: 1100, stop: 600 },
+  2: { domicile: 700, stop: 400 },
+  3: { domicile: 900, stop: 500 },
+  4: { domicile: 800, stop: 400 },
+  5: { domicile: 800, stop: 400 },
+  6: { domicile: 700, stop: 400 },
+  7: { domicile: 900, stop: 500 },
+  8: { domicile: 1100, stop: 600 },
+  9: { domicile: 500, stop: 250 },
+  10: { domicile: 650, stop: 400 },
+  11: { domicile: 1300, stop: 800 },
+  12: { domicile: 800, stop: 500 },
+  13: { domicile: 800, stop: 400 },
+  14: { domicile: 800, stop: 400 },
+  15: { domicile: 650, stop: 400 },
+  16: { domicile: 400, stop: 200 },
+  17: { domicile: 900, stop: 500 },
+  18: { domicile: 700, stop: 400 },
+  19: { domicile: 700, stop: 400 },
+  20: { domicile: 800, stop: 400 },
+  21: { domicile: 700, stop: 400 },
+  22: { domicile: 700, stop: 400 },
+  23: { domicile: 700, stop: 400 },
+  24: { domicile: 800, stop: 400 },
+  25: { domicile: 700, stop: 400 },
+  26: { domicile: 600, stop: 400 },
+  27: { domicile: 700, stop: 400 },
+  28: { domicile: 800, stop: 500 },
+  29: { domicile: 700, stop: 400 },
+  30: { domicile: 1000, stop: 500 },
+  31: { domicile: 700, stop: 400 },
+  32: { domicile: 1000, stop: 500 },
+  33: { domicile: 1300, stop: 600 },
+  34: { domicile: 700, stop: 400 },
+  35: { domicile: 600, stop: 350 },
+  36: { domicile: 800, stop: 400 },
+  37: { domicile: 1300, stop: 600 },
+  38: { domicile: 800, stop: 400 },
+  39: { domicile: 900, stop: 500 },
+  40: { domicile: 800, stop: 500 },
+  41: { domicile: 800, stop: 500 },
+  42: { domicile: 600, stop: 350 },
+  43: { domicile: 700, stop: 400 },
+  44: { domicile: 600, stop: 400 },
+  45: { domicile: 1000, stop: 500 },
+  46: { domicile: 700, stop: 400 },
+  47: { domicile: 1000, stop: 500 },
+  48: { domicile: 700, stop: 400 },
+  49: { domicile: 1300, stop: 600 },
+  51: { domicile: 900, stop: 500 },
+  52: { domicile: 1300, stop: 0 },
+  53: { domicile: 1300, stop: 600 },
+  55: { domicile: 900, stop: 500 },
+  57: { domicile: 900, stop: 0 },
+  58: { domicile: 1000, stop: 500 },
+};
+
+const getWilayaIdByName = (name: string | undefined): number => {
+  const target = name ? normalizeLookupValue(name) : "";
+  if (!target) {
+    return DEFAULT_WILAYA_ID;
+  }
+  const found = WILAYAS.find(
+    wilaya => normalizeLookupValue(wilaya.name) === target
+  );
+  return found ? found.id : DEFAULT_WILAYA_ID;
+};
+
+const getDeliveryTariff = (
+  wilayaCode: number | string | undefined,
+  stopDeskFlag: string | number | undefined
+): number => {
+  const rawCode =
+    typeof wilayaCode === "string"
+      ? Number.parseInt(wilayaCode, 10)
+      : wilayaCode ?? DEFAULT_WILAYA_ID;
+  const safeCode =
+    typeof rawCode === "number" && Number.isFinite(rawCode)
+      ? rawCode
+      : DEFAULT_WILAYA_ID;
+  const tariffs = DELIVERY_TARIFFS[safeCode] ?? DELIVERY_TARIFFS[DEFAULT_WILAYA_ID];
+  if (!tariffs) {
+    return 0;
+  }
+  const flag = String(stopDeskFlag ?? "0").trim();
+  const isStopDesk = flag === "1";
+  return isStopDesk ? tariffs.stop : tariffs.domicile;
+};
+
+const resolveDeliveryFeeForRow = (row: Record<string, string>): number => {
+  const storedFee = parseAmountValue(row["__FRAIS_LIVRAISON__"]);
+  if (storedFee !== null) {
+    return storedFee;
+  }
+
+  const wilayaCode = getWilayaIdByName(row["Wilaya"]);
+  const rawType = String(
+    row["Type de livraison"] ?? row["Mode de livraison"] ?? ""
+  ).toLowerCase();
+  const stopFlag = rawType.includes("stop") ? "1" : "0";
+
+  return getDeliveryTariff(wilayaCode, stopFlag);
+};
+
+const computeNetSaleAmount = (
+  row: Record<string, string>,
+  quantity: number
+): number => {
+  const saleAmount = computeRowSaleAmount(row, quantity);
+  const deliveryFee = resolveDeliveryFeeForRow(row);
+  return saleAmount - deliveryFee;
+};
+
 type TimeFilter = "all" | "day" | "week" | "month" | "customMonth" | "year";
 type ChartRangeMode = "recent" | "month" | "year";
 
@@ -523,141 +699,6 @@ const Admin: React.FC = () => {
       return out;
     };
 
-    const WILAYAS = [
-      { id: 1, name: "Adrar" },
-      { id: 2, name: "Chlef" },
-      { id: 3, name: "Laghouat" },
-      { id: 4, name: "Oum El Bouaghi" },
-      { id: 5, name: "Batna" },
-      { id: 6, name: "Béjaïa" },
-      { id: 7, name: "Biskra" },
-      { id: 8, name: "Béchar" },
-      { id: 9, name: "Blida" },
-      { id: 10, name: "Bouira" },
-      { id: 11, name: "Tamanrasset" },
-      { id: 12, name: "Tébessa" },
-      { id: 13, name: "Tlemcen" },
-      { id: 14, name: "Tiaret" },
-      { id: 15, name: "Tizi Ouzou" },
-      { id: 16, name: "Alger" },
-      { id: 17, name: "Djelfa" },
-      { id: 18, name: "Jijel" },
-      { id: 19, name: "Sétif" },
-      { id: 20, name: "Saïda" },
-      { id: 21, name: "Skikda" },
-      { id: 22, name: "Sidi Bel Abbès" },
-      { id: 23, name: "Annaba" },
-      { id: 24, name: "Guelma" },
-      { id: 25, name: "Constantine" },
-      { id: 26, name: "Médéa" },
-      { id: 27, name: "Mostaganem" },
-      { id: 28, name: "M'Sila" },
-      { id: 29, name: "Mascara" },
-      { id: 30, name: "Ouargla" },
-      { id: 31, name: "Oran" },
-      { id: 32, name: "El Bayadh" },
-      { id: 33, name: "Illizi" },
-      { id: 34, name: "Bordj Bou Arreridj" },
-      { id: 35, name: "Boumerdès" },
-      { id: 36, name: "El Tarf" },
-      { id: 37, name: "Tindouf" },
-      { id: 38, name: "Tissemsilt" },
-      { id: 39, name: "El Oued" },
-      { id: 40, name: "Khenchela" },
-      { id: 41, name: "Souk Ahras" },
-      { id: 42, name: "Tipaza" },
-      { id: 43, name: "Mila" },
-      { id: 44, name: "Aïn Defla" },
-      { id: 45, name: "Naâma" },
-      { id: 46, name: "Aïn Témouchent" },
-      { id: 47, name: "Ghardaïa" },
-      { id: 48, name: "Relizane" },
-    ];
-
-    const DELIVERY_TARIFFS: Record<number, { domicile: number; stop: number }> = {
-      1: { domicile: 1100, stop: 600 },
-      2: { domicile: 700, stop: 400 },
-      3: { domicile: 900, stop: 500 },
-      4: { domicile: 800, stop: 400 },
-      5: { domicile: 800, stop: 400 },
-      6: { domicile: 700, stop: 400 },
-      7: { domicile: 900, stop: 500 },
-      8: { domicile: 1100, stop: 600 },
-      9: { domicile: 500, stop: 250 },
-      10: { domicile: 650, stop: 400 },
-      11: { domicile: 1300, stop: 800 },
-      12: { domicile: 800, stop: 500 },
-      13: { domicile: 800, stop: 400 },
-      14: { domicile: 800, stop: 400 },
-      15: { domicile: 650, stop: 400 },
-      16: { domicile: 400, stop: 200 },
-      17: { domicile: 900, stop: 500 },
-      18: { domicile: 700, stop: 400 },
-      19: { domicile: 700, stop: 400 },
-      20: { domicile: 800, stop: 400 },
-      21: { domicile: 700, stop: 400 },
-      22: { domicile: 700, stop: 400 },
-      23: { domicile: 700, stop: 400 },
-      24: { domicile: 800, stop: 400 },
-      25: { domicile: 700, stop: 400 },
-      26: { domicile: 600, stop: 400 },
-      27: { domicile: 700, stop: 400 },
-      28: { domicile: 800, stop: 500 },
-      29: { domicile: 700, stop: 400 },
-      30: { domicile: 1000, stop: 500 },
-      31: { domicile: 700, stop: 400 },
-      32: { domicile: 1000, stop: 500 },
-      33: { domicile: 1300, stop: 600 },
-      34: { domicile: 700, stop: 400 },
-      35: { domicile: 600, stop: 350 },
-      36: { domicile: 800, stop: 400 },
-      37: { domicile: 1300, stop: 600 },
-      38: { domicile: 800, stop: 400 },
-      39: { domicile: 900, stop: 500 },
-      40: { domicile: 800, stop: 500 },
-      41: { domicile: 800, stop: 500 },
-      42: { domicile: 600, stop: 350 },
-      43: { domicile: 700, stop: 400 },
-      44: { domicile: 600, stop: 400 },
-      45: { domicile: 1000, stop: 500 },
-      46: { domicile: 700, stop: 400 },
-      47: { domicile: 1000, stop: 500 },
-      48: { domicile: 700, stop: 400 },
-      49: { domicile: 1300, stop: 600 },
-      51: { domicile: 900, stop: 500 },
-      52: { domicile: 1300, stop: 0 },
-      53: { domicile: 1300, stop: 600 },
-      55: { domicile: 900, stop: 500 },
-      57: { domicile: 900, stop: 0 },
-      58: { domicile: 1000, stop: 500 },
-    };
-
-    const getWilayaIdByName = (name: string) => {
-      const normalize = (s: string) =>
-        (s || "")
-          .trim()
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, " ");
-      const target = normalize(name);
-      const found = WILAYAS.find(w => normalize(w.name) === target);
-      return found ? found.id : 16;
-    };
-
-    const getDeliveryTariff = (
-      wilayaCode: number | string,
-      stopDeskFlag: string | number
-    ) => {
-      const code = typeof wilayaCode === "string" ? parseInt(wilayaCode, 10) : wilayaCode;
-      const isStop = String(stopDeskFlag) === "1";
-      const safe = !code || Number.isNaN(code) ? 16 : code;
-      let tariffs = DELIVERY_TARIFFS[safe];
-      if (!tariffs) tariffs = DELIVERY_TARIFFS[16];
-      if (!tariffs) return 0;
-      return isStop ? tariffs.stop : tariffs.domicile;
-    };
-
     const normalizeAmount = (amount: string): number => {
       if (!amount) return 1000;
       const normalized = amount.replace(/[^\d.,]/g, "").replace(",", ".");
@@ -696,6 +737,7 @@ const Admin: React.FC = () => {
               : "0";
             const tariff = getDeliveryTariff(code, stopFlag);
             const grand = unit * qty + tariff;
+            o["__FRAIS_LIVRAISON__"] = String(tariff);
             o["__MONTANT_TOTAL_CALC__"] = String(grand);
             return o;
           });
@@ -953,12 +995,15 @@ useEffect(() => {
         unitCost = costFromRow;
       }
 
-      let profit = 0;
+      const deliveryFee = resolveDeliveryFeeForRow(row);
+      const netSaleAmount = saleAmount - deliveryFee;
+
+      let profit = netSaleAmount;
       if (unitCost !== null) {
-        profit = (unitSale - unitCost) * quantity;
+        profit = (unitSale - unitCost) * quantity - deliveryFee;
       }
 
-      totalSales += saleAmount;
+      totalSales += netSaleAmount;
       totalProfit += profit;
 
       const variantSuffix = variantName ? ` (${variantName})` : "";
@@ -995,7 +1040,7 @@ useEffect(() => {
         };
 
       existing.label = label;
-      existing.sales += saleAmount;
+      existing.sales += netSaleAmount;
       existing.profit += profit;
       existing.quantity += quantity;
       perProduct.set(aggregateKey, existing);
@@ -1051,7 +1096,8 @@ useEffect(() => {
         "0"
       )}-${String(date.getDate()).padStart(2, "0")}`;
       const current = dailyMap.get(dayKey) ?? { orders: 0, revenue: 0 };
-      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+      const quantity = extractQuantityValue(row);
+      const netSale = computeNetSaleAmount(row, quantity);
       dailyMap.set(dayKey, {
         orders: current.orders + 1,
         revenue: current.revenue + (Number.isNaN(amount) ? 0 : amount),
@@ -1256,7 +1302,7 @@ useEffect(() => {
       const current = products.get(productName) ?? { count: 0, revenue: 0 };
       products.set(productName, {
         count: current.count + 1,
-        revenue: current.revenue + (Number.isNaN(amount) ? 0 : amount),
+        revenue: current.revenue + (Number.isFinite(netSale) ? netSale : 0),
       });
     });
 
