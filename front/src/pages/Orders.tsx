@@ -109,6 +109,46 @@ const VARIANT_KEY_CANDIDATE_SET = new Set(
   VARIANT_KEY_CANDIDATES.map((candidate) => normalizeKey(candidate))
 );
 
+const PRODUCT_KEY_KEYWORDS = ["produit", "product", "article"];
+
+const extractProductLabel = (row: OrderRow): string => {
+  for (const [rawKey, value] of Object.entries(row)) {
+    const normalizedKey = normalizeKey(rawKey);
+    if (!normalizedKey) continue;
+    if (PRODUCT_KEY_KEYWORDS.some((keyword) => normalizedKey.includes(keyword))) {
+      const trimmed = String(value ?? "").trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return "";
+};
+
+const splitProductLabel = (
+  label: string
+): { baseName: string; variant: string | null } => {
+  const trimmed = label.trim();
+  if (!trimmed) {
+    return { baseName: "", variant: null };
+  }
+
+  const match = trimmed.match(/\(([^()]+)\)\s*$/);
+  if (match && typeof match.index === "number") {
+    const variant = match[1].trim();
+    const baseName = trimmed
+      .slice(0, match.index)
+      .replace(/[-–—:]+\s*$/, "")
+      .trim();
+    return {
+      baseName: baseName || trimmed,
+      variant: variant || null,
+    };
+  }
+
+  return { baseName: trimmed, variant: null };
+};
+
 const extractVariantValue = (row: OrderRow): string => {
   for (const [rawKey, value] of Object.entries(row)) {
     const normalizedKey = normalizeKey(rawKey);
@@ -117,6 +157,14 @@ const extractVariantValue = (row: OrderRow): string => {
       if (trimmed) {
         return trimmed;
       }
+    }
+  }
+
+    const productLabel = extractProductLabel(row);
+  if (productLabel) {
+    const { variant } = splitProductLabel(productLabel);
+    if (variant) {
+      return variant;
     }
   }
   return "default";
@@ -1300,16 +1348,24 @@ const Orders: React.FC = () => {
       }
 
       const adr = ".";
-      const produit = String(row["Produit"] ?? "").trim();
-      const variantForStock = extractVariantValue(row);
+      const rawProductLabel =
+        extractProductLabel(row) || String(row["Produit"] ?? "").trim();
+      const { baseName: productNameForStock, variant: variantFromLabel } =
+        splitProductLabel(rawProductLabel);
+      const variantFromRow = extractVariantValue(row);
+      const variantForStock =
+        variantFromRow === "default" && variantFromLabel
+          ? variantFromLabel
+          : variantFromRow;
       const quantityForStock = extractQuantityValue(row);
       const productCode = extractProductCode(row);
       const stockPayload = {
         code: productCode || undefined,
-        name: produit || undefined,
+        name: productNameForStock || rawProductLabel || undefined,
         variant: variantForStock,
         quantity: quantityForStock,
       };
+      const produit = rawProductLabel;
       let stockDecremented = false;
       const ensureStockDecremented = async () => {
         if (stockDecremented) {
@@ -1826,13 +1882,20 @@ const Orders: React.FC = () => {
       try {
         setDelivering(true);
         const quantity = extractQuantityValue(row);
-        const name = String(row["Produit"] ?? "").trim();
-        const variant = extractVariantValue(row);
+        const rawProductLabel =
+          extractProductLabel(row) || String(row["Produit"] ?? "").trim();
+        const { baseName: productNameForStock, variant: variantFromLabel } =
+          splitProductLabel(rawProductLabel);
+        const variantFromRow = extractVariantValue(row);
+        const variant =
+          variantFromRow === "default" && variantFromLabel
+            ? variantFromLabel
+            : variantFromRow;
         const code = extractProductCode(row);
         await onDelivered(
           {
             code: code || undefined,
-            name: name || undefined,
+            name: productNameForStock || rawProductLabel || undefined,
             variant,
             quantity,
           },
