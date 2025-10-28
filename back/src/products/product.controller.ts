@@ -2,6 +2,43 @@
 import { Request, Response } from 'express';
 import { ProductService } from './product.service';
 
+
+const normalizeVariantName = (value: string | undefined | null): string => {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+};
+
+const resolveFinalVariantStock = (
+  product: { variants?: Array<{ name?: string; quantity?: number }> },
+  variant: string
+): number => {
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
+  if (!variants.length) {
+    return 0;
+  }
+
+  const target = normalizeVariantName(variant);
+  const match = variants.find(
+    (candidate) =>
+      normalizeVariantName(String(candidate?.name ?? '')) === target
+  );
+
+  if (!match) {
+    return 0;
+  }
+
+  const parsedQuantity = Number(match.quantity);
+  return Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+};
+
 const service = new ProductService();
 
 export const createProduct = async (req: Request, res: Response) => {
@@ -155,8 +192,7 @@ export const decrementStockBulkAllowZero = async (req: Request, res: Response) =
       }
       try {
         const updatedProduct = await service.decrementByCodeNameVariantAllowZero(code, name, variant, quantity);
-        const variantData = updatedProduct.variants.find(v => v.name === variant);
-        const finalStock = variantData ? variantData.quantity : 0;
+        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
         results.push({ ok: true, code, name, variant, quantity, finalStock });
       } catch (e: any) {
         results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });
@@ -200,8 +236,7 @@ export const decrementStockBulkAllowNegative = async (req: Request, res: Respons
       }
       try {
         const updatedProduct = await service.decrementByCodeNameVariantAllowNegative(code, name, variant, quantity);
-        const variantData = updatedProduct.variants.find(v => v.name === variant);
-        const finalStock = variantData ? variantData.quantity : 0;
+        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
         results.push({ ok: true, code, name, variant, quantity, finalStock });
       } catch (e: any) {
         results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });
@@ -244,8 +279,7 @@ export const incrementStockBulk = async (req: Request, res: Response) => {
 
       try {
         const updatedProduct = await service.incrementByCodeNameVariant(code, name, variant, quantity);
-        const variantData = updatedProduct.variants.find(v => v.name === variant);
-        const finalStock = variantData ? Number(variantData.quantity ?? 0) || 0 : 0;
+        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
         results.push({ ok: true, code, name, variant, quantity, finalStock });
       } catch (e: any) {
         results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });

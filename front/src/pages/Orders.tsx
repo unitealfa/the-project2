@@ -2745,10 +2745,21 @@ Zm0 14H8V7h9v12Z"
             normalizeVariantNameForCache(variant.name) === normalizedVariant
           ) {
             const current = Number(variant.quantity) || 0;
-            const next =
+            const finalQuantityProvided =
               options.finalQuantity !== undefined
-                ? Math.max(0, Number(options.finalQuantity))
-                : Math.max(0, current - (options.decrementBy ?? 0));
+                ? Number(options.finalQuantity)
+                : undefined;
+            const decrementByValue =
+              options.decrementBy !== undefined
+                ? Number(options.decrementBy)
+                : 0;
+            const rawNext =
+              finalQuantityProvided !== undefined &&
+              Number.isFinite(finalQuantityProvided)
+                ? finalQuantityProvided
+                : current -
+                  (Number.isFinite(decrementByValue) ? decrementByValue : 0);
+            const next = Number.isFinite(rawNext) ? rawNext : current;
             impacted = true;
             return { ...variant, quantity: next };
           }
