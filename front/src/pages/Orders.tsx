@@ -88,6 +88,21 @@ const normalizeProductCodeForCache = (value: string | null | undefined) =>
 const normalizeVariantNameForCache = (value: string | null | undefined) =>
   normalizeTextValue(value);
 
+const DEFAULT_VARIANT_NORMALIZED = new Set([
+  'default',
+  'defaut',
+  'sans variante',
+  'aucune',
+  'aucun',
+  'aucune variante',
+  'standard',
+  'n/a',
+  'na',
+]);
+
+const isMeaningfulVariantName = (value: string) =>
+  !DEFAULT_VARIANT_NORMALIZED.has(normalizeVariantNameForCache(value));
+
 const buildProductCacheKeys = (
   code?: string | null,
   name?: string | null
@@ -133,41 +148,98 @@ const splitProductLabel = (
     return { baseName: "", variant: null };
   }
 
-  const match = trimmed.match(/\(([^()]+)\)\s*$/);
-  if (match && typeof match.index === "number") {
-    const variant = match[1].trim();
-    const baseName = trimmed
-      .slice(0, match.index)
-      .replace(/[-–—:]+\s*$/, "")
+  const cleanupBaseName = (value: string) =>
+    value.replace(/[-–—:|]+\s*$/, "").trim();
+  const sanitizeVariant = (value: string) =>
+    value
+      .replace(/^[\s-–—:|\[\]]+/, '')
+      .replace(/[\s\[\]]+$/, '')
+      .replace(/\s+/g, ' ')
       .trim();
-    return {
-      baseName: baseName || trimmed,
-      variant: variant || null,
-    };
+
+  const parenthesisMatch = trimmed.match(/\(([^()]+)\)\s*$/);
+  if (parenthesisMatch && typeof parenthesisMatch.index === "number") {
+    const variant = sanitizeVariant(parenthesisMatch[1]);
+    const baseName = cleanupBaseName(trimmed.slice(0, parenthesisMatch.index));
+    if (variant) {
+      return {
+        baseName: baseName || trimmed,
+        variant,
+      };
+    }
+  }
+
+  const bracketMatch = trimmed.match(/\[([^\[\]]+)\]\s*$/);
+  if (bracketMatch && typeof bracketMatch.index === "number") {
+    const variant = sanitizeVariant(bracketMatch[1]);
+    const baseName = cleanupBaseName(trimmed.slice(0, bracketMatch.index));
+    if (variant) {
+      return {
+        baseName: baseName || trimmed,
+        variant,
+      };
+    }
+  }
+
+  const separators = [" - ", " – ", " — ", " : ", " | "];
+  for (const separator of separators) {
+    const index = trimmed.lastIndexOf(separator);
+    if (index > 0 && index < trimmed.length - separator.length) {
+      const variant = sanitizeVariant(
+        trimmed.slice(index + separator.length)
+      );
+      const baseName = cleanupBaseName(trimmed.slice(0, index));
+      if (variant) {
+        return {
+          baseName: baseName || trimmed,
+          variant,
+        };
+      }
+    }
+  }
+
+  const looseMatch = trimmed.match(/^(.*?)[\s]*[-–—:|]\s*([^\s].*)$/);
+  if (looseMatch) {
+    const baseName = cleanupBaseName(looseMatch[1]);
+    const variant = sanitizeVariant(looseMatch[2]);
+    if (baseName && variant) {
+      return {
+        baseName,
+        variant,
+      };
+    }
   }
 
   return { baseName: trimmed, variant: null };
 };
 
 const extractVariantValue = (row: OrderRow): string => {
+  let defaultLikeVariant: string | null = null;
   for (const [rawKey, value] of Object.entries(row)) {
     const normalizedKey = normalizeKey(rawKey);
     if (VARIANT_KEY_CANDIDATE_SET.has(normalizedKey)) {
       const trimmed = String(value ?? "").trim();
-      if (trimmed) {
+      if (!trimmed) {
+        continue;
+      }
+      if (isMeaningfulVariantName(trimmed)) {
         return trimmed;
       }
+      defaultLikeVariant = defaultLikeVariant ?? "default";
     }
   }
 
-    const productLabel = extractProductLabel(row);
+  const productLabel = extractProductLabel(row);
   if (productLabel) {
     const { variant } = splitProductLabel(productLabel);
     if (variant) {
-      return variant;
+      if (isMeaningfulVariantName(variant)) {
+        return variant;
+      }
+      defaultLikeVariant = defaultLikeVariant ?? "default";
     }
   }
-  return "default";
+  return defaultLikeVariant ?? "default";
 };
 
 const extractQuantityValue = (row: OrderRow): number => {
@@ -2209,7 +2281,23 @@ const Orders: React.FC = () => {
           const copyKey = `${idx}-${normalizedHeader || h}`;
 
           if (isVariantColumn) {
-            if (!trimmedDisplayText) {
+            const variantFromRow = trimmedDisplayText;
+            const fallbackVariant = extractVariantValue(row);
+            const meaningfulRowVariant =
+              variantFromRow && isMeaningfulVariantName(variantFromRow)
+                ? variantFromRow
+                : '';
+            const meaningfulFallbackVariant =
+              fallbackVariant && isMeaningfulVariantName(fallbackVariant)
+                ? fallbackVariant
+                : '';
+            const variantLabel = (
+              meaningfulRowVariant ||
+              meaningfulFallbackVariant ||
+              (variantFromRow ? variantFromRow : '')
+            ).trim();
+
+            if (!variantLabel) {
               return (
                 <td
                   key={h}
@@ -2232,7 +2320,7 @@ const Orders: React.FC = () => {
                   title="Cliquer pour changer la variante"
                 >
                   <span className="orders-table__variant-name">
-                    {trimmedDisplayText}
+                    {variantLabel}
                   </span>
                   <svg
                     className="orders-table__variant-icon"
@@ -3565,8 +3653,16 @@ Zm0 14H8V7h9v12Z"
 
   const handleVariantClick = useCallback(async (row: OrderRow) => {
     const productName = String(row["Produit"] || "").trim();
-    const currentVariant = String(
-      row["Variante"] || row["Variation"] || row["Taille"] || "default"
+    const rawVariant = String(
+      row["Variante"] || row["Variation"] || row["Taille"] || ""
+    ).trim();
+    const extractedVariant = extractVariantValue(row);
+    const currentVariant = (
+      (rawVariant && isMeaningfulVariantName(rawVariant)
+        ? rawVariant
+        : extractedVariant && isMeaningfulVariantName(extractedVariant)
+        ? extractedVariant
+        : rawVariant || extractedVariant || "default")
     ).trim();
 
     if (!productName) {

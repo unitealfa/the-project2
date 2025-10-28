@@ -49,16 +49,36 @@ router
   );
 
 router
-  .post('/decrement-bulk', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), decrementStockBulk);
+  .post(
+    '/decrement-bulk',
+    authenticateJWT,
+    authorizeRole(['admin', 'gestionnaire', 'confirmateur']),
+    decrementStockBulk
+  );
 
 router
-  .post('/decrement-bulk-allow-zero', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), decrementStockBulkAllowZero);
+  .post(
+    '/decrement-bulk-allow-zero',
+    authenticateJWT,
+    authorizeRole(['admin', 'gestionnaire', 'confirmateur']),
+    decrementStockBulkAllowZero
+  );
 
 router
-  .post('/decrement-bulk-allow-negative', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), decrementStockBulkAllowNegative);
+  .post(
+    '/decrement-bulk-allow-negative',
+    authenticateJWT,
+    authorizeRole(['admin', 'gestionnaire', 'confirmateur']),
+    decrementStockBulkAllowNegative
+  );
 
 router
-  .post('/increment-bulk', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), incrementStockBulk);
+  .post(
+    '/increment-bulk',
+    authenticateJWT,
+    authorizeRole(['admin', 'gestionnaire', 'confirmateur']),
+    incrementStockBulk
+  );
 
 router
   .route('/:id')
@@ -72,6 +92,5 @@ router
   .delete(authenticateJWT, authorizeRole(['admin', 'gestionnaire']), deleteProduct);
 
 export default router;
-
 
 
