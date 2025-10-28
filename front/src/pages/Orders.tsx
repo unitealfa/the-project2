@@ -4143,6 +4143,7 @@ const productCode = extractProductCode(row);
                         summary={summary}
                         onUpdateStatus={handleUpdateRowStatus}
                         onRestoreStock={handleRestoreStock}
+                        onDelivered={handleDelivered}
                         onVariantClick={handleVariantClick}
                         commentKey={commentKey}
                         commentValue={commentValue}
