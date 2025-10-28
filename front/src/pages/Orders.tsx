@@ -154,7 +154,7 @@ type UpdateStatusContext = {
   previousStatus?: string;
   row?: OrderRow;
   tracking?: string;
-  deliveryType?: 'api_dhd' | 'livreur';
+  deliveryType?: DeliveryType;
   deliveryPersonId?: string;
 };
 
@@ -349,11 +349,42 @@ const DHD_API_BASE_URL = (
 const DHD_API_TOKEN =
   import.meta.env.VITE_DHD_API_TOKEN ??
   "FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i";
+
+  const SOOK_API_BASE_URL = (
+  import.meta.env.VITE_SOOK_API_URL ?? DEFAULT_DHD_BASE_URL
+).replace(/\/$/, "");
+const SOOK_API_TOKEN =
+  import.meta.env.VITE_SOOK_API_TOKEN ??
+  "NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D";
+  
 const DHD_CREATE_PATH = "/api/v1/create/order";
 const DHD_TRACKING_PATH = "/api/v1/get/tracking/info";
 const DHD_UPDATES_PATH = "/api/v1/get/maj";
 
-const buildDhdUrl = (path: string) => `${DHD_API_BASE_URL}${path}`;
+type DeliveryApiType = "api_dhd" | "api_sook";
+type DeliveryType = DeliveryApiType | "livreur";
+
+const DELIVERY_API_CONFIG: Record<DeliveryApiType, {
+  label: string;
+  baseUrl: string;
+  token: string | null;
+}> = {
+  api_dhd: {
+    label: "BL Bébé",
+    baseUrl: DHD_API_BASE_URL,
+    token: DHD_API_TOKEN || null,
+  },
+  api_sook: {
+    label: "Sook en ligne",
+    baseUrl: SOOK_API_BASE_URL,
+    token: SOOK_API_TOKEN || null,
+  },
+};
+
+const buildDeliveryApiUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
+
+const resolveDeliveryApiConfig = (type: DeliveryType) =>
+  type === "api_sook" ? DELIVERY_API_CONFIG.api_sook : DELIVERY_API_CONFIG.api_dhd;
 
 const normalizeStatus = (status: string) =>
   status
@@ -1183,14 +1214,16 @@ const Orders: React.FC = () => {
     const [submitting, setSubmitting] = React.useState<boolean>(false);
     const [delivering, setDelivering] = React.useState<boolean>(false);
     const [abandoning, setAbandoning] = React.useState<boolean>(false);
-    const [deliveryType, setDeliveryType] = React.useState<'api_dhd' | 'livreur'>('api_dhd');
+    const [deliveryType, setDeliveryType] = React.useState<DeliveryType>('api_dhd');
     const [deliveryPersonId, setDeliveryPersonId] = React.useState<string | null>(null);
 
     const handleSendToApi = React.useCallback(async () => {
       // Récupérer les paramètres de livraison pour cette commande
       const currentRowId = String(row["id-sheet"] || row["ID"] || "");
-      const deliverySettings = orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
-      const { deliveryType, deliveryPersonId } = deliverySettings;
+      const deliverySettings =
+        orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
+      const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
+      const apiConfig = resolveDeliveryApiConfig(selectedDeliveryType);
       const confirmed = window.confirm(
         `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
       );
@@ -1199,7 +1232,7 @@ const Orders: React.FC = () => {
       }
 
       // Validation : si le type de livraison est "livreur", un livreur doit être sélectionné
-      if (deliveryType === 'livreur' && !deliveryPersonId) {
+      if (selectedDeliveryType === 'livreur' && !deliveryPersonId) {
         alert('Veuillez sélectionner un livreur pour cette commande.');
         return;
       }
@@ -1301,7 +1334,7 @@ const Orders: React.FC = () => {
           previousStatus: currentStatus,
           row: { ...row, etat: nextStatus },
           tracking: trackingValue || undefined,
-          deliveryType: deliveryType,
+          deliveryType: selectedDeliveryType,
           deliveryPersonId: deliveryPersonId || undefined,
         });
         currentStatus = nextStatus;
@@ -1310,7 +1343,8 @@ const Orders: React.FC = () => {
       const syncTrackingStatus = async (trackingValue: string) => {
         if (!trackingValue) return;
 
-        const updatesUrl = `${buildDhdUrl(
+        const updatesUrl = `${buildDeliveryApiUrl(
+          apiConfig.baseUrl,
           DHD_UPDATES_PATH
         )}?tracking=${encodeURIComponent(trackingValue)}`;
         const controllerUpdates = new AbortController();
@@ -1323,8 +1357,8 @@ const Orders: React.FC = () => {
           const respUpdates = await fetch(updatesUrl, {
             method: "GET",
             headers: {
-              ...(DHD_API_TOKEN
-                ? { Authorization: `Bearer ${DHD_API_TOKEN}` }
+              ...(apiConfig.token
+                ? { Authorization: `Bearer ${apiConfig.token}` }
                 : {}),
             },
             signal: controllerUpdates.signal,
@@ -1349,14 +1383,14 @@ const Orders: React.FC = () => {
             }
           } else {
             console.warn(
-              `HTTP ${respUpdates.status} lors de la récupération des mises à jour DHD`,
+              `HTTP ${respUpdates.status} lors de la récupération des mises à jour ${apiConfig.label}`,
               dataUpdates
             );
           }
         } catch (updatesError) {
           if (!isNetworkError(updatesError)) {
             console.error(
-              "Erreur lors de la récupération des mises à jour DHD",
+              `Erreur lors de la récupération des mises à jour ${apiConfig.label}`,
               updatesError
             );
           }
@@ -1364,7 +1398,8 @@ const Orders: React.FC = () => {
           clearTimeout(timeoutUpdates);
         }
 
-        const trackingUrl = `${buildDhdUrl(
+        const trackingUrl = `${buildDeliveryApiUrl(
+          apiConfig.baseUrl,
           DHD_TRACKING_PATH
         )}?tracking=${encodeURIComponent(trackingValue)}`;
         const controllerTracking = new AbortController();
@@ -1376,8 +1411,8 @@ const Orders: React.FC = () => {
           const respTracking = await fetch(trackingUrl, {
             method: "GET",
             headers: {
-              ...(DHD_API_TOKEN
-                ? { Authorization: `Bearer ${DHD_API_TOKEN}` }
+              ...(apiConfig.token
+                ? { Authorization: `Bearer ${apiConfig.token}` }
                 : {}),
             },
             signal: controllerTracking.signal,
@@ -1407,7 +1442,7 @@ const Orders: React.FC = () => {
         } catch (trackingError) {
           if (!isNetworkError(trackingError)) {
             console.error(
-              "Erreur lors de la récupération du statut DHD",
+              `Erreur lors de la récupération du statut ${apiConfig.label}`,
               trackingError
             );
           }
@@ -1428,11 +1463,11 @@ const Orders: React.FC = () => {
 
       try {
         setSubmitting(true);
-        const url = buildDhdUrl(DHD_CREATE_PATH);
+        const url = buildDeliveryApiUrl(apiConfig.baseUrl, DHD_CREATE_PATH);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        console.log("Envoi vers DHD (POST JSON):", url);
+        console.log(`Envoi vers ${apiConfig.label} (POST JSON):`, url);
         console.log("Données:", finalData);
 
         const doPost = async (payload: any) => {
@@ -1440,8 +1475,8 @@ const Orders: React.FC = () => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              ...(DHD_API_TOKEN
-                ? { Authorization: `Bearer ${DHD_API_TOKEN}` }
+              ...(apiConfig.token
+                ? { Authorization: `Bearer ${apiConfig.token}` }
                 : {}),
             },
             body: JSON.stringify(payload),
@@ -1469,7 +1504,7 @@ const Orders: React.FC = () => {
           throw new Error("Réponse API vide");
         }
 
-        console.log("Réponse DHD:", response);
+        console.log(`Réponse ${apiConfig.label}:`, response);
         console.log("Données de réponse:", responseData);
 
         if (
@@ -1481,7 +1516,7 @@ const Orders: React.FC = () => {
            await ensureStockDecremented();
 
           const toast = document.createElement("div");
-          toast.textContent = `✅ Commande envoyée avec succès (${nom_client})`;
+          toast.textContent = `✅ Commande envoyée avec succès (${nom_client}) via ${apiConfig.label}`;
           Object.assign(toast.style, {
             position: "fixed",
             bottom: "24px",
@@ -1571,8 +1606,8 @@ const Orders: React.FC = () => {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
-                        ...(DHD_API_TOKEN
-                          ? { Authorization: `Bearer ${DHD_API_TOKEN}` }
+                        ...(apiConfig.token
+                          ? { Authorization: `Bearer ${apiConfig.token}` }
                           : {}),
                       },
                       body: JSON.stringify(attemptData),
@@ -1648,7 +1683,7 @@ const Orders: React.FC = () => {
           );
         }
       } catch (error) {
-        console.error("Erreur lors de l'appel API:", error);
+        console.error(`Erreur lors de l'appel API ${apiConfig.label}:`, error);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         alert(
@@ -2164,7 +2199,7 @@ Zm0 14H8V7h9v12Z"
                 </span>
               ) : (
                 <span className="orders-table__comment-placeholder">
-                  Ajouter une remarque pour DHD
+                  Ajouter une remarque pour la livraison
                 </span>
               )}
             </button>
@@ -2244,7 +2279,7 @@ Zm0 14H8V7h9v12Z"
 
   // État pour gérer les paramètres de livraison de chaque commande
   const [orderDeliverySettings, setOrderDeliverySettings] = React.useState<Record<string, {
-    deliveryType: 'api_dhd' | 'livreur';
+    deliveryType: DeliveryType;
     deliveryPersonId: string | null;
   }>>({});
 

@@ -4,7 +4,7 @@ export interface IOrder extends Document {
   rowId: string;
   status: string;
   tracking?: string;
-  deliveryType: 'api_dhd' | 'livreur';
+  deliveryType: 'api_dhd' | 'api_sook' | 'livreur';
   deliveryPersonId?: string; // ID du livreur si deliveryType = 'livreur'
   deliveryPersonName?: string; // Nom du livreur pour affichage
   createdAt: Date;
@@ -19,7 +19,7 @@ const OrderSchema = new Schema({
   deliveryType: { 
     type: String, 
     required: true, 
-    enum: ['api_dhd', 'livreur'],
+    enum: ['api_dhd', 'api_sook', 'livreur'],
     default: 'api_dhd'
   },
   deliveryPersonId: { type: String },

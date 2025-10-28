@@ -7,6 +7,16 @@ import User from '../users/user.model';
 export const updateOrderStatus = async (req: Request, res: Response) => {
   const { rowId, status, tracking, row, deliveryType, deliveryPersonId } = req.body ?? {};
 
+   const normalizedDeliveryType: 'api_dhd' | 'api_sook' | 'livreur' = (() => {
+    if (deliveryType === 'livreur') {
+      return 'livreur';
+    }
+    if (deliveryType === 'api_sook') {
+      return 'api_sook';
+    }
+    return 'api_dhd';
+  })();
+
   if (!rowId || !status) {
     return res.status(400).json({
       success: false,
@@ -17,7 +27,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     // Si c'est un envoi vers un livreur, vérifier que le livreur existe
     let deliveryPersonName;
-    if (deliveryType === 'livreur' && deliveryPersonId) {
+    if (normalizedDeliveryType === 'livreur' && deliveryPersonId) {
       const deliveryPerson = await User.findById(deliveryPersonId);
       if (!deliveryPerson || deliveryPerson.role !== 'livreur') {
         return res.status(400).json({
@@ -41,8 +51,9 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       rowId: String(rowId),
       status: String(status),
       tracking: typeof tracking === 'string' ? tracking : undefined,
-      deliveryType: deliveryType || 'api_dhd',
-      deliveryPersonId: deliveryType === 'livreur' ? deliveryPersonId : undefined,
+      deliveryType: normalizedDeliveryType,
+      deliveryPersonId:
+        normalizedDeliveryType === 'livreur' ? deliveryPersonId : undefined,
       deliveryPersonName,
       row
     };
@@ -50,8 +61,9 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     console.log('💾 Sauvegarde de la commande:', {
       rowId: String(rowId),
       status: String(status),
-      deliveryType: deliveryType || 'api_dhd',
-      deliveryPersonId: deliveryType === 'livreur' ? deliveryPersonId : undefined,
+      deliveryType: normalizedDeliveryType,
+      deliveryPersonId:
+        normalizedDeliveryType === 'livreur' ? deliveryPersonId : undefined,
       deliveryPersonName
     });
 

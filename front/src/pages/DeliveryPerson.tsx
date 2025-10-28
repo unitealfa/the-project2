@@ -7,12 +7,20 @@ interface Order {
   rowId: string;
   status: string;
   tracking?: string;
-  deliveryType: 'api_dhd' | 'livreur';
+  deliveryType: 'api_dhd' | 'api_sook' | 'livreur';
   deliveryPersonId?: string;
   deliveryPersonName?: string;
   createdAt: string;
   updatedAt: string;
-  row?: Record<string, unknown>;
+  row?: {
+    'Nom du client'?: string;
+    'Numero'?: string;
+    'Téléphone'?: string;
+    'Adresse'?: string;
+    'Commune'?: string;
+    'Wilaya'?: string;
+    [key: string]: any;
+  };
 }
 
 const DeliveryPerson: React.FC = () => {
@@ -165,11 +173,11 @@ const DeliveryPerson: React.FC = () => {
                     {order.row && (
                       <div className="delivery-person-order-client">
                         <h4>Informations client</h4>
-                        <p><strong>Nom:</strong> {order.row['Nom du client'] || 'N/A'}</p>
-                        <p><strong>Téléphone:</strong> {order.row['Numero'] || order.row['Téléphone'] || 'N/A'}</p>
-                        <p><strong>Adresse:</strong> {order.row['Adresse'] || 'N/A'}</p>
-                        <p><strong>Commune:</strong> {order.row['Commune'] || 'N/A'}</p>
-                        <p><strong>Wilaya:</strong> {order.row['Wilaya'] || 'N/A'}</p>
+                        <p><strong>Nom:</strong> {String(order.row?.['Nom du client'] || 'N/A')}</p>
+                        <p><strong>Téléphone:</strong> {String(order.row?.['Numero'] || order.row?.['Téléphone'] || 'N/A')}</p>
+                        <p><strong>Adresse:</strong> {String(order.row?.['Adresse'] || 'N/A')}</p>
+                        <p><strong>Commune:</strong> {String(order.row?.['Commune'] || 'N/A')}</p>
+                        <p><strong>Wilaya:</strong> {String(order.row?.['Wilaya'] || 'N/A')}</p>
                       </div>
                     )}
                   </div>

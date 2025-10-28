@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
+type DeliveryType = 'api_dhd' | 'api_sook' | 'livreur';
+
 interface DeliverySelectionProps {
-  onDeliveryTypeChange: (type: 'api_dhd' | 'livreur') => void;
+  onDeliveryTypeChange: (type: DeliveryType) => void;
   onDeliveryPersonChange: (personId: string | null) => void;
-  deliveryType: 'api_dhd' | 'livreur';
+  deliveryType: DeliveryType;
   deliveryPersonId: string | null;
   compact?: boolean; // Nouveau prop pour le mode compact
   rowId?: string; // ID unique pour éviter les conflits
@@ -46,13 +48,16 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
   }, []);
 
   const currentValue = useMemo(() => {
-    return deliveryType === 'api_dhd' ? 'api_dhd' : deliveryPersonId || 'api_dhd';
+    if (deliveryType === 'livreur') {
+      return deliveryPersonId || 'api_dhd';
+    }
+    return deliveryType;
   }, [deliveryType, deliveryPersonId]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    if (value === 'api_dhd') {
-      onDeliveryTypeChange('api_dhd');
+    if (value === 'api_dhd' || value === 'api_sook') {
+      onDeliveryTypeChange(value);
       onDeliveryPersonChange(null);
     } else {
       onDeliveryTypeChange('livreur');
@@ -63,7 +68,8 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
   const dropdownOptions = useMemo(() => {
     return (
       <>
-        <option value="api_dhd">DHD (par défaut)</option>
+        <option value="api_dhd">BL Bébé (API)</option>
+        <option value="api_sook">Sook en ligne (API)</option>
         {deliveryPersons.length === 0 && !loading ? (
           <option value="" disabled>Aucun livreur disponible</option>
         ) : (
@@ -107,7 +113,21 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
               onDeliveryPersonChange(null);
             }}
           />
-          <span>API DHD (par défaut)</span>
+          <span>API BL Bébé</span>
+        </label>
+
+        <label className="delivery-selection__label">
+          <input
+            type="radio"
+            name="deliveryType"
+            value="api_sook"
+            checked={deliveryType === 'api_sook'}
+            onChange={() => {
+              onDeliveryTypeChange('api_sook');
+              onDeliveryPersonChange(null);
+            }}
+          />
+          <span>API Sook en ligne</span>
         </label>
         
         <label className="delivery-selection__label">
