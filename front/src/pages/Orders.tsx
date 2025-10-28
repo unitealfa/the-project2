@@ -1043,6 +1043,7 @@ const Orders: React.FC = () => {
     summary,
     onUpdateStatus,
     onDelivered,
+    onRestoreStock,
     variant = "table",
     commentKey,
     commentValue = "",
@@ -1060,9 +1061,17 @@ const Orders: React.FC = () => {
         code?: string;
         name?: string;
         variant: string;
+      quantity: number;
+    },
+    rowId: string
+  ) => Promise<void>;
+    onRestoreStock?: (
+      payload: {
+        code?: string;
+        name?: string;
+        variant: string;
         quantity: number;
-      },
-      rowId: string
+      }
     ) => Promise<void>;
     variant?: "table" | "modal";
     commentKey?: string;
@@ -1242,21 +1251,38 @@ const Orders: React.FC = () => {
       const variantForStock = extractVariantValue(row);
       const quantityForStock = extractQuantityValue(row);
       const productCode = extractProductCode(row);
+      const stockPayload = {
+        code: productCode || undefined,
+        name: produit || undefined,
+        variant: variantForStock,
+        quantity: quantityForStock,
+      };
       let stockDecremented = false;
       const ensureStockDecremented = async () => {
         if (stockDecremented) {
           return;
         }
-        await handleDelivered(
-          {
-            code: productCode || undefined,
-            name: produit || undefined,
-            variant: variantForStock,
-            quantity: quantityForStock,
-          },
-          rowId
-        );
+        await onDelivered(stockPayload, rowId);
         stockDecremented = true;
+      };
+      const revertStockIfNeeded = async () => {
+        if (!stockDecremented) {
+          return;
+        }
+        if (!onRestoreStock) {
+          stockDecremented = false;
+          return;
+        }
+        try {
+          await onRestoreStock(stockPayload);
+        } catch (rollbackError) {
+          console.error(
+            "Erreur lors du rétablissement du stock après échec d'envoi:",
+            rollbackError
+          );
+        } finally {
+          stockDecremented = false;
+        }
       };
       const remarkFromSheet = (() => {
         const remarkKeys = [
@@ -1462,7 +1488,21 @@ const Orders: React.FC = () => {
       };
 
       try {
-        setSubmitting(true);
+        
+        
+        try {
+          await ensureStockDecremented();
+        } catch (stockError) {
+          const stockMessage =
+            stockError instanceof Error
+              ? stockError.message
+              : String(stockError);
+          alert(
+            `❌ Stock indisponible\n\nClient: ${nom_client}\n\nErreur: ${stockMessage}`
+          );
+          return;
+        }
+
         const url = buildDeliveryApiUrl(apiConfig.baseUrl, DHD_CREATE_PATH);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -1513,7 +1553,6 @@ const Orders: React.FC = () => {
         ) {
           const trackingValue = resolveTracking(responseData) || "N/A";
 
-           await ensureStockDecremented();
 
           const toast = document.createElement("div");
           toast.textContent = `✅ Commande envoyée avec succès (${nom_client}) via ${apiConfig.label}`;
@@ -1650,6 +1689,7 @@ const Orders: React.FC = () => {
             }
 
             if (!success) {
+              await revertStockIfNeeded();
               alert(
                 `❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
                   responseData,
@@ -1659,6 +1699,7 @@ const Orders: React.FC = () => {
               );
             }
           } else {
+            await revertStockIfNeeded();
             alert(
               `❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
                 responseData,
@@ -1668,10 +1709,12 @@ const Orders: React.FC = () => {
             );
           }
         } else if (response.status === 429) {
+          await revertStockIfNeeded();
           alert(
             `⚠️ Trop de requêtes (429)\n\nClient: ${nom_client}\n\nVeuillez réessayer plus tard.`
           );
         } else {
+          await revertStockIfNeeded();
           alert(
             `❌ Erreur API (${
               response.status
@@ -1683,6 +1726,7 @@ const Orders: React.FC = () => {
           );
         }
       } catch (error) {
+        await revertStockIfNeeded();
         console.error(`Erreur lors de l'appel API ${apiConfig.label}:`, error);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -1702,6 +1746,7 @@ const Orders: React.FC = () => {
       row,
       onUpdateStatus,
       onDelivered,
+      onRestoreStock,
       initialSheetStatus,
       rowId,
       currentComment,
@@ -2221,6 +2266,7 @@ Zm0 14H8V7h9v12Z"
             summary={summary}
             onUpdateStatus={onUpdateStatus}
             onDelivered={onDelivered}
+            onRestoreStock={handleRestoreStock}
             commentKey={commentKey}
             commentValue={commentValue}
             onCommentChange={onCommentChange}
@@ -3352,6 +3398,60 @@ Zm0 14H8V7h9v12Z"
     [applyStockUpdateToCache, token]
   );
 
+  const handleRestoreStock = useCallback(
+    async (payload: {
+      code?: string;
+      name?: string;
+      variant: string;
+      quantity: number;
+    }) => {
+      try {
+        const res = await fetch("/api/products/increment-bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ items: [payload] }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Échec rétablissement");
+        const failures = Array.isArray(data?.results)
+          ? data.results.filter((r: any) => !r.ok)
+          : [];
+        if (failures.length) {
+          const msg = failures
+            .map(
+              (f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
+            )
+            .join("\n");
+          throw new Error(msg || "Échec partiel");
+        }
+
+        const results = Array.isArray(data?.results) ? data.results : [];
+        results.forEach((result: any) => {
+          if (!result || !result.ok) return;
+          const finalStockValue =
+            typeof result.finalStock === "number"
+              ? Number(result.finalStock)
+              : undefined;
+          applyStockUpdateToCache({
+            code: result.code ?? payload.code,
+            name: result.name ?? payload.name,
+            variant: result.variant ?? payload.variant,
+            finalQuantity: finalStockValue,
+            decrementBy:
+              finalStockValue === undefined ? -payload.quantity : undefined,
+          });
+        });
+      } catch (error) {
+        console.error("Erreur lors du rétablissement du stock:", error);
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+    },
+    [applyStockUpdateToCache, token]
+  );
+
   const handleVariantClick = useCallback(async (row: OrderRow) => {
     const productName = String(row["Produit"] || "").trim();
     const currentVariant = String(
@@ -3835,7 +3935,7 @@ const productCode = extractProductCode(row);
                         headers={headers}
                         summary={summary}
                         onUpdateStatus={handleUpdateRowStatus}
-                        onDelivered={handleDelivered}
+                        onRestoreStock={handleRestoreStock}
                         onVariantClick={handleVariantClick}
                         commentKey={commentKey}
                         commentValue={commentValue}

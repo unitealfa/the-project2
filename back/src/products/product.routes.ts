@@ -13,6 +13,7 @@ import {
   decrementStockBulk,
   decrementStockBulkAllowZero,
   decrementStockBulkAllowNegative,
+  incrementStockBulk,
 } from './product.controller';
 
 const router = Router();
@@ -55,6 +56,9 @@ router
 
 router
   .post('/decrement-bulk-allow-negative', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), decrementStockBulkAllowNegative);
+
+router
+  .post('/increment-bulk', authenticateJWT, authorizeRole(['admin', 'gestionnaire']), incrementStockBulk);
 
 router
   .route('/:id')
