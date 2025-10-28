@@ -1100,7 +1100,7 @@ useEffect(() => {
       const netSale = computeNetSaleAmount(row, quantity);
       dailyMap.set(dayKey, {
         orders: current.orders + 1,
-        revenue: current.revenue + (Number.isNaN(amount) ? 0 : amount),
+        revenue: current.revenue + (Number.isNaN(netSale) ? 0 : netSale),
       });
     });
 
@@ -1298,11 +1298,12 @@ useEffect(() => {
     rows.forEach(row => {
       const productName = getFirstValue(row, productKeys);
       if (!productName) return;
-      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+      const quantity = extractQuantityValue(row);
+      const netSale = computeNetSaleAmount(row, quantity);
       const current = products.get(productName) ?? { count: 0, revenue: 0 };
       products.set(productName, {
         count: current.count + 1,
-        revenue: current.revenue + (Number.isFinite(netSale) ? netSale : 0),
+        revenue: current.revenue + (Number.isNaN(netSale) ? 0 : netSale),
       });
     });
 
