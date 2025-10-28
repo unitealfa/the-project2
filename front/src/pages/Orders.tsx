@@ -157,6 +157,26 @@ const splitProductLabel = (
       .replace(/\s+/g, ' ')
       .trim();
 
+      const trySlashSeparated = () => {
+    const slashParts = trimmed
+      .split(/[\/]+/)
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+
+    if (slashParts.length >= 2) {
+      const variant = sanitizeVariant(slashParts[slashParts.length - 1]);
+      const baseName = cleanupBaseName(slashParts.slice(0, -1).join(' / '));
+      if (variant) {
+        return {
+          baseName: baseName || trimmed,
+          variant,
+        };
+      }
+    }
+
+    return null;
+  };
+
   const parenthesisMatch = trimmed.match(/\(([^()]+)\)\s*$/);
   if (parenthesisMatch && typeof parenthesisMatch.index === "number") {
     const variant = sanitizeVariant(parenthesisMatch[1]);
@@ -179,6 +199,10 @@ const splitProductLabel = (
         variant,
       };
     }
+  }
+    const slashSeparatedResult = trySlashSeparated();
+  if (slashSeparatedResult) {
+    return slashSeparatedResult;
   }
 
   const separators = [" - ", " – ", " — ", " : ", " | "];
