@@ -13,7 +13,136 @@ import type { Chart as ChartInstance } from "chart.js";
 import { MapPin, Package } from "lucide-react";
 
 import { AuthContext } from "../context/AuthContext";
+import type { ProductDto } from "../types";
 import "../styles/AdminDashboard.css";
+
+const PRODUCT_NAME_KEYS = [
+  "Produit",
+  "Product",
+  "Article",
+  "Nom du produit",
+  "Produit commandé",
+  "Item",
+];
+
+const PRODUCT_VARIANT_KEYS = [
+  "Variante",
+  "Variation",
+  "Taille",
+  "Variante produit",
+  "Variant",
+];
+
+const PRODUCT_CODE_KEYS = [
+  "Code",
+  "code",
+  "SKU",
+  "Sku",
+  "Référence",
+  "Reference",
+];
+
+const QUANTITY_KEYS = ["Quantité", "Quantite", "Qte"];
+
+const UNIT_PRICE_KEYS = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+
+const TOTAL_PRICE_KEYS = [
+  "Total",
+  "total",
+  "Montant",
+  "Montant total",
+  "Prix total",
+];
+
+const COST_PRICE_KEYS = [
+  "Prix d'achat",
+  "Prix achat",
+  "Prix achat unitaire",
+  "PA",
+  "Prix d’achat",
+];
+
+const normalizeLookupValue = (value: string): string =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+const normalizeCodeValue = (value: string): string => value.trim().toLowerCase();
+
+const parseAmountValue = (value?: string): number | null => {
+  if (!value) return null;
+  const cleaned = value
+    .replace(/\s+/g, "")
+    .replace(/[^\d,.-]/g, "")
+    .replace(/,/g, ".");
+  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
+    return null;
+  }
+  const parsed = Number.parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const extractQuantityValue = (row: Record<string, string>): number => {
+  for (const key of QUANTITY_KEYS) {
+    if (key in row) {
+      const raw = row[key];
+      if (!raw) continue;
+      const sanitized = raw.replace(/[^\d]/g, "");
+      if (!sanitized) continue;
+      const parsed = Number.parseInt(sanitized, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  }
+  return 1;
+};
+
+const extractUnitPriceValue = (row: Record<string, string>): number | null => {
+  for (const key of UNIT_PRICE_KEYS) {
+    const parsed = parseAmountValue(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const extractTotalPriceValue = (row: Record<string, string>): number | null => {
+  for (const key of TOTAL_PRICE_KEYS) {
+    const parsed = parseAmountValue(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const extractCostPriceValue = (row: Record<string, string>): number | null => {
+  for (const key of COST_PRICE_KEYS) {
+    const parsed = parseAmountValue(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const computeRowSaleAmount = (row: Record<string, string>, quantity: number): number => {
+  const unit = extractUnitPriceValue(row);
+  if (unit !== null) {
+    return unit * quantity;
+  }
+  const total = extractTotalPriceValue(row);
+  if (total !== null) {
+    return total;
+  }
+  const fallback = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
+  return Number.isNaN(fallback) ? 0 : fallback;
+};
 
 type TimeFilter = "all" | "day" | "week" | "month" | "customMonth" | "year";
 type ChartRangeMode = "recent" | "month" | "year";
@@ -269,8 +398,9 @@ const mapStatusBucket = (status: string):
 const Admin: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
+  const [products, setProducts] = useState<ProductDto[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [timeFilterMonth, setTimeFilterMonth] = useState<string>(
     () => getDefaultMonthValue()
@@ -283,6 +413,7 @@ const Admin: React.FC = () => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<ChartInstance | null>(null);
   const adminUser = user && user.role === "admin" ? user : null;
+  const [isProfitModalOpen, setProfitModalOpen] = useState(false);
 
   useEffect(() => {
     if (!adminUser) {
@@ -292,6 +423,59 @@ const Admin: React.FC = () => {
       navigate(`/admin/${adminUser.id}`, { replace: true });
     }
   }, [adminUser, id, navigate]);
+
+  useEffect(() => {
+    if (!adminUser || !token) {
+      setProducts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/products", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (cancelled) return;
+
+        const mapped: ProductDto[] = Array.isArray(data)
+          ? data.map((item: any) => ({
+              id: item._id || item.id,
+              code: typeof item.code === "string" ? item.code : undefined,
+              name: typeof item.name === "string" ? item.name : "",
+              costPrice: Number(item.costPrice ?? 0) || 0,
+              salePrice: Number(item.salePrice ?? 0) || 0,
+              variants: Array.isArray(item.variants)
+                ? item.variants.map((variant: any) => ({
+                    name: String(variant?.name ?? ""),
+                    quantity: Number(variant?.quantity ?? 0) || 0,
+                  }))
+                : [],
+            }))
+          : [];
+
+        setProducts(mapped);
+      } catch (error) {
+        if (!cancelled) {
+          setProducts([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminUser, token]);
+
 
   useEffect(() => {
     const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
@@ -654,13 +838,177 @@ useEffect(() => {
     }
   }, [availableMonths, timeFilter, timeFilterMonth]);
 
-  const totalRevenue = useMemo(() => {
-    return timeFilteredRows.reduce((acc, row) => {
-      const amount = Number.parseFloat(row["__MONTANT_TOTAL_CALC__"] ?? "0");
-      if (Number.isNaN(amount)) return acc;
-      return acc + amount;
-    }, 0);
-  }, [timeFilteredRows]);
+  const getFirstValue = (row: Record<string, string>, keys: string[]): string => {
+    for (const key of keys) {
+      if (key in row && row[key] && row[key].trim()) {
+        return row[key].trim();
+      }
+    }
+    return "";
+  };
+
+  const salesAndProfit = useMemo(() => {
+    const productIndex = new Map<
+      string,
+      { product: ProductDto; label: string }
+    >();
+
+    products.forEach(product => {
+      if (!product) return;
+      const baseLabel = product.name || product.code || "Produit";
+      const normalizedName = product.name
+        ? normalizeLookupValue(product.name)
+        : "";
+      const normalizedCode = product.code
+        ? normalizeCodeValue(product.code)
+        : "";
+
+      if (normalizedCode) {
+        productIndex.set(`code:${normalizedCode}`, { product, label: baseLabel });
+      }
+
+      if (normalizedName) {
+        productIndex.set(`name:${normalizedName}`, { product, label: baseLabel });
+      }
+
+      (product.variants ?? []).forEach(variant => {
+        const variantName = variant?.name ? String(variant.name) : "";
+        if (!variantName || !normalizedName) return;
+        const normalizedVariant = normalizeLookupValue(variantName);
+        productIndex.set(`variant:${normalizedName}::${normalizedVariant}`, {
+          product,
+          label: `${product.name}${variantName ? ` (${variantName})` : ""}`,
+        });
+      });
+    });
+
+    const perProduct = new Map<
+      string,
+      { label: string; sales: number; profit: number; quantity: number }
+    >();
+
+    let totalSales = 0;
+    let totalProfit = 0;
+
+    timeFilteredRows.forEach((row, index) => {
+      const bucket = mapStatusBucket(getRowStatus(row));
+      if (bucket !== "completed") {
+        return;
+      }
+
+      const quantity = extractQuantityValue(row);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        return;
+      }
+
+      const saleAmountFromRow = computeRowSaleAmount(row, quantity);
+      const productCode = getFirstValue(row, PRODUCT_CODE_KEYS);
+      const productName = getFirstValue(row, PRODUCT_NAME_KEYS);
+      const variantName = getFirstValue(row, PRODUCT_VARIANT_KEYS);
+
+      const lookupKeys: string[] = [];
+      if (productCode) {
+        lookupKeys.push(`code:${normalizeCodeValue(productCode)}`);
+      }
+      if (productName) {
+        lookupKeys.push(`name:${normalizeLookupValue(productName)}`);
+      }
+      if (productName && variantName) {
+        lookupKeys.push(
+          `variant:${normalizeLookupValue(productName)}::${normalizeLookupValue(variantName)}`
+        );
+      }
+
+      let matched: { product: ProductDto; label: string } | null = null;
+      for (const key of lookupKeys) {
+        const candidate = productIndex.get(key);
+        if (candidate) {
+          matched = candidate;
+          break;
+        }
+      }
+
+      let saleAmount = saleAmountFromRow;
+      let unitSale = quantity > 0 ? saleAmountFromRow / quantity : 0;
+
+      if (matched) {
+        const salePrice = Number(matched.product.salePrice ?? 0);
+        if (Number.isFinite(salePrice) && salePrice > 0) {
+          saleAmount = salePrice * quantity;
+          unitSale = salePrice;
+        }
+      }
+
+      const costFromRow = extractCostPriceValue(row);
+      let unitCost: number | null = null;
+
+      if (matched) {
+        const costPrice = Number(matched.product.costPrice ?? 0);
+        if (Number.isFinite(costPrice) && costPrice >= 0) {
+          unitCost = costPrice;
+        } else {
+          unitCost = costFromRow;
+        }
+      } else {
+        unitCost = costFromRow;
+      }
+
+      let profit = 0;
+      if (unitCost !== null) {
+        profit = (unitSale - unitCost) * quantity;
+      }
+
+      totalSales += saleAmount;
+      totalProfit += profit;
+
+      const variantSuffix = variantName ? ` (${variantName})` : "";
+      let label = matched?.label ??
+        (productName
+          ? `${productName}${variantSuffix}`
+          : productCode || `Produit ${index + 1}`);
+
+      if (matched && variantName) {
+        label = `${matched.product.name}${variantSuffix}`;
+      }
+
+      const variantKeyPart = variantName
+        ? `::${normalizeLookupValue(variantName)}`
+        : "";
+
+      const aggregateKey =
+        (matched?.product.id &&
+          `id:${matched.product.id}${variantKeyPart}`) ||
+        (matched?.product.code &&
+          `code:${normalizeCodeValue(String(matched.product.code))}${variantKeyPart}`) ||
+        (matched &&
+          `name:${normalizeLookupValue(matched.product.name)}${variantKeyPart}`) ||
+        (productCode && `code:${normalizeCodeValue(productCode)}${variantKeyPart}`) ||
+        (productName && `name:${normalizeLookupValue(productName)}${variantKeyPart}`) ||
+        `row:${index}`;
+
+      const existing =
+        perProduct.get(aggregateKey) ?? {
+          label,
+          sales: 0,
+          profit: 0,
+          quantity: 0,
+        };
+
+      existing.label = label;
+      existing.sales += saleAmount;
+      existing.profit += profit;
+      existing.quantity += quantity;
+      perProduct.set(aggregateKey, existing);
+    });
+
+    return {
+      totalSales,
+      totalProfit,
+      perProduct: Array.from(perProduct.values()).sort(
+        (a, b) => b.profit - a.profit
+      ),
+    };
+  }, [products, timeFilteredRows]);
 
   const salesTrend = useMemo(() => {
     const now = new Date();
@@ -843,15 +1191,6 @@ useEffect(() => {
     };
   }, [salesTrend]);
 
-  const getFirstValue = (row: Record<string, string>, keys: string[]): string => {
-    for (const key of keys) {
-      if (key in row && row[key] && row[key].trim()) {
-        return row[key].trim();
-      }
-    }
-    return "";
-  };
-
   const formatCurrency = (value: number): string =>
     `${new Intl.NumberFormat("fr-DZ", {
       maximumFractionDigits: 0,
@@ -930,6 +1269,8 @@ useEffect(() => {
         revenue: stats.revenue,
       }));
   }, [rows]);
+
+  const { totalSales, totalProfit, perProduct } = salesAndProfit;
 
   const resolveStatusLabel = (status: string) => {
     const bucket = mapStatusBucket(status);
@@ -1035,7 +1376,14 @@ useEffect(() => {
           ))}
           <div className="card" key="total-sales">
             <h3>Total ventes</h3>
-            <div className="value">{formatCurrency(totalRevenue)}</div>
+            <div className="value">{formatCurrency(totalSales)}</div>
+            <button
+              type="button"
+              className="profit-summary-button"
+              onClick={() => setProfitModalOpen(true)}
+            >
+              Bénéfice : <span>{formatCurrency(totalProfit)}</span>
+            </button>
           </div>
         </div>
       </section>
@@ -1210,7 +1558,64 @@ useEffect(() => {
             </p>
           )}
         </div>
-      </div>
+      </div>  
+      {isProfitModalOpen && (
+        <div
+          className="profit-modal__backdrop"
+          role="presentation"
+          onClick={() => setProfitModalOpen(false)}
+        >
+          <div
+            className="profit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Détails des bénéfices"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="profit-modal__header">
+              <h3>Détails des bénéfices</h3>
+              <button
+                type="button"
+                className="profit-modal__close"
+                onClick={() => setProfitModalOpen(false)}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </div>
+            <div className="profit-modal__body">
+              {perProduct.length > 0 ? (
+                <table className="profit-modal__table">
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th>Quantité</th>
+                      <th>Ventes</th>
+                      <th>Bénéfice</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perProduct.map((entry, index) => (
+                      <tr key={`${entry.label}-${index}`}>
+                        <td>{entry.label}</td>
+                        <td>{entry.quantity.toLocaleString("fr-DZ")}</td>
+                        <td>{formatCurrency(entry.sales)}</td>
+                        <td className={entry.profit >= 0 ? undefined : "negative"}>
+                          {formatCurrency(entry.profit)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="profit-modal__empty">
+                  Aucune commande livrée ne permet de calculer un bénéfice.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

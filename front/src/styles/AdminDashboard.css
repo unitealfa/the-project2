@@ -88,6 +88,38 @@
   font-weight: 700;
 }
 
+.card .profit-summary-button {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #1f2937;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card .profit-summary-button span {
+  font-weight: 600;
+}
+
+.card .profit-summary-button:hover,
+.card .profit-summary-button:focus {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  outline: none;
+}
+
+.card .profit-summary-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
 .bottom-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -340,6 +372,111 @@
   color: #9ca3af;
   font-size: 0.9rem;
   padding: 16px 0;
+}
+
+.profit-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.profit-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.profit-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profit-modal__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profit-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px 8px;
+}
+
+.profit-modal__close:hover,
+.profit-modal__close:focus {
+  color: #111827;
+  outline: none;
+}
+
+.profit-modal__body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.profit-modal__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.profit-modal__table th,
+.profit-modal__table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profit-modal__table th {
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.profit-modal__table td {
+  color: #111827;
+}
+
+.profit-modal__table td.negative {
+  color: #dc2626;
+}
+
+.profit-modal__empty {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .profit-modal {
+    max-width: 100%;
+  }
+
+  .profit-modal__table th,
+  .profit-modal__table td {
+    font-size: 0.85rem;
+    padding: 8px 6px;
+  }
 }
 
 @media (max-width: 900px) {
