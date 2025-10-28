@@ -970,17 +970,6 @@ useEffect(() => {
         }
       }
 
-      let saleAmount = saleAmountFromRow;
-      let unitSale = quantity > 0 ? saleAmountFromRow / quantity : 0;
-
-      if (matched) {
-        const salePrice = Number(matched.product.salePrice ?? 0);
-        if (Number.isFinite(salePrice) && salePrice > 0) {
-          saleAmount = salePrice * quantity;
-          unitSale = salePrice;
-        }
-      }
-
       const costFromRow = extractCostPriceValue(row);
       let unitCost: number | null = null;
 
@@ -996,11 +985,14 @@ useEffect(() => {
       }
 
       const deliveryFee = resolveDeliveryFeeForRow(row);
-      const netSaleAmount = saleAmount - deliveryFee;
+      const grossSaleAmount = Number.isFinite(saleAmountFromRow)
+        ? saleAmountFromRow
+        : 0;
+      const netSaleAmount = grossSaleAmount - deliveryFee;
 
       let profit = netSaleAmount;
-      if (unitCost !== null) {
-        profit = (unitSale - unitCost) * quantity - deliveryFee;
+      if (unitCost !== null && Number.isFinite(unitCost)) {
+        profit = netSaleAmount - unitCost * quantity;
       }
 
       totalSales += netSaleAmount;
