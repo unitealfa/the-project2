@@ -2702,6 +2702,28 @@ Zm0 14H8V7h9v12Z"
     [getCacheKeysForProduct]
   );
 
+  const ensureProductsCacheLoaded = React.useCallback(async () => {
+    if (productsCacheLoadedRef.current) {
+      return;
+    }
+
+    const response = await fetch("/api/products", {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const products = await response.json();
+    if (Array.isArray(products)) {
+      registerProductsInCache(products);
+    }
+    productsCacheLoadedRef.current = true;
+  }, [registerProductsInCache, token]);
+
   const applyStockUpdateToCache = React.useCallback(
     (options: {
       code?: string;
@@ -2769,7 +2791,109 @@ Zm0 14H8V7h9v12Z"
     ]
   );
 
-   const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
+   const resolveProductForStockPayload = React.useCallback(
+    async (payload: {
+      code?: string;
+      name?: string;
+      variant: string;
+      quantity: number;
+    }) => {
+      const normalizedPayload = { ...payload };
+
+      const candidateNames = new Set<string>();
+      if (normalizedPayload.name) {
+        candidateNames.add(normalizedPayload.name);
+        const { baseName } = splitProductLabel(normalizedPayload.name);
+        if (baseName && baseName !== normalizedPayload.name) {
+          candidateNames.add(baseName);
+        }
+      }
+
+      const attemptResolve = () => {
+        if (!candidateNames.size) {
+          const entry = readProductFromCache(
+            normalizedPayload.code,
+            normalizedPayload.name
+          );
+          return entry ? { entry } : null;
+        }
+
+        for (const nameCandidate of candidateNames) {
+          const entry = readProductFromCache(
+            normalizedPayload.code,
+            nameCandidate
+          );
+          if (entry) {
+            return { entry };
+          }
+        }
+        return null;
+      };
+
+      let resolved = attemptResolve();
+      if (!resolved) {
+        try {
+          await ensureProductsCacheLoaded();
+        } catch (error) {
+          console.error(
+            "Erreur lors du chargement du cache produits pour la décrémentation:",
+            error
+          );
+        }
+        resolved = attemptResolve();
+      }
+
+      if (!resolved) {
+        return normalizedPayload;
+      }
+
+      const { entry } = resolved;
+      if (!normalizedPayload.code && entry.code) {
+        normalizedPayload.code = entry.code;
+      }
+      if (entry.name && normalizedPayload.name) {
+        const entryNameNormalized = normalizeProductNameForCache(entry.name);
+        const payloadNameNormalized = normalizeProductNameForCache(
+          normalizedPayload.name
+        );
+        if (entryNameNormalized !== payloadNameNormalized) {
+          normalizedPayload.name = entry.name;
+        }
+      } else if (!normalizedPayload.name && entry.name) {
+        normalizedPayload.name = entry.name;
+      }
+
+      const normalizedVariant = normalizeVariantNameForCache(
+        normalizedPayload.variant
+      );
+      const exactVariantMatch = entry.variants.find(
+        (variant) =>
+          normalizeVariantNameForCache(variant.name) === normalizedVariant
+      );
+      if (exactVariantMatch) {
+        normalizedPayload.variant = exactVariantMatch.name;
+        return normalizedPayload;
+      }
+
+      if (normalizedVariant && normalizedVariant !== "default") {
+        const partialMatch = entry.variants.find((variant) => {
+          const candidate = normalizeVariantNameForCache(variant.name);
+          return (
+            candidate.includes(normalizedVariant) ||
+            normalizedVariant.includes(candidate)
+          );
+        });
+        if (partialMatch) {
+          normalizedPayload.variant = partialMatch.name;
+        }
+      }
+
+      return normalizedPayload;
+    },
+    [ensureProductsCacheLoaded, readProductFromCache]
+  );
+
+  const getRowIdentifier = React.useCallback((row: OrderRow | null) => {
     if (!row) return null;
     const candidateKeys = [
       "id-sheet",
@@ -3535,6 +3659,11 @@ Zm0 14H8V7h9v12Z"
       },
       rowId: string
     ) => {
+      const resolvedPayload = await resolveProductForStockPayload(payload);
+      payload.code = resolvedPayload.code;
+      payload.name = resolvedPayload.name;
+      payload.variant = resolvedPayload.variant;
+      payload.quantity = resolvedPayload.quantity;
       // Appelle l'API backend pour décrémenter le stock (permet stock négatif)
       try {
         const res = await fetch("/api/products/decrement-bulk-allow-negative", {
@@ -3543,7 +3672,7 @@ Zm0 14H8V7h9v12Z"
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ items: [payload] }),
+          body: JSON.stringify({ items: [resolvedPayload] }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || "Échec décrémentation");
@@ -3560,19 +3689,21 @@ Zm0 14H8V7h9v12Z"
         }
       
         const results = Array.isArray(data?.results) ? data.results : [];
-          results.forEach((result: any) => {
+        results.forEach((result: any) => {
           if (!result || !result.ok) return;
           const finalStockValue =
             typeof result.finalStock === "number"
               ? Number(result.finalStock)
               : undefined;
           applyStockUpdateToCache({
-            code: payload.code,
-            name: payload.name,
-            variant: payload.variant,
+            code: resolvedPayload.code,
+            name: resolvedPayload.name,
+            variant: resolvedPayload.variant,
             finalQuantity: finalStockValue,
             decrementBy:
-              finalStockValue === undefined ? payload.quantity : undefined,
+              finalStockValue === undefined
+                ? resolvedPayload.quantity
+                : undefined,
           });
         });
 
@@ -3618,7 +3749,7 @@ Zm0 14H8V7h9v12Z"
         throw e;
       }
     },
-    [applyStockUpdateToCache, token]
+    [applyStockUpdateToCache, resolveProductForStockPayload, token]
   );
 
   const handleRestoreStock = useCallback(
@@ -3701,7 +3832,7 @@ Zm0 14H8V7h9v12Z"
       currentVariant,
     });
 
-const productCode = extractProductCode(row);
+  const productCode = extractProductCode(row);
     const cacheKeys = getCacheKeysForProduct(productCode, productName);
     const cachedEntry = readProductFromCache(productCode, productName);
 
@@ -3726,30 +3857,23 @@ const productCode = extractProductCode(row);
     }
 
     setLoadingVariants(true);
+    let loadError: unknown = null;
     try {
-      const res = await fetch("/api/products", {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const products = await res.json();
-      
-      if (Array.isArray(products)) {
-        registerProductsInCache(products);
-      }
-      productsCacheLoadedRef.current = true;
+      await ensureProductsCacheLoaded();
     } catch (error) {
+      loadError = error;
       console.error("Erreur lors du chargement des variantes:", error);
       alert("Erreur lors du chargement des variantes");
       setAvailableVariants([]);
-      return;
     } finally {
       setLoadingVariants(false);
     }
-  const refreshedEntry = readProductFromCache(productCode, productName);
+
+    if (loadError) {
+      return;
+    }
+
+    const refreshedEntry = readProductFromCache(productCode, productName);
     if (refreshedEntry && refreshedEntry.variants.length > 0) {
       setAvailableVariants(
         refreshedEntry.variants.map((variant) => ({ ...variant }))
@@ -3761,13 +3885,11 @@ const productCode = extractProductCode(row);
       alert("Aucune variante trouvée pour ce produit");
     }
   }, [
+    ensureProductsCacheLoaded,
     getCacheKeysForProduct,
     missingProductKeysRef,
     readProductFromCache,
-    registerProductsInCache,
-    token,
   ]);
-
 
   const handleVariantSelect = useCallback(async (selectedVariant: string) => {
     if (!variantModalOpen.orderRow) return;
