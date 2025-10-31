@@ -215,6 +215,15 @@
   background: #dc2626;
 }
 
+.delivery-person-btn--info {
+  background: #3b82f6;
+  color: white;
+}
+
+.delivery-person-btn--info:hover {
+  background: #2563eb;
+}
+
 .delivery-person-order-completed {
   text-align: center;
   padding: 16px;

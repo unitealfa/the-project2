@@ -481,6 +481,14 @@
   min-width: 150px;
 }
 
+.orders-table__cell--total {
+  white-space: nowrap;
+  min-width: 120px;
+  text-align: right;
+  font-weight: 600;
+  color: #059669;
+}
+
 .orders-table__phone {
   display: inline-flex;
   align-items: center;

@@ -1159,6 +1159,74 @@ const Orders: React.FC = () => {
 
   type OrderSummary = ReturnType<typeof extractOrderSummary>;
 
+  // Fonction pour extraire le total depuis le sheet
+  const extractTotal = (row: OrderRow): string => {
+    const parseAmount = (value: unknown): number | null => {
+      if (value === undefined || value === null) return null;
+      const cleaned = String(value)
+        .replace(/\s+/g, "")
+        .replace(/[^\d,.-]/g, "")
+        .replace(/,/g, ".");
+      if (!cleaned) return null;
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    // Rechercher le champ "total" (en priorité)
+    const candidates = [
+      "total",
+      "Total",
+      "TOTAL",
+      "Montant",
+      "Montant total",
+      "Prix total",
+    ];
+    
+    for (const key of candidates) {
+      if (key in row) {
+        const parsed = parseAmount(row[key]);
+        if (parsed !== null) {
+          // Formater avec séparateur de milliers
+          return parsed.toLocaleString('fr-FR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }) + " DA";
+        }
+      }
+    }
+
+    // Si pas trouvé, essayer de calculer depuis prix unitaire * quantité
+    const quantityForTotal = (() => {
+      const raw = String(
+        row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
+      );
+      const sanitized = raw.replace(/[^\d]/g, "");
+      const n = parseInt(sanitized, 10);
+      return Number.isNaN(n) || n <= 0 ? 1 : n;
+    })();
+
+    const unitPriceForTotal = (() => {
+      const priceCandidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+      for (const key of priceCandidates) {
+        if (key in row) {
+          const parsed = parseAmount(row[key]);
+          if (parsed !== null) return parsed;
+        }
+      }
+      return null;
+    })();
+
+    if (unitPriceForTotal !== null) {
+      const computed = unitPriceForTotal * quantityForTotal;
+      return computed.toLocaleString('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }) + " DA";
+    }
+
+    return "—";
+  };
+
   const resolveCommentKey = (summary: OrderSummary, fallback: string) => {
     const normalize = (value?: string | null) => {
       if (!value) return "";
@@ -2445,6 +2513,10 @@ Zm0 14H8V7h9v12Z"
             </td>
           );
         })}
+
+        <td className="orders-table__cell orders-table__cell--total">
+          <strong>{extractTotal(row)}</strong>
+        </td>
 
         <td className="orders-table__cell orders-table__cell--comment">
           <div className="orders-table__comment-wrapper">
@@ -4258,6 +4330,8 @@ Zm0 14H8V7h9v12Z"
                       </th>
                     ))}
 
+                    <th className="orders-table__header">Total</th>
+
                     <th className="orders-table__header orders-table__header--comment">
                       Commentaire
                     </th>
@@ -4313,7 +4387,7 @@ Zm0 14H8V7h9v12Z"
                     <tr className="orders-row orders-row--empty">
                       <td
                         className="orders-table__cell"
-                        colSpan={headers.length + 3}
+                        colSpan={headers.length + 4}
                       >
                         Aucune commande trouvée.
                       </td>

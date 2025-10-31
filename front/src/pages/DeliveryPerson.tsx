@@ -84,6 +84,37 @@ const DeliveryPerson: React.FC = () => {
     }
   };
 
+  const handleDownloadBordereau = async (order: Order) => {
+    try {
+      const orderId = order._id || order.rowId;
+      const response = await fetch(`/api/orders/bordereau/${orderId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Erreur lors du téléchargement du bordereau');
+        return;
+      }
+
+      // Créer un blob à partir de la réponse
+      const blob = await response.blob();
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bordereau_${order.rowId || orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Nettoyer
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Erreur lors du téléchargement:', err);
+      alert('Erreur lors du téléchargement du bordereau');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -182,22 +213,31 @@ const DeliveryPerson: React.FC = () => {
                     )}
                   </div>
                   
-                  {order.status !== 'delivered' && order.status !== 'returned' && order.status !== 'Livrée' && order.status !== 'Annulée' && (
-                    <div className="delivery-person-order-actions">
-                      <button
-                        onClick={() => handleOrderAction(order.rowId, 'validate')}
-                        className="delivery-person-btn delivery-person-btn--success"
-                      >
-                        Valider la livraison
-                      </button>
-                      <button
-                        onClick={() => handleOrderAction(order.rowId, 'cancel')}
-                        className="delivery-person-btn delivery-person-btn--danger"
-                      >
-                        Annuler (Retour)
-                      </button>
-                    </div>
-                  )}
+                  <div className="delivery-person-order-actions">
+                    <button
+                      onClick={() => handleDownloadBordereau(order)}
+                      className="delivery-person-btn delivery-person-btn--info"
+                      style={{ marginBottom: order.status !== 'delivered' && order.status !== 'returned' && order.status !== 'Livrée' && order.status !== 'Annulée' ? '10px' : '0' }}
+                    >
+                      📄 Télécharger le bordereau
+                    </button>
+                    {order.status !== 'delivered' && order.status !== 'returned' && order.status !== 'Livrée' && order.status !== 'Annulée' && (
+                      <>
+                        <button
+                          onClick={() => handleOrderAction(order.rowId, 'validate')}
+                          className="delivery-person-btn delivery-person-btn--success"
+                        >
+                          Valider la livraison
+                        </button>
+                        <button
+                          onClick={() => handleOrderAction(order.rowId, 'cancel')}
+                          className="delivery-person-btn delivery-person-btn--danger"
+                        >
+                          Annuler (Retour)
+                        </button>
+                      </>
+                    )}
+                  </div>
                   
                   {(order.status === 'delivered' || order.status === 'returned' || order.status === 'Livrée' || order.status === 'Annulée') && (
                     <div className="delivery-person-order-completed">
