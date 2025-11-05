@@ -529,6 +529,7 @@ const buildDeliveryApiUrl = (baseUrl: string, path: string) => `${baseUrl}${path
 
 const resolveDeliveryApiConfig = (type: DeliveryType) =>
   type === "api_sook" ? DELIVERY_API_CONFIG.api_sook : DELIVERY_API_CONFIG.api_dhd;
+type DeliveryApiConfig = ReturnType<typeof resolveDeliveryApiConfig>;
 
 const normalizeStatus = (status: string) =>
   status
@@ -1452,10 +1453,7 @@ const Orders: React.FC = () => {
       // Récupérer les paramètres de livraison pour cette commande
       const { currentRowId, deliverySettings } = resolveDeliverySettings();
       const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
-      const apiConfig =
-        selectedDeliveryType === 'livreur'
-          ? null
-          : resolveDeliveryApiConfig(selectedDeliveryType);
+
       const showToast = (
         message: string,
         variant: 'success' | 'warning' = 'success',
@@ -1650,11 +1648,14 @@ const Orders: React.FC = () => {
         currentStatus = nextStatus;
       };
 
-      const syncTrackingStatus = async (trackingValue: string) => {
+      const syncTrackingStatus = async (
+        trackingValue: string,
+        config: DeliveryApiConfig
+      ) => {
         if (!trackingValue) return;
 
         const updatesUrl = `${buildDeliveryApiUrl(
-          apiConfig.baseUrl,
+          config.baseUrl,
           DHD_UPDATES_PATH
         )}?tracking=${encodeURIComponent(trackingValue)}`;
         const controllerUpdates = new AbortController();
@@ -1667,8 +1668,8 @@ const Orders: React.FC = () => {
           const respUpdates = await fetch(updatesUrl, {
             method: "GET",
             headers: {
-              ...(apiConfig.token
-                ? { Authorization: `Bearer ${apiConfig.token}` }
+              ...(config.token
+                ? { Authorization: `Bearer ${config.token}` }
                 : {}),
             },
             signal: controllerUpdates.signal,
@@ -1693,14 +1694,14 @@ const Orders: React.FC = () => {
             }
           } else {
             console.warn(
-              `HTTP ${respUpdates.status} lors de la récupération des mises à jour ${apiConfig.label}`,
+              `HTTP ${respUpdates.status} lors de la récupération des mises à jour ${config.label}`,
               dataUpdates
             );
           }
         } catch (updatesError) {
           if (!isNetworkError(updatesError)) {
             console.error(
-              `Erreur lors de la récupération des mises à jour ${apiConfig.label}`,
+              `Erreur lors de la récupération des mises à jour ${config.label}`,
               updatesError
             );
           }
@@ -1709,7 +1710,7 @@ const Orders: React.FC = () => {
         }
 
         const trackingUrl = `${buildDeliveryApiUrl(
-          apiConfig.baseUrl,
+          config.baseUrl,
           DHD_TRACKING_PATH
         )}?tracking=${encodeURIComponent(trackingValue)}`;
         const controllerTracking = new AbortController();
@@ -1721,8 +1722,8 @@ const Orders: React.FC = () => {
           const respTracking = await fetch(trackingUrl, {
             method: "GET",
             headers: {
-              ...(apiConfig.token
-                ? { Authorization: `Bearer ${apiConfig.token}` }
+              ...(config.token
+                ? { Authorization: `Bearer ${config.token}` }
                 : {}),
             },
             signal: controllerTracking.signal,
@@ -1752,7 +1753,7 @@ const Orders: React.FC = () => {
         } catch (trackingError) {
           if (!isNetworkError(trackingError)) {
             console.error(
-              `Erreur lors de la récupération du statut ${apiConfig.label}`,
+              `Erreur lors de la récupération du statut ${config.label}`,
               trackingError
             );
           }
@@ -1770,6 +1771,7 @@ const Orders: React.FC = () => {
           return payload.order.tracking;
         return "";
       };
+      let deliveryApiConfig: DeliveryApiConfig | null = null;
 
       try {
         let stockUpdateFailedMessage: string | null = null;
@@ -1828,15 +1830,17 @@ const Orders: React.FC = () => {
           return;
         }
 
-        if (!apiConfig) {
-          throw new Error('Configuration API manquante pour le type de livraison sélectionné.');
-        }
+        const currentDeliveryApiConfig = resolveDeliveryApiConfig(selectedDeliveryType);
+        deliveryApiConfig = currentDeliveryApiConfig;
 
-        const url = buildDeliveryApiUrl(apiConfig.baseUrl, DHD_CREATE_PATH);
+        const url = buildDeliveryApiUrl(
+          currentDeliveryApiConfig.baseUrl,
+          DHD_CREATE_PATH
+        );
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        console.log(`Envoi vers ${apiConfig.label} (POST JSON):`, url);
+        console.log(`Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`, url);
         console.log("Données:", finalData);
 
         const doPost = async (payload: any) => {
@@ -1844,8 +1848,8 @@ const Orders: React.FC = () => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              ...(apiConfig.token
-                ? { Authorization: `Bearer ${apiConfig.token}` }
+              ...(currentDeliveryApiConfig.token
+                ? { Authorization: `Bearer ${currentDeliveryApiConfig.token}` }
                 : {}),
             },
             body: JSON.stringify(payload),
@@ -1873,7 +1877,7 @@ const Orders: React.FC = () => {
           throw new Error("Réponse API vide");
         }
 
-        console.log(`Réponse ${apiConfig.label}:`, response);
+        console.log(`Réponse ${currentDeliveryApiConfig.label}:`, response);
         console.log("Données de réponse:", responseData);
 
         if (
@@ -1884,7 +1888,7 @@ const Orders: React.FC = () => {
 
 
           showToast(
-            `✅ Commande envoyée avec succès (${nom_client}) via ${apiConfig.label}`,
+            `✅ Commande envoyée avec succès (${nom_client}) via ${currentDeliveryApiConfig.label}`,
             "success",
             3200
           );
@@ -1899,7 +1903,8 @@ const Orders: React.FC = () => {
 
           await applyStatusUpdate("ready_to_ship", trackingValue);
           await syncTrackingStatus(
-            trackingValue === "N/A" ? "" : trackingValue
+            trackingValue === "N/A" ? "" : trackingValue,
+            currentDeliveryApiConfig
           );
           if (trimmedComment) {
             updateComment("");
@@ -1963,8 +1968,8 @@ const Orders: React.FC = () => {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
-                        ...(apiConfig.token
-                          ? { Authorization: `Bearer ${apiConfig.token}` }
+                        ...(currentDeliveryApiConfig.token
+                          ? { Authorization: `Bearer ${currentDeliveryApiConfig.token}` }
                           : {}),
                       },
                       body: JSON.stringify(attemptData),
@@ -1985,7 +1990,8 @@ const Orders: React.FC = () => {
                     await ensureStockDecremented();
                     await applyStatusUpdate("ready_to_ship", trackingValue);
                     await syncTrackingStatus(
-                      trackingValue === "N/A" ? "" : trackingValue
+                      trackingValue === "N/A" ? "" : trackingValue,
+                      currentDeliveryApiConfig
                     );
                     success = true;
                     if (trimmedComment) {
@@ -2045,7 +2051,11 @@ const Orders: React.FC = () => {
         }
       } catch (error) {
         await revertStockIfNeeded();
-        console.error(`Erreur lors de l'appel API ${apiConfig.label}:`, error);
+        const apiLabel = deliveryApiConfig?.label ?? 'inconnue';
+        console.error(
+          `Erreur lors de l'appel API ${apiLabel}:`,
+          error
+        );
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         alert(
