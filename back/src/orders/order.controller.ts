@@ -6,17 +6,8 @@ import Order from './order.model';
 import User from '../users/user.model';
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
-  const { rowId, status, tracking, row, deliveryType, deliveryPersonId } = req.body ?? {};
-
-   const normalizedDeliveryType: 'api_dhd' | 'api_sook' | 'livreur' = (() => {
-    if (deliveryType === 'livreur') {
-      return 'livreur';
-    }
-    if (deliveryType === 'api_sook') {
-      return 'api_sook';
-    }
-    return 'api_dhd';
-  })();
+  const { rowId, status, tracking, row, deliveryType, deliveryPersonId } =
+    req.body ?? {};
 
   if (!rowId || !status) {
     return res.status(400).json({
@@ -26,17 +17,50 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   }
 
   try {
+    const existingOrder = await Order.findOne({ rowId: String(rowId) });
+
+    const normalizedDeliveryType: 'api_dhd' | 'api_sook' | 'livreur' = (() => {
+      if (deliveryType === 'livreur') {
+        return 'livreur';
+      }
+      if (deliveryType === 'api_sook') {
+        return 'api_sook';
+      }
+      if (deliveryType === 'api_dhd') {
+        return 'api_dhd';
+      }
+      return existingOrder?.deliveryType ?? 'api_dhd';
+    })();
+
     // Si c'est un envoi vers un livreur, vérifier que le livreur existe
-    let deliveryPersonName;
-    if (normalizedDeliveryType === 'livreur' && deliveryPersonId) {
-      const deliveryPerson = await User.findById(deliveryPersonId);
-      if (!deliveryPerson || deliveryPerson.role !== 'livreur') {
+    let resolvedDeliveryPersonId: string | undefined;
+    let deliveryPersonName: string | undefined;
+
+    if (normalizedDeliveryType === 'livreur') {
+      if (deliveryPersonId) {
+        const deliveryPerson = await User.findById(deliveryPersonId);
+        if (!deliveryPerson || deliveryPerson.role !== 'livreur') {
+          return res.status(400).json({
+            success: false,
+            message: 'Livreur non trouvé ou invalide.',
+          });
+        }
+        resolvedDeliveryPersonId = String(deliveryPerson._id);
+        deliveryPersonName = `${deliveryPerson.firstName} ${deliveryPerson.lastName}`.trim();
+      } else if (existingOrder?.deliveryPersonId) {
+        resolvedDeliveryPersonId = existingOrder.deliveryPersonId;
+        deliveryPersonName = existingOrder.deliveryPersonName;
+      } else {
         return res.status(400).json({
           success: false,
           message: 'Livreur non trouvé ou invalide.',
         });
       }
-      deliveryPersonName = `${deliveryPerson.firstName} ${deliveryPerson.lastName}`;
+    }
+
+    if (normalizedDeliveryType !== 'livreur') {
+      resolvedDeliveryPersonId = undefined;
+      deliveryPersonName = undefined;
     }
 
     // Mettre à jour le statut dans Google Sheets
@@ -53,18 +77,16 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       status: String(status),
       tracking: typeof tracking === 'string' ? tracking : undefined,
       deliveryType: normalizedDeliveryType,
-      deliveryPersonId:
-        normalizedDeliveryType === 'livreur' ? deliveryPersonId : undefined,
+      deliveryPersonId: resolvedDeliveryPersonId,
       deliveryPersonName,
-      row
+      row: row ?? existingOrder?.row,
     };
 
     console.log('💾 Sauvegarde de la commande:', {
       rowId: String(rowId),
       status: String(status),
       deliveryType: normalizedDeliveryType,
-      deliveryPersonId:
-        normalizedDeliveryType === 'livreur' ? deliveryPersonId : undefined,
+      deliveryPersonId: resolvedDeliveryPersonId,
       deliveryPersonName
     });
 
