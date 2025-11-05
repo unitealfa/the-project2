@@ -1438,13 +1438,24 @@ const Orders: React.FC = () => {
     const [deliveryType, setDeliveryType] = React.useState<DeliveryType>('api_dhd');
     const [deliveryPersonId, setDeliveryPersonId] = React.useState<string | null>(null);
 
-    const handleSendToApi = React.useCallback(async () => {
-      // Récupérer les paramètres de livraison pour cette commande
+    const resolveDeliverySettings = React.useCallback(() => {
       const currentRowId = String(row["id-sheet"] || row["ID"] || "");
       const deliverySettings =
-        orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
+       orderDeliverySettings[currentRowId] || {
+          deliveryType: 'api_dhd' as DeliveryType,
+          deliveryPersonId: null,
+        };
+      return { currentRowId, deliverySettings };
+    }, [orderDeliverySettings, row]);
+
+    const handleSendToApi = React.useCallback(async () => {
+      // Récupérer les paramètres de livraison pour cette commande
+      const { currentRowId, deliverySettings } = resolveDeliverySettings();
       const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
-      const apiConfig = resolveDeliveryApiConfig(selectedDeliveryType);
+      const apiConfig =
+        selectedDeliveryType === 'livreur'
+          ? null
+          : resolveDeliveryApiConfig(selectedDeliveryType);
       const showToast = (
         message: string,
         variant: 'success' | 'warning' = 'success',
@@ -1782,6 +1793,45 @@ const Orders: React.FC = () => {
           );
         }
 
+        if (selectedDeliveryType === 'livreur') {
+          try {
+            await applyStatusUpdate('Assigné', '');
+            showToast(
+              `✅ Commande assignée au livreur pour ${nom_client}`,
+              'success',
+              3200
+            );
+            if (stockUpdateFailedMessage) {
+              showToast(
+                `⚠️ Pensez à ajuster manuellement le stock pour ${
+                  stockPayload.name || stockPayload.code || 'ce produit'
+                }.`,
+                'warning',
+                6000
+              );
+              stockUpdateFailedMessage = null;
+            }
+            if (trimmedComment) {
+              updateComment('');
+            }
+          } catch (assignError) {
+            await revertStockIfNeeded();
+            console.error("Erreur lors de l'assignation au livreur:", assignError);
+            const message =
+              assignError instanceof Error
+                ? assignError.message
+                : String(assignError);
+            alert(
+              `❌ Erreur lors de l'assignation au livreur.\n\nClient: ${nom_client}\n\nErreur: ${message}`
+            );
+          }
+          return;
+        }
+
+        if (!apiConfig) {
+          throw new Error('Configuration API manquante pour le type de livraison sélectionné.');
+        }
+
         const url = buildDeliveryApiUrl(apiConfig.baseUrl, DHD_CREATE_PATH);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -2019,7 +2069,7 @@ const Orders: React.FC = () => {
       rowId,
       currentComment,
       updateComment,
-      orderDeliverySettings,
+      resolveDeliverySettings,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
@@ -2029,9 +2079,17 @@ const Orders: React.FC = () => {
       if (!confirmed) return;
       try {
         setAbandoning(true);
+         const { deliverySettings } = resolveDeliverySettings();
+        const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
+        const resolvedDeliveryPersonId =
+          selectedDeliveryType === 'livreur' && deliveryPersonId
+            ? deliveryPersonId
+            : undefined;
         await onUpdateStatus(rowId, "abandoned", {
           previousStatus: initialSheetStatus,
           row: { ...row, etat: "abandoned" },
+          deliveryType: selectedDeliveryType,
+          deliveryPersonId: resolvedDeliveryPersonId,
         });
       } catch (e: any) {
         const message =
@@ -2040,11 +2098,25 @@ const Orders: React.FC = () => {
       } finally {
         setAbandoning(false);
       }
-    }, [displayRowLabel, initialSheetStatus, onUpdateStatus, row, rowId]);
+    }, [
+      displayRowLabel,
+      initialSheetStatus,
+      onUpdateStatus,
+      resolveDeliverySettings,
+      row,
+      rowId,
+    ]);
 
     const handleMarkDelivered = React.useCallback(async () => {
       try {
         setDelivering(true);
+        const { deliverySettings } = resolveDeliverySettings();
+        const { deliveryType: selectedDeliveryType, deliveryPersonId } =
+          deliverySettings;
+        const resolvedDeliveryPersonId =
+          selectedDeliveryType === 'livreur' && deliveryPersonId
+            ? deliveryPersonId
+            : undefined;
         const quantity = extractQuantityValue(row);
         const rawProductLabel =
           extractProductLabel(row) || String(row["Produit"] ?? "").trim();
@@ -2068,13 +2140,22 @@ const Orders: React.FC = () => {
         await onUpdateStatus(rowId, "delivered", {
           previousStatus: initialSheetStatus,
           row: { ...row, etat: "delivered" },
+          deliveryType: selectedDeliveryType,
+          deliveryPersonId: resolvedDeliveryPersonId,
         });
       } catch (e: any) {
         alert(e?.message || "Erreur lors de la livraison");
       } finally {
         setDelivering(false);
       }
-    }, [initialSheetStatus, onDelivered, onUpdateStatus, row, rowId]);
+    }, [
+      initialSheetStatus,
+      onDelivered,
+      onUpdateStatus,
+      resolveDeliverySettings,
+      row,
+      rowId,
+    ]);
 
     const containerClass =
       variant === "modal" ? "orders-modal__actions" : "orders-table__actions";
