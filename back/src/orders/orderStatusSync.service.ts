@@ -1,5 +1,7 @@
 import axios from 'axios';
 import sheetService from './order.service';
+import Order from './order.model';
+import { decrementStockForDeliveredOrder } from './orderStockUtils';
 
 const DEFAULT_DHD_API_BASE_URL =
   process.env.DHD_API_URL ?? 'https://platform.dhd-dz.com';
@@ -458,6 +460,24 @@ export const syncOfficialStatuses = async (
         newStatus: mappedStatus,
         previousStatus: order.currentStatus,
       });
+
+      // Décrémenter automatiquement le stock si le statut devient "livrée" (delivered)
+      // et que le statut précédent n'était pas déjà "livrée" (pour éviter les doubles décrémentations)
+      const normalizedMappedStatus = mappedStatus.toLowerCase().trim();
+      const normalizedPreviousStatus = order.currentStatus ? String(order.currentStatus).toLowerCase().trim() : '';
+      const isDelivered = normalizedMappedStatus === 'delivered' || normalizedMappedStatus === 'livrée';
+      const wasAlreadyDelivered = normalizedPreviousStatus === 'delivered' || normalizedPreviousStatus === 'livrée';
+
+      if (isDelivered && !wasAlreadyDelivered) {
+        // Récupérer la commande depuis la base de données pour avoir accès à la ligne (row)
+        const existingOrder = await Order.findOne({ rowId: order.rowId });
+        if (existingOrder?.row) {
+          // Décrémenter le stock de manière asynchrone (ne pas bloquer la synchronisation)
+          decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
+            console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
+          });
+        }
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Erreur inconnue';

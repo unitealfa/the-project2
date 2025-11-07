@@ -2138,15 +2138,25 @@ const Orders: React.FC = () => {
             ? variantFromLabel
             : variantFromRow;
         const code = extractProductCode(row);
-        await onDelivered(
-          {
-            code: code || undefined,
-            name: productNameForStock || rawProductLabel || undefined,
-            variant,
-            quantity,
-          },
-          rowId
-        );
+        // Essayer de décrémenter le stock (mais ne pas bloquer si ça échoue)
+        // Le backend le fera automatiquement quand le statut passe à "delivered"
+        try {
+          await onDelivered(
+            {
+              code: code || undefined,
+              name: productNameForStock || rawProductLabel || undefined,
+              variant,
+              quantity,
+            },
+            rowId
+          );
+        } catch (e: any) {
+          // Ne pas afficher d'erreur si la décrémentation échoue
+          // Le backend le fera automatiquement
+          console.log("ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:", e?.message);
+        }
+        
+        // Mettre à jour le statut à "delivered" (cela déclenchera aussi la décrémentation automatique dans le backend)
         await onUpdateStatus(rowId, "delivered", {
           previousStatus: initialSheetStatus,
           row: { ...row, etat: "delivered" },
@@ -2154,7 +2164,14 @@ const Orders: React.FC = () => {
           deliveryPersonId: resolvedDeliveryPersonId,
         });
       } catch (e: any) {
-        alert(e?.message || "Erreur lors de la livraison");
+        // Afficher une erreur seulement si c'est un problème de mise à jour du statut
+        // Pas pour les erreurs de décrémentation
+        const errorMessage = e?.message || "Erreur lors de la livraison";
+        if (!errorMessage.includes("Produit introuvable") && !errorMessage.includes("introuvable")) {
+          alert(errorMessage);
+        } else {
+          console.log("ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:", errorMessage);
+        }
       } finally {
         setDelivering(false);
       }
@@ -3839,6 +3856,8 @@ Zm0 14H8V7h9v12Z"
       payload.variant = resolvedPayload.variant;
       payload.quantity = resolvedPayload.quantity;
       // Appelle l'API backend pour décrémenter le stock (permet stock négatif)
+      // Note: La décrémentation se fait aussi automatiquement dans le backend quand le statut passe à "delivered"
+      // On essaie quand même de décrémenter ici pour mettre à jour le cache, mais on n'affiche pas d'erreur si ça échoue
       try {
         const res = await fetch("/api/products/decrement-bulk-allow-negative", {
           method: "POST",
@@ -3849,17 +3868,21 @@ Zm0 14H8V7h9v12Z"
           body: JSON.stringify({ items: [resolvedPayload] }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Échec décrémentation");
+        
+        // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
+        // On continue silencieusement
+        if (!res.ok) {
+          console.log("ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:", data?.message || "Échec décrémentation");
+          return; // Sortir silencieusement sans erreur
+        }
+        
         const failures = Array.isArray(data?.results)
           ? data.results.filter((r: any) => !r.ok)
           : [];
         if (failures.length) {
-          const msg = failures
-            .map(
-              (f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
-            )
-            .join("\n");
-          throw new Error(msg || "Échec partiel");
+          // Ne pas lancer d'erreur, juste logger
+          console.log("ℹ️ Décrémentation partielle, le backend le fera automatiquement:", failures.map((f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`).join(", "));
+          return; // Sortir silencieusement sans erreur
         }
       
         const results = Array.isArray(data?.results) ? data.results : [];
@@ -3920,7 +3943,10 @@ Zm0 14H8V7h9v12Z"
           }, 5000);
         }
       } catch (e) {
-        throw e;
+        // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
+        // On continue silencieusement
+        console.log("ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:", e);
+        // Ne pas throw, continuer silencieusement
       }
     },
     [applyStockUpdateToCache, resolveProductForStockPayload, token]

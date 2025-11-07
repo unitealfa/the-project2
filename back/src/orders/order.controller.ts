@@ -4,6 +4,7 @@ import sheetService from './order.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import Order from './order.model';
 import User from '../users/user.model';
+import { decrementStockForDeliveredOrder } from './orderStockUtils';
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
   const { rowId, status, tracking, row, deliveryType, deliveryPersonId } =
@@ -104,6 +105,23 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       deliveryPersonId: savedOrder.deliveryPersonId,
       deliveryPersonName: savedOrder.deliveryPersonName
     });
+
+    // Décrémenter automatiquement le stock si le statut devient "delivered"
+    // et que le statut précédent n'était pas déjà "delivered" (pour éviter les doubles décrémentations)
+    const normalizedStatus = String(status).toLowerCase().trim();
+    const previousStatus = existingOrder?.status ? String(existingOrder.status).toLowerCase().trim() : '';
+    const isDelivered = normalizedStatus === 'delivered' || normalizedStatus === 'livrée';
+    const wasAlreadyDelivered = previousStatus === 'delivered' || previousStatus === 'livrée';
+
+    if (isDelivered && !wasAlreadyDelivered) {
+      const orderRow = row ?? existingOrder?.row ?? savedOrder.row;
+      if (orderRow) {
+        // Décrémenter le stock de manière asynchrone (ne pas bloquer la réponse)
+        decrementStockForDeliveredOrder(orderRow, String(rowId)).catch((error) => {
+          console.error('Erreur lors de la décrémentation automatique du stock:', error);
+        });
+      }
+    }
 
     return res.json({
       success: true,
