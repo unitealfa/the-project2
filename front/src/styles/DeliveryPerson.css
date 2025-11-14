@@ -239,6 +239,62 @@
   font-size: 0.95rem;
 }
 
+.delivery-person-pdf-card {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  width: 520px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  font-family: 'Cairo', 'Segoe UI', 'Tahoma', sans-serif;
+  line-height: 1.7;
+  direction: rtl;
+  text-align: right;
+  z-index: -1;
+}
+
+.delivery-person-pdf-card * {
+  font-family: inherit;
+}
+
+.delivery-person-pdf-header {
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+
+.delivery-person-pdf-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.delivery-person-pdf-header p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.delivery-person-pdf-section h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.delivery-person-pdf-section p {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.delivery-person-pdf-section span {
+  font-weight: 600;
+  margin-left: 4px;
+}
+
 @media (max-width: 768px) {
   .delivery-person-page {
     padding: 20px 16px;

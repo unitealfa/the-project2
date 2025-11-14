@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/DeliveryPerson.css';
 
@@ -123,35 +125,39 @@ const DeliveryPerson: React.FC = () => {
   };
 
   const handleDownloadBordereau = async (order: Order) => {
-    try {
-      const orderId = order._id || order.rowId;
-      const response = await fetch(`/api/orders/bordereau/${orderId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.message || 'Erreur lors du téléchargement du bordereau');
-        return;
-      }
+    const pdfElementId = `delivery-person-pdf-${order._id || order.rowId}`;
+    const element = document.getElementById(pdfElementId);
 
-      // Créer un blob à partir de la réponse
-      const blob = await response.blob();
-      
-      // Créer un lien de téléchargement
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bordereau_${order.rowId || orderId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Nettoyer
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+    if (!element) {
+      alert('Impossible de générer le bordereau pour cette commande.');
+      return;
+    }
+
+    try {
+       const canvas = await html2canvas(element, {
+        scale: window.devicePixelRatio || 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+      });
+
+      const imageData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height],
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+
+      pdf.addImage(imageData, 'PNG', 0, 0, pageWidth, pageHeight);
+      pdf.save(`bordereau_${order.rowId || order._id}.pdf`);
     } catch (err) {
-      console.error('Erreur lors du téléchargement:', err);
-      alert('Erreur lors du téléchargement du bordereau');
+      console.error('Erreur lors de la génération du PDF:', err);
+      alert('Erreur lors de la génération du bordereau');
     }
   };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -227,6 +233,7 @@ const DeliveryPerson: React.FC = () => {
                 const secondaryPhone = formatPhoneNumber(order.row?.['Numero 2'] ?? order.row?.['Téléphone 2']);
                 const phoneParts = [primaryPhone, secondaryPhone].filter(phone => phone && phone !== 'N/A');
                 const phoneDisplay = phoneParts.length > 0 ? phoneParts.join(' / ') : 'N/A';
+                const pdfElementId = `delivery-person-pdf-${order._id || order.rowId}`;
 
                 return (
                   <div key={order._id} className="delivery-person-order">
@@ -292,6 +299,23 @@ const DeliveryPerson: React.FC = () => {
                         </p>
                       </div>
                     )}
+                    <div id={pdfElementId} className="delivery-person-pdf-card" aria-hidden="true">
+                      <div className="delivery-person-pdf-header">
+                        <h2>Commande #{order.rowId}</h2>
+                        <p><strong>Assignée le:</strong> {formatDate(order.createdAt)}</p>
+                        {order.tracking && (
+                          <p><strong>Tracking:</strong> {order.tracking}</p>
+                        )}
+                      </div>
+                      <div className="delivery-person-pdf-section">
+                        <h3>Informations client</h3>
+                        <p><span>Nom:</span> {String(order.row?.['Nom du client'] || 'N/A')}</p>
+                        <p><span>Téléphone:</span> {phoneDisplay}</p>
+                        <p><span>Adresse:</span> {String(order.row?.['Adresse'] || 'N/A')}</p>
+                        <p><span>Commune:</span> {String(order.row?.['Commune'] || 'N/A')}</p>
+                        <p><span>Wilaya:</span> {String(order.row?.['Wilaya'] || 'N/A')}</p>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
