@@ -23,6 +23,44 @@ interface Order {
   };
 }
 
+const formatPhoneNumber = (value?: string | number | null): string => {
+  if (value === undefined || value === null) {
+    return 'N/A';
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return 'N/A';
+  }
+
+  let digits = raw.replace(/\D/g, '');
+  if (!digits) {
+    return 'N/A';
+  }
+
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.startsWith('213') && digits.length >= 12) {
+    digits = digits.slice(3);
+  }
+
+  if (digits.length === 9) {
+    digits = `0${digits}`;
+  } else if (!digits.startsWith('0') && digits.length > 9) {
+    digits = `0${digits.slice(-9)}`;
+  } else if (!digits.startsWith('0')) {
+    digits = `0${digits}`;
+  }
+
+  if (digits.length > 10 && digits.startsWith('0')) {
+    digits = digits.slice(0, 10);
+  }
+
+  return digits || 'N/A';
+};
+
 const DeliveryPerson: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -184,16 +222,22 @@ const DeliveryPerson: React.FC = () => {
             </div>
           ) : (
             <div className="delivery-person-orders">
-              {orders.map((order) => (
-                <div key={order._id} className="delivery-person-order">
-                  <div className="delivery-person-order-header">
+              {orders.map((order) => {
+                const primaryPhone = formatPhoneNumber(order.row?.['Numero'] ?? order.row?.['Téléphone']);
+                const secondaryPhone = formatPhoneNumber(order.row?.['Numero 2'] ?? order.row?.['Téléphone 2']);
+                const phoneParts = [primaryPhone, secondaryPhone].filter(phone => phone && phone !== 'N/A');
+                const phoneDisplay = phoneParts.length > 0 ? phoneParts.join(' / ') : 'N/A';
+
+                return (
+                  <div key={order._id} className="delivery-person-order">
+                    <div className="delivery-person-order-header">
                     <h3>Commande #{order.rowId}</h3>
                     <span className={`delivery-person-status ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
                   
-                  <div className="delivery-person-order-details">
+                    <div className="delivery-person-order-details">
                     <div className="delivery-person-order-info">
                       <p><strong>Assignée le:</strong> {formatDate(order.createdAt)}</p>
                       {order.tracking && (
@@ -205,7 +249,7 @@ const DeliveryPerson: React.FC = () => {
                       <div className="delivery-person-order-client">
                         <h4>Informations client</h4>
                         <p><strong>Nom:</strong> {String(order.row?.['Nom du client'] || 'N/A')}</p>
-                        <p><strong>Téléphone:</strong> {String(order.row?.['Numero'] || order.row?.['Téléphone'] || 'N/A')}</p>
+                        <p><strong>Téléphone:</strong> {phoneDisplay}</p>
                         <p><strong>Adresse:</strong> {String(order.row?.['Adresse'] || 'N/A')}</p>
                         <p><strong>Commune:</strong> {String(order.row?.['Commune'] || 'N/A')}</p>
                         <p><strong>Wilaya:</strong> {String(order.row?.['Wilaya'] || 'N/A')}</p>
@@ -213,7 +257,7 @@ const DeliveryPerson: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="delivery-person-order-actions">
+                    <div className="delivery-person-order-actions">
                     <button
                       onClick={() => handleDownloadBordereau(order)}
                       className="delivery-person-btn delivery-person-btn--info"
@@ -240,16 +284,17 @@ const DeliveryPerson: React.FC = () => {
                   </div>
                   
                   {(order.status === 'delivered' || order.status === 'returned' || order.status === 'Livrée' || order.status === 'Annulée') && (
-                    <div className="delivery-person-order-completed">
-                      <p className="delivery-person-completed-message">
-                        {(order.status === 'delivered' || order.status === 'Livrée')
-                          ? '✅ Commande livrée avec succès' 
-                          : '❌ Commande annulée'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                      <div className="delivery-person-order-completed">
+                        <p className="delivery-person-completed-message">
+                          {(order.status === 'delivered' || order.status === 'Livrée')
+                            ? '✅ Commande livrée avec succès'
+                            : '❌ Commande annulée'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

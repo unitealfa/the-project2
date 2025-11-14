@@ -1,10 +1,58 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import PDFDocument from 'pdfkit';
 import sheetService from './order.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import Order from './order.model';
 import User from '../users/user.model';
 import { decrementStockForDeliveredOrder } from './orderStockUtils';
+
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const ARABIC_FONT_PATH = path.join(
+  PROJECT_ROOT,
+  'assets',
+  'fonts',
+  'NotoSansArabic-Regular.ttf'
+);
+
+const formatPhoneNumber = (value?: unknown): string => {
+  if (value === undefined || value === null) {
+    return 'N/A';
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return 'N/A';
+  }
+
+  let digits = raw.replace(/\D/g, '');
+  if (!digits) {
+    return 'N/A';
+  }
+
+  if (digits.startsWith('00')) {
+    digits = digits.substring(2);
+  }
+
+  if (digits.startsWith('213') && digits.length >= 12) {
+    digits = digits.substring(3);
+  }
+
+  if (digits.length === 9) {
+    digits = `0${digits}`;
+  }
+
+  if (!digits.startsWith('0')) {
+    digits = `0${digits}`;
+  }
+
+  if (digits.length > 10 && digits.startsWith('0')) {
+    digits = digits.substring(0, 10);
+  }
+
+  return digits || 'N/A';
+};
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
   const { rowId, status, tracking, row, deliveryType, deliveryPersonId } =
@@ -295,8 +343,8 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     
     // Extraire les données nécessaires
     const clientName = String(row['Nom du client'] || 'N/A');
-    const phone = String(row['Numero'] || row['Téléphone'] || 'N/A');
-    const phone2 = String(row['Numero 2'] || row['Téléphone 2'] || '');
+    const phone = formatPhoneNumber(row['Numero'] ?? row['Téléphone']);
+    const phone2 = formatPhoneNumber(row['Numero 2'] ?? row['Téléphone 2']);
     const address = String(row['Adresse'] || 'N/A');
     const commune = String(row['Commune'] || 'N/A');
     const wilaya = String(row['Wilaya'] || 'N/A');
@@ -687,6 +735,19 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
       margin: 10,
     });
 
+    if (fs.existsSync(ARABIC_FONT_PATH)) {
+      try {
+        doc.registerFont('NotoSansArabic', ARABIC_FONT_PATH);
+        doc.font('NotoSansArabic');
+      } catch (fontError) {
+        console.warn('⚠️ Impossible de charger la police arabe:', fontError);
+        doc.font('Helvetica');
+      }
+    } else {
+      console.warn('⚠️ Police arabe introuvable à', ARABIC_FONT_PATH);
+      doc.font('Helvetica');
+    }
+
     // Configurer les en-têtes de réponse
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="bordereau_${order.rowId || orderId}.pdf"`);
@@ -713,7 +774,8 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     yPos += 15;
 
     // Téléphone(s)
-    const phoneDisplay = phone2 ? `${phone} - ${phone2}` : phone;
+    const phoneParts = [phone, phone2].filter(value => value && value !== 'N/A');
+    const phoneDisplay = phoneParts.length > 0 ? phoneParts.join(' - ') : 'N/A';
     doc.text(phoneDisplay, 10, yPos);
     yPos += 15;
 
