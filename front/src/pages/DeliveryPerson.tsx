@@ -74,15 +74,26 @@ const DeliveryPerson: React.FC = () => {
       fetchOrders();
     }
   }, [user]);
+  
+    const isOrderCompleted = (status: string) => {
+    const normalizedStatus = status?.toLowerCase();
+    return (
+      normalizedStatus === 'delivered' ||
+      normalizedStatus === 'returned' ||
+      normalizedStatus === 'livrée' ||
+      normalizedStatus === 'annulée'
+    );
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/orders/delivery-person/${user?.id}/orders`);
       const data = await response.json();
-      
+
       if (data.success) {
-        setOrders(data.orders);
+        const activeOrders = data.orders.filter((order: Order) => !isOrderCompleted(order.status));
+        setOrders(activeOrders);
       } else {
         setError(data.message || 'Erreur lors de la récupération des commandes');
       }
@@ -272,7 +283,7 @@ const DeliveryPerson: React.FC = () => {
                     >
                       📄 Télécharger le bordereau
                     </button>
-                    {order.status !== 'delivered' && order.status !== 'returned' && order.status !== 'Livrée' && order.status !== 'Annulée' && (
+                    {!isOrderCompleted(order.status) && (
                       <>
                         <button
                           onClick={() => handleOrderAction(order.rowId, 'validate')}
@@ -290,7 +301,7 @@ const DeliveryPerson: React.FC = () => {
                     )}
                   </div>
                   
-                  {(order.status === 'delivered' || order.status === 'returned' || order.status === 'Livrée' || order.status === 'Annulée') && (
+                  {isOrderCompleted(order.status) && (
                       <div className="delivery-person-order-completed">
                         <p className="delivery-person-completed-message">
                           {(order.status === 'delivered' || order.status === 'Livrée')
