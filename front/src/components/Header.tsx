@@ -193,6 +193,16 @@ const Header: React.FC = () => {
               Mon équipe
             </Link>
           )}
+          {user.role === 'livreur' && (
+            <Link
+              to={`/livreur/${user.id}/history`}
+              role="menuitem"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <i className="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              Mon historique
+            </Link>
+          )}
           <button type="button" role="menuitem" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
             Se déconnecter

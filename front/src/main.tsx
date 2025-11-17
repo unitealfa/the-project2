@@ -17,6 +17,7 @@ import EditUser     from './pages/EditUser';
 import Gestionnaire from './pages/Gestionnaire';
 import Confirmateur from './pages/Confirmateur';
 import DeliveryPerson from './pages/DeliveryPerson';
+import DeliveryHistory from './pages/DeliveryHistory';
 import Orders       from './pages/Orders';
 import Products     from './pages/Products';
 
@@ -63,6 +64,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<PrivateRoute roles={['livreur']} ownPage />}>
             <Route element={<ProtectedLayout />}>
               <Route path="/livreur/:id" element={<DeliveryPerson />} />
+              <Route path="/livreur/:id/history" element={<DeliveryHistory />} />
             </Route>
           </Route>
 

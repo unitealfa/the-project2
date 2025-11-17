@@ -274,6 +274,75 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
   }
 };
 
+export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
+  try {
+    const { deliveryPersonId } = req.params;
+
+    if (!deliveryPersonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'L\'identifiant du livreur est requis',
+      });
+    }
+
+    const finalStatuses = [
+      'delivered',
+      'Delivered',
+      'livrée',
+      'Livrée',
+      'livree',
+      'Livree',
+      'returned',
+      'Returned',
+      'retour',
+      'retournée',
+      'Retournée',
+      'retournee',
+      'Retournee',
+      'annulée',
+      'Annulée',
+      'annulee',
+      'Annulee'
+    ];
+
+    const baseQuery: Record<string, unknown> = {
+      deliveryType: 'livreur',
+      status: { $in: finalStatuses }
+    };
+
+    const queries = [{ ...baseQuery, deliveryPersonId }];
+
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(deliveryPersonId)) {
+        queries.push({ ...baseQuery, deliveryPersonId: new mongoose.Types.ObjectId(deliveryPersonId) });
+      }
+    } catch (objectIdError) {
+      console.log('❌ Erreur lors de la conversion en ObjectId pour l\'historique:', objectIdError);
+    }
+
+    let orders: any[] = [];
+    for (const query of queries) {
+      orders = await Order.find(query).sort({ updatedAt: -1 });
+      if (orders.length > 0) {
+        break;
+      }
+    }
+
+    return res.json({
+      success: true,
+      orders
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur lors de la récupération de l\'historique';
+    console.error('❌ Erreur dans getDeliveryPersonHistory:', error);
+    return res.status(500).json({
+      success: false,
+      message,
+    });
+  }
+};
+
 export const syncOfficialStatuses = async (req: Request, res: Response) => {
   const { orders, startDate, endDate } = req.body ?? {};
 
