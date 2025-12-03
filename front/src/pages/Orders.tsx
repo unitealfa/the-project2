@@ -990,7 +990,7 @@ const extractTrackingStatus = (payload: any): string | null => {
 };
 
 const Orders: React.FC = () => {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const [rows, setRows] = React.useState<OrderRow[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);

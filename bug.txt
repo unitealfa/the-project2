@@ -1,0 +1,57 @@
+[plugin:vite:react-babel] C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\src\pages\AdminDeliveryOrders.tsx: Unexpected token (175:4)
+  178 |     }
+C:/Users/moura/OneDrive/Bureau/project interessant/the-project2/front/src/pages/AdminDeliveryOrders.tsx:175:4
+179|    };
+180|  
+181|    const buildOrderSummary = (order: Order) => {
+   |   ^
+182|      const row = order.row || {};
+183|      const phone =
+    at constructor (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:367:19)
+    at TypeScriptParserMixin.raise (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:6627:19)
+    at TypeScriptParserMixin.unexpected (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:6647:16)
+    at TypeScriptParserMixin.parseExprAtom (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:11442:16)
+    at TypeScriptParserMixin.parseExprAtom (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:4794:20)
+    at TypeScriptParserMixin.parseExprSubscripts (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:11076:23)
+    at TypeScriptParserMixin.parseUpdate (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:11061:21)
+    at TypeScriptParserMixin.parseMaybeUnary (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:11041:23)
+    at TypeScriptParserMixin.parseMaybeUnary (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:9852:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10894:61)
+    at TypeScriptParserMixin.parseExprOps (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10899:23)
+    at TypeScriptParserMixin.parseMaybeConditional (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10876:23)
+    at TypeScriptParserMixin.parseMaybeAssign (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10826:21)
+    at TypeScriptParserMixin.parseMaybeAssign (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:9801:20)
+    at TypeScriptParserMixin.parseExpressionBase (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10779:23)
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10775:39
+    at TypeScriptParserMixin.allowInAnd (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12422:16)
+    at TypeScriptParserMixin.parseExpression (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10775:17)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12895:23)
+    at TypeScriptParserMixin.parseStatementContent (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:9527:18)
+    at TypeScriptParserMixin.parseStatementLike (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12767:17)
+    at TypeScriptParserMixin.parseModuleItem (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12744:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:13316:36)
+    at TypeScriptParserMixin.parseBlockBody (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:13309:10)
+    at TypeScriptParserMixin.parseProgram (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12625:10)
+    at TypeScriptParserMixin.parseTopLevel (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:12615:25)
+    at TypeScriptParserMixin.parse (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:14492:10)
+    at TypeScriptParserMixin.parse (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:10144:18)
+    at parse (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\parser\lib\index.js:14526:38)
+    at parser (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\core\lib\parser\index.js:41:34)
+    at parser.next (<anonymous>)
+    at normalizeFile (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+    at normalizeFile.next (<anonymous>)
+    at run (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\core\lib\transformation\index.js:22:50)
+    at run.next (<anonymous>)
+    at transform (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\core\lib\transform.js:22:33)
+    at transform.next (<anonymous>)
+    at step (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:261:32)
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:273:13
+    at async.call.result.err.err (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:223:11)
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:189:28
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:113:33
+    at step (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:287:14)
+    at C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:273:13
+    at async.call.result.err.err (C:\Users\moura\OneDrive\Bureau\project interessant\the-project2\front\node_modules\gensync\index.js:223:11
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.js.

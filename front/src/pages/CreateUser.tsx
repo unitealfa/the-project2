@@ -211,7 +211,7 @@ const CreateUser: React.FC = () => {
             <div className="team-form__grid">
               <div className="team-form__group">
                 <label className="team-form__label" htmlFor="password">
-                  Mot de passe provisoire
+                  Mot de passe
                 </label>
                 <div className="team-form__password-field">
                   <input

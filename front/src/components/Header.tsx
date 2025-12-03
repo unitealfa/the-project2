@@ -95,6 +95,7 @@ const Header: React.FC = () => {
           { label: 'Accueil', to: homePath },
           { label: 'Commandes', to: `/admin/${user.id}/orders` },
           { label: 'Produits', to: `/admin/${user.id}/products` },
+          { label: 'Mon livreur', to: `/admin/${user.id}/livreurs` },
         ];
       case 'gestionnaire':
         return [

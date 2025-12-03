@@ -18,6 +18,7 @@ import Gestionnaire from './pages/Gestionnaire';
 import Confirmateur from './pages/Confirmateur';
 import DeliveryPerson from './pages/DeliveryPerson';
 import DeliveryHistory from './pages/DeliveryHistory';
+import AdminDeliveryOrders from './pages/AdminDeliveryOrders';
 import Orders       from './pages/Orders';
 import Products     from './pages/Products';
 
@@ -40,6 +41,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/admin/:id/users/:userId"       element={<UserDetail />} />
               <Route path="/admin/:id/users/:userId/edit"  element={<EditUser />} />
               <Route path="/admin/:id/orders"              element={<Orders />} />
+              <Route path="/admin/:id/livreurs"            element={<AdminDeliveryOrders />} />
               <Route path="/admin/:id/products"            element={<Products />} />
             </Route>
           </Route>

@@ -7,6 +7,7 @@ import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStat
 import Order from './order.model';
 import User from '../users/user.model';
 import { decrementStockForDeliveredOrder } from './orderStockUtils';
+import { Types } from 'mongoose';
 
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const ARABIC_FONT_PATH = path.join(
@@ -387,12 +388,12 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     }
 
     // Récupérer la commande depuis la base de données
-    const order = await Order.findOne({ 
-      $or: [
-        { _id: orderId },
-        { rowId: orderId }
-      ]
-    });
+    const query: any = { $or: [{ rowId: orderId }] };
+    if (Types.ObjectId.isValid(orderId)) {
+      query.$or.push({ _id: new Types.ObjectId(orderId) });
+    }
+
+    const order = await Order.findOne(query);
 
     if (!order) {
       return res.status(404).json({
@@ -937,5 +938,52 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
       success: false,
       message,
     });
+  }
+};
+
+// Liste toutes les commandes assignées aux livreurs (vue admin)
+export const getAllDeliveryOrders = async (_req: Request, res: Response) => {
+  try {
+    const deliveryPersons = await User.find({ role: 'livreur' }).select(
+      '_id firstName lastName'
+    );
+    const deliveryPersonMap = new Map(
+      deliveryPersons.map((person) => [
+        String(person._id),
+        `${person.firstName ?? ''} ${person.lastName ?? ''}`.trim() ||
+          person.firstName ||
+          person.lastName ||
+          'Livreur',
+      ])
+    );
+
+    const orders = await Order.find({ deliveryType: 'livreur' }).sort({
+      updatedAt: -1,
+    });
+
+    const decorated = orders.map((order) => {
+      const normalizedId = order.deliveryPersonId
+        ? String(order.deliveryPersonId)
+        : '';
+      const nameFromMap = normalizedId
+        ? deliveryPersonMap.get(normalizedId)
+        : undefined;
+      const deliveryPersonName =
+        order.deliveryPersonName ||
+        nameFromMap ||
+        (normalizedId ? `Livreur ${normalizedId}` : 'Livreur');
+      return {
+        ...order.toObject(),
+        deliveryPersonName,
+      };
+    });
+
+    return res.json({ success: true, orders: decorated });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erreur lors de la rÇ¸cupÇ¸ration des commandes livreurs';
+    return res.status(500).json({ success: false, message });
   }
 };
