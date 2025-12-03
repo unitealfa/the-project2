@@ -813,6 +813,70 @@ const normalizeFieldKey = (key: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+const normalizeHeaderKey = (value: string) =>
+  normalizeFieldKey(value).replace(/[^a-z0-9]+/g, "");
+
+type CustomerDeliveryMode = "a_domicile" | "stop_desk";
+
+const DELIVERY_MODE_LABELS: Record<CustomerDeliveryMode, string> = {
+  a_domicile: "A domicile",
+  stop_desk: "Stop desk",
+};
+
+const DELIVERY_MODE_OPTIONS: { value: CustomerDeliveryMode; label: string }[] = [
+  { value: "a_domicile", label: DELIVERY_MODE_LABELS.a_domicile },
+  { value: "stop_desk", label: DELIVERY_MODE_LABELS.stop_desk },
+];
+
+const DELIVERY_MODE_HEADER_KEYS = [
+  "Type de livraison",
+  "Type livraison",
+  "Mode de livraison",
+  "Livraison",
+  "Livraison type",
+];
+
+const DELIVERY_MODE_HEADER_KEY_SET = new Set(
+  DELIVERY_MODE_HEADER_KEYS.map(normalizeHeaderKey)
+);
+
+const normalizeSheetDeliveryMode = (value: string): CustomerDeliveryMode => {
+  const normalized = normalizeTextValue(value);
+  if (!normalized) return "a_domicile";
+  if (
+    normalized.includes("stop") ||
+    normalized.includes("desk") ||
+    normalized.includes("point")
+  ) {
+    return "stop_desk";
+  }
+  return "a_domicile";
+};
+
+const applyDeliveryModeToRow = (row: OrderRow, label: string): OrderRow => {
+  const nextRow: OrderRow = { ...row };
+  let updated = false;
+  Object.keys(nextRow).forEach((key) => {
+    if (DELIVERY_MODE_HEADER_KEY_SET.has(normalizeHeaderKey(key))) {
+      nextRow[key] = label;
+      updated = true;
+    }
+  });
+  if (!updated) {
+    nextRow["Type de livraison"] = label;
+  }
+  return nextRow;
+};
+
+const getDeliveryModeFromRow = (row: OrderRow): CustomerDeliveryMode => {
+  for (const key of Object.keys(row)) {
+    if (DELIVERY_MODE_HEADER_KEY_SET.has(normalizeHeaderKey(key))) {
+      return normalizeSheetDeliveryMode(String(row[key] ?? ""));
+    }
+  }
+  return "a_domicile";
+};
+
 const INVALID_TRACKING_VALUES = new Set([
   "N/A",
   "NA",
@@ -2314,6 +2378,7 @@ const Orders: React.FC = () => {
     onUpdateStatus,
     onDelivered,
     onVariantClick,
+    onDeliveryTypeChange,
     commentKey,
     commentValue,
     onCommentChange,
@@ -2338,6 +2403,10 @@ const Orders: React.FC = () => {
       rowId: string
     ) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
+    onDeliveryTypeChange: (
+      row: OrderRow,
+      nextMode: CustomerDeliveryMode
+    ) => void;
     commentKey: string;
     commentValue: string;
     onCommentChange: (key: string, value: string) => void;
@@ -2467,6 +2536,7 @@ const Orders: React.FC = () => {
           const displayText = String(displayValue ?? "");
           const trimmedDisplayText = displayText.trim();
           const normalizedHeaderKey = normalizedHeader.replace(/\s+/g, "");
+          const normalizedHeaderKeyForMatch = normalizeHeaderKey(h || "");
           const isIdSheetColumn = normalizedHeaderKey === "idsheet";
           const isPhoneColumn =
             (normalizedHeader.includes("numero") ||
@@ -2478,7 +2548,38 @@ const Orders: React.FC = () => {
             normalizedHeader.includes("variante") ||
             normalizedHeader.includes("variation") ||
             normalizedHeader.includes("taille");
+          const isDeliveryTypeColumn = DELIVERY_MODE_HEADER_KEY_SET.has(
+            normalizedHeaderKeyForMatch
+          );
           const copyKey = `${idx}-${normalizedHeader || h}`;
+
+          if (isDeliveryTypeColumn) {
+            const currentMode = normalizeSheetDeliveryMode(trimmedDisplayText);
+            return (
+              <td
+                key={h}
+                className="orders-table__cell orders-table__cell--delivery-type"
+              >
+                <select
+                  value={currentMode}
+                  onChange={(event) =>
+                    onDeliveryTypeChange(
+                      row,
+                      event.target.value as CustomerDeliveryMode
+                    )
+                  }
+                  className="orders-table__delivery-type-select"
+                  aria-label="Type de livraison"
+                >
+                  {DELIVERY_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </td>
+            );
+          }
 
           if (isVariantColumn) {
             const variantFromRow = trimmedDisplayText;
@@ -3448,7 +3549,6 @@ Zm0 14H8V7h9v12Z"
           "adresse",
           "total",
           "net a payer",
-          "commune",
         ]);
 
         const originalHeaderByNormalized = new Map<string, string>();
@@ -3490,21 +3590,62 @@ Zm0 14H8V7h9v12Z"
         };
         ["Nom du client", "Numero", "ID", "id-sheet"].forEach(ensureHeader);
 
-        const desiredOrder = ["Nom du client", "Numero", "ID", "id-sheet"];
-        const prioritized = desiredOrder
-          .map((label) => {
-            const normalized = normalizeHeader(label);
-            return uniqueHeaders.find((h) => normalizeHeader(h) === normalized);
-          })
-          .filter((h): h is string => Boolean(h));
-        const prioritizedSet = new Set(
-          prioritized.map((h) => normalizeHeader(h))
-        );
-        const remaining = uniqueHeaders.filter(
-          (h) => !prioritizedSet.has(normalizeHeader(h))
-        );
+        const normalizeHeaderForOrder = (value: string) =>
+          normalizeHeader(value).replace(/[^a-z0-9]+/g, "");
 
-        setHeaders([...prioritized, ...remaining]);
+        const desiredHeaderGroups: string[][] = [
+          ["Nom du client", "Nom client", "Client", "Nom"],
+          ["Numero", "Numéro", "Num", "Telephone", "Téléphone", "Tel", "Phone"],
+          ["ID", "Identifiant"],
+          ["id-sheet", "Sheet", "Row"],
+          [
+            "Produit",
+            "Product",
+            "Article",
+            "Nom du produit",
+            "Produit commande",
+          ],
+          ["Quantité", "Quantite", "Qte", "Qté"],
+          ["Wilaya"],
+          ["Commune", "Ville"],
+          ["Variante", "Variation", "Taille", "Variante produit", "Option"],
+          ["Type de livraison", "Type livraison", "Mode de livraison", "Livraison"],
+        ];
+
+        const normalizedUniqueHeaders = uniqueHeaders.map((header) => ({
+          header,
+          normalized: normalizeHeaderForOrder(header),
+        }));
+
+        const selectedHeaders: string[] = [];
+        const seenNormalizedHeaders = new Set<string>();
+
+        desiredHeaderGroups.forEach((group) => {
+          const normalizedTargets = group
+            .map((value) => normalizeHeaderForOrder(value))
+            .filter(Boolean);
+          const match = normalizedUniqueHeaders.find(
+            (entry) =>
+              normalizedTargets.includes(entry.normalized) &&
+              !seenNormalizedHeaders.has(entry.normalized)
+          );
+
+          if (match) {
+            selectedHeaders.push(match.header);
+            seenNormalizedHeaders.add(match.normalized);
+          } else if (group[0]) {
+            const normalizedFallback = normalizeHeaderForOrder(group[0]);
+            if (
+              normalizedFallback &&
+              !seenNormalizedHeaders.has(normalizedFallback)
+            ) {
+              selectedHeaders.push(group[0]);
+              seenNormalizedHeaders.add(normalizedFallback);
+            }
+          }
+        });
+
+        setHeaders(selectedHeaders.length ? selectedHeaders : uniqueHeaders);
         const mapped = dataRows
           .map((r, dataIndex) => {
             if (!r.some((cell) => cell && cell.trim() !== "")) {
@@ -3615,6 +3756,20 @@ Zm0 14H8V7h9v12Z"
                 normalizedKey.includes("telephone") ||
                 normalizedKey.includes("tel") ||
                 normalizedKey.includes("phone")
+              );
+            });
+
+            ensureCanonicalField("Type de livraison", (normalizedKey, tokens) => {
+              const hasType = tokens.some((token) => token === "type" || token === "mode");
+              const hasLivraison = tokens.some(
+                (token) => token === "livraison" || token === "delivery"
+              );
+              if (hasType && hasLivraison) return true;
+              return (
+                normalizedKey.includes("livraison") &&
+                (normalizedKey.includes("type") ||
+                  normalizedKey.includes("mode") ||
+                  normalizedKey.includes("option"))
               );
             });
 
@@ -4183,6 +4338,83 @@ Zm0 14H8V7h9v12Z"
     }
   }, [variantModalOpen.orderRow, syncStatus]);
 
+  const handleDeliveryTypeChange = React.useCallback(
+    async (row: OrderRow, nextMode: CustomerDeliveryMode) => {
+      const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
+      if (!rowId) {
+        alert("Impossible d'identifier la commande");
+        return;
+      }
+
+      const nextLabel =
+        DELIVERY_MODE_LABELS[nextMode] ?? DELIVERY_MODE_LABELS.a_domicile;
+      const currentStatus = getRowStatus(row) as SheetStatus;
+      const updatedRow = applyDeliveryModeToRow(row, nextLabel);
+
+      try {
+        await syncStatus(rowId, currentStatus, {
+          previousStatus: currentStatus,
+          row: updatedRow,
+          deliveryType: nextMode,
+        });
+
+        setRows((prevRows) =>
+          prevRows.map((existingRow) => {
+            const existingRowId = String(
+              existingRow["id-sheet"] || existingRow["ID"] || ""
+            ).trim();
+            if (existingRowId === rowId) {
+              return applyDeliveryModeToRow(existingRow, nextLabel);
+            }
+            return existingRow;
+          })
+        );
+        setSelectedOrder((prev) => {
+          if (!prev) return prev;
+          const selectedRowId = String(
+            prev["id-sheet"] || prev["ID"] || ""
+          ).trim();
+          if (selectedRowId === rowId) {
+            return applyDeliveryModeToRow(prev, nextLabel);
+          }
+          return prev;
+        });
+
+        const toast = document.createElement("div");
+        toast.textContent = `Type de livraison mis à jour : "${nextLabel}"`;
+        Object.assign(toast.style, {
+          position: "fixed",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+          color: "#fff",
+          padding: "12px 18px",
+          borderRadius: "12px",
+          boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
+          fontSize: "0.9rem",
+          fontWeight: "600",
+          zIndex: "2000",
+          opacity: "0",
+          transition: "opacity 0.3s ease",
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => (toast.style.opacity = "1"), 50);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 400);
+        }, 2400);
+      } catch (error) {
+        console.error(
+          "Erreur lors de la mise à jour du type de livraison",
+          error
+        );
+        alert("Impossible de mettre à jour le type de livraison");
+      }
+    },
+    [syncStatus]
+  );
+
   const searchableHeaders = React.useMemo(() => {
     const keys: string[] = [];
     const pushKey = (key: string) => {
@@ -4493,6 +4725,7 @@ Zm0 14H8V7h9v12Z"
                         onRestoreStock={handleRestoreStock}
                         onDelivered={handleDelivered}
                         onVariantClick={handleVariantClick}
+                        onDeliveryTypeChange={handleDeliveryTypeChange}
                         commentKey={commentKey}
                         commentValue={commentValue}
                         onCommentChange={updateOrderComment}
@@ -4701,6 +4934,9 @@ Zm0 14H8V7h9v12Z"
                 const normalizedHeader = trimmedHeader
                   ? normalizeFieldKey(trimmedHeader)
                   : "";
+                const normalizedHeaderKeyForMatch = normalizeHeaderKey(
+                  trimmedHeader || header || ""
+                );
                 let value = selectedOrder[header];
                 if (
                   value === undefined &&
@@ -4720,6 +4956,38 @@ Zm0 14H8V7h9v12Z"
                 }
 
                 const displayValue = (value ?? "").toString().trim();
+                if (
+                  DELIVERY_MODE_HEADER_KEY_SET.has(
+                    normalizedHeaderKeyForMatch
+                  )
+                ) {
+                  const currentMode =
+                    normalizeSheetDeliveryMode(displayValue);
+                  return (
+                    <div key={key} className="orders-modal__detail">
+                      <span className="orders-modal__detail-label">
+                        {header || "Type de livraison"}
+                      </span>
+                      <select
+                        value={currentMode}
+                        onChange={(event) =>
+                          handleDeliveryTypeChange(
+                            selectedOrder,
+                            event.target.value as CustomerDeliveryMode
+                          )
+                        }
+                        className="orders-modal__detail-select"
+                      >
+                        {DELIVERY_MODE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={key} className="orders-modal__detail">
                     <span className="orders-modal__detail-label">

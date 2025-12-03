@@ -43,6 +43,13 @@ const TRACKING_HEADER_CANDIDATES = [
   'AWB number',
   'awb number',
 ];
+const DELIVERY_TYPE_HEADER_CANDIDATES = [
+  'Type de livraison',
+  'Type livraison',
+  'Mode de livraison',
+  'Livraison',
+  'Livraison type',
+];
 
 const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -180,6 +187,30 @@ export class SheetSyncService {
     return undefined;
   }
 
+  private extractDeliveryTypeValue(
+    row: Record<string, unknown> | undefined
+  ): string | undefined {
+    if (!row) {
+      return undefined;
+    }
+    for (const [key, value] of Object.entries(row)) {
+      if (!value && value !== 0) continue;
+      const normalizedKey = this.normalizeHeaderName(String(key));
+      if (
+        DELIVERY_TYPE_HEADER_CANDIDATES.some(
+          (candidate) =>
+            this.normalizeHeaderName(candidate) === normalizedKey
+        )
+      ) {
+        const trimmed = String(value ?? '').trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+    return undefined;
+  }
+
   private resolveRowNumber(
     rowId: string,
     row: Record<string, unknown> | undefined
@@ -245,6 +276,19 @@ export class SheetSyncService {
         updates.push({
           range: `${SHEET_NAME}!${variantColumn}${rowNumber}`,
           values: [[variantValue]],
+        });
+      }
+    }
+
+    const deliveryTypeValue = this.extractDeliveryTypeValue(row);
+    if (deliveryTypeValue) {
+      const deliveryTypeColumn = await this.resolveColumnLetter(
+        DELIVERY_TYPE_HEADER_CANDIDATES
+      );
+      if (deliveryTypeColumn) {
+        updates.push({
+          range: `${SHEET_NAME}!${deliveryTypeColumn}${rowNumber}`,
+          values: [[deliveryTypeValue]],
         });
       }
     }
