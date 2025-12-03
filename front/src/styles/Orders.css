@@ -335,6 +335,56 @@
   white-space: nowrap;
 }
 
+/* Sélecteur de lignes: plus grand et plus facile à cliquer */
+.orders-table__cell--select {
+  width: 64px;
+  text-align: center;
+}
+.orders-table__cell--select input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #2563eb;
+  width: 22px;
+  height: 22px;
+  transform: translateY(1px);
+}
+.orders-table__header:first-child {
+  width: 64px;
+}
+
+/* Barre d'actions groupées */
+.orders-bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin: 10px 10px 12px;
+}
+.orders-bulkbar__selectall {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #334155;
+}
+.orders-bulkbar__selectall input[type="checkbox"] {
+  accent-color: #2563eb;
+  width: 20px;
+  height: 20px;
+}
+.orders-bulkbar__count {
+  margin-left: auto;
+  font-weight: 600;
+  color: #475569;
+}
+.orders-bulkbar__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .orders-table__actions {
   display: flex;
   flex-wrap: wrap;
