@@ -2365,7 +2365,7 @@ const Orders: React.FC = () => {
             delivering ? " is-loading" : ""
           }`}
         >
-          {delivering ? "Traitement…" : "Marquer livrée (décrémenter stock)"}
+          {delivering ? "Traitement…" : "decrementer du stock"}
         </button>
       </div>
     );
@@ -2552,6 +2552,21 @@ const Orders: React.FC = () => {
             normalizedHeader.includes("variante") ||
             normalizedHeader.includes("variation") ||
             normalizedHeader.includes("taille");
+          const isProductColumn =
+            normalizedHeader.includes("produit") ||
+            normalizedHeaderKeyForMatch === "product" ||
+            normalizedHeaderKeyForMatch === "product_name";
+          const isWilayaColumn =
+            normalizedHeader.includes("wilaya") ||
+            normalizedHeaderKeyForMatch === "wilaya";
+          const isCommuneColumn =
+            normalizedHeader.includes("commune") ||
+            normalizedHeaderKeyForMatch === "commune";
+          const isQuantityColumn =
+            normalizedHeader.includes("quantite") ||
+            normalizedHeader.includes("quantité") ||
+            normalizedHeader.includes("qte") ||
+            normalizedHeaderKeyForMatch === "quantite";
           const isDeliveryTypeColumn = DELIVERY_MODE_HEADER_KEY_SET.has(
             normalizedHeaderKeyForMatch
           );
@@ -2607,6 +2622,7 @@ const Orders: React.FC = () => {
                 <td
                   key={h}
                   className="orders-table__cell orders-table__cell--variant"
+                  data-label={h || "Variante"}
                 >
                   <span className="orders-table__muted">—</span>
                 </td>
@@ -2617,6 +2633,7 @@ const Orders: React.FC = () => {
               <td
                 key={h}
                 className="orders-table__cell orders-table__cell--variant"
+                data-label={h || "Variante"}
               >
                 <button
                   type="button"
@@ -2642,6 +2659,43 @@ const Orders: React.FC = () => {
                     />
                   </svg>
                 </button>
+              </td>
+            );
+          }
+
+          if (isProductColumn) {
+            return (
+              <td
+                key={h}
+                className="orders-table__cell orders-table__cell--product"
+                data-label={h || "Produit"}
+                title={trimmedDisplayText}
+              >
+                {trimmedDisplayText ? (
+                  <span className="orders-table__product-text">
+                    {trimmedDisplayText}
+                  </span>
+                ) : (
+                  <span className="orders-table__muted">—</span>
+                )}
+              </td>
+            );
+          }
+
+          if (isWilayaColumn || isCommuneColumn) {
+            return (
+              <td
+                key={h}
+                className="orders-table__cell orders-table__cell--location"
+                data-label={h || (isWilayaColumn ? "Wilaya" : "Commune")}
+              >
+                {trimmedDisplayText ? (
+                  <span className="orders-table__pill">
+                    {trimmedDisplayText}
+                  </span>
+                ) : (
+                  <span className="orders-table__muted">—</span>
+                )}
               </td>
             );
           }
@@ -2716,10 +2770,31 @@ Zm0 14H8V7h9v12Z"
             );
           }
 
+          const extraClass =
+            (isQuantityColumn ? " orders-table__cell--quantity" : "") +
+            (isIdSheetColumn ? " orders-table__cell--idsheet" : "");
+
           return (
-            <td key={h} className="orders-table__cell">
+            <td
+              key={h}
+              className={`orders-table__cell${extraClass}`}
+              data-label={
+                isQuantityColumn
+                  ? h || "Quantité"
+                  : isIdSheetColumn
+                  ? ""
+                  : h || ""
+              }
+            >
               {trimmedDisplayText ? (
-                trimmedDisplayText
+                isQuantityColumn ? (
+                  <>
+                    
+                    <span className="orders-qty-value">{trimmedDisplayText}</span>
+                  </>
+                ) : (
+                  trimmedDisplayText
+                )
               ) : (
                 <span className="orders-table__muted">—</span>
               )}
@@ -2729,6 +2804,7 @@ Zm0 14H8V7h9v12Z"
 
         <td className="orders-table__cell orders-table__cell--total">
           <strong>{extractTotal(row)}</strong>
+          <span className="orders-total-note">Prix livraison incluse</span>
         </td>
 
         <td className="orders-table__cell orders-table__cell--comment">
@@ -4940,7 +5016,7 @@ Zm0 14H8V7h9v12Z"
                     <th className="orders-table__header">Statut</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="orders-grid">
                   {paginatedRows.map((row, idx) => {
                     const summary = extractOrderSummary(row);
                     const fallbackKey = (() => {
