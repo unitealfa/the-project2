@@ -301,7 +301,7 @@ const AdminDeliveryOrders: React.FC = () => {
                 <p className="admin-delivery-meta">
                   <strong>Remarque :</strong> {summary.remarque}
                 </p>
-              )}
+              )} 
 
               <div className="admin-delivery-actions">
                 <button

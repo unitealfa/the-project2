@@ -1,0 +1,598 @@
+Suivi des commandes
+POST
+Ajouter une information de suivi sur le colis
+{{url}}/api/v1/add/maj?tracking={{tracking}}&content={{text}}
+Après expédition et pendant le process de livraison de votre commande vous pouvez ajouter des remarques sur le colis pour notifier la société de livraison sur un éventuel changement.
+
+Ce point de terminaison vous permet d'ajouter une mise à jour sur votre colis
+
+PARAMS
+tracking
+{{tracking}}
+
+L'identifiant unique de la commande | obligatoire
+
+content
+{{text}}
+
+Contenu de la mise a jour | string , maximum : 255 caractéres , obligatoire
+Example Request
+Ajouter une information de suivi sur le colis
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'POST',
+  'url': '{{url}}/api/v1/add/maj?tracking=ECQFLD2103047673&content=Livraison avant 17:00 h',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (12)
+json
+{
+  "success": true,
+  "message": "Mise a jour avec success"
+}
+
+
+Example Response
+Body
+Headers (12)
+Server
+nginx/1.19.6
+
+Content-Type
+application/json
+
+Transfer-Encoding
+chunked
+
+Connection
+keep-alive
+
+Vary
+Accept-Encoding
+
+X-Powered-By
+PHP/7.3.25
+
+Cache-Control
+no-cache, private
+
+Date
+Fri, 05 Mar 2021 10:04:51 GMT
+
+X-RateLimit-Limit
+120
+
+X-RateLimit-Remaining
+117
+
+phpdebugbar-id
+X6501f34cd66925a20c3d4f2b1bc025a3
+
+Content-Encoding
+gzip
+
+
+GET
+Liste des mise a jours appliquée sur un colis
+{{url}}/api/v1/get/maj?tracking={{tracking}}
+Il est possible de récupérer l’ensemble des mises a jours appliquées sur un colis. La liste contient les mises a jours appliquées par le livreur et / ou par l’expéditeur.
+
+Ce point de terminaison vous permet de récupérer la liste des mises à jours
+
+PARAMS
+tracking
+{{tracking}}
+
+L'identifiant unique de la commande | obligatoire
+Example Request
+Liste des mise a jours appliquées sur un colis
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'POST',
+  'url': '{{url}}/api/v1/get/maj?tracking=ECQFLD2103047673',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (12)
+View More
+json
+[
+  {
+    "remarque": "Test Shop : TEST MAJ",
+    "station": "",
+    "livreur": "",
+    "created_at": "2021-03-05 11:04:19",
+    "tracking": "ECQFLD2103047673"
+  },
+  {
+    "remarque": "Test Shop : Livraison avant 17:00 h",
+    "station": "",
+    "livreur": "",
+Example Response
+Body
+Headers (12)
+Server
+nginx/1.19.6
+
+Content-Type
+application/json
+
+Transfer-Encoding
+chunked
+
+Connection
+keep-alive
+
+Vary
+Accept-Encoding
+
+X-Powered-By
+PHP/7.3.25
+
+Cache-Control
+no-cache, private
+
+Date
+Fri, 05 Mar 2021 10:19:18 GMT
+
+X-RateLimit-Limit
+120
+
+X-RateLimit-Remaining
+118
+
+phpdebugbar-id
+Xdbe3dc6c2465dc989e4bf55a557636cf
+
+Content-Encoding
+gzip
+
+
+
+POST
+Demander le retour d'un colis
+{{url}}/api/v1/ask/for/order/return?tracking={{tracking}}
+Si le colis est en livraison il est possible de soumettre une demande de retour, dans le cas contraire un code d'erreur vous sera renvoyé.
+
+NB: cette demande peut être ignorée par la société de livraison.
+
+Ce point de terminaison vous permet de demander le retour
+
+PARAMS
+tracking
+{{tracking}}
+
+L'identifiant unique de la commande | obligatoire
+Example Request
+Demander le retour d'un colis
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'POST',
+  'url': '{{url}}/api/v1/ask/for/order/return?tracking=ECQFLD2103047673',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (12)
+json
+{
+  "success": true,
+  "message": "Retour demandé avec succès"
+}
+Example Response
+Body
+Headers (12)
+Server
+nginx/1.19.6
+
+Content-Type
+application/json
+
+Transfer-Encoding
+chunked
+
+Connection
+keep-alive
+
+Vary
+Accept-Encoding
+
+X-Powered-By
+PHP/7.3.25
+
+Cache-Control
+no-cache, private
+
+Date
+Fri, 05 Mar 2021 14:41:04 GMT
+
+X-RateLimit-Limit
+120
+
+X-RateLimit-Remaining
+118
+
+phpdebugbar-id
+X06c5b68b703ae59aa6a68a62534e2d1b
+
+Content-Encoding
+gzip
+
+
+
+
+GET
+Suivi et historique des operations sur une commande
+{{url}}/api/v1/get/tracking/info?tracking={{tracking}}
+Ce point de terminaison vous donne la possibilité de récupérer l'historique des opérations effectuées sur une commande.
+
+Les retours possibles sont :
+
+order_information_received_by_carrier : Commande enregistrée et validée par le vendeur
+
+picked: Commande récupérée par le prestataire de livraison
+
+accepted_by_carrier Commande réceptionnée par le centre de tri (Hub ou Station)
+
+dispatched_to_driver Commande dispatchée au livreur
+
+attempt_delivery Tentative de livraison
+
+return_asked Retour initié par le centre de tri (Hub ou Station)
+
+return_in_transit Retour en transit
+
+Return_received Retour réceptionné par le vendeur
+
+livred Commande livrée
+
+encaissed Commande encaissée
+
+payed: Paiement effectué
+
+PARAMS
+tracking
+{{tracking}}
+
+L'identifiant unique de la commande | obligatoire
+Example Request
+Suivi et historique des operations sur une commande
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'GET',
+  'url': '{{url}}/api/v1/get/tracking/info?tracking= ECQFLD2103047673',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (12)
+View More
+json
+{
+  "recipientName": "client",
+  "shippedBy": "Test Shop",
+  "originCity": 16,
+  "destLocationCity": 16,
+  "activity": [
+    {
+      "date": "2021-03-04",
+      "time": "22:32:47",
+      "status": "order_information_received_by_carrier"
+    },
+    {
+Example Response
+Body
+Headers (12)
+Server
+nginx/1.19.6
+
+Content-Type
+application/json
+
+Transfer-Encoding
+chunked
+
+Connection
+keep-alive
+
+Vary
+Accept-Encoding
+
+X-Powered-By
+PHP/7.3.25
+
+Cache-Control
+no-cache, private
+
+Date
+Fri, 05 Mar 2021 15:03:12 GMT
+
+X-RateLimit-Limit
+120
+
+X-RateLimit-Remaining
+118
+
+phpdebugbar-id
+X3eb1a0c75b14d58e0e05621695d04293
+
+Content-Encoding
+gzip
+
+GET
+Liste des commandes avec status
+{{url}}/api/v1/get/orders?page={{int}}&start_date={{Y-m-d}}&end_date={{Y-m-d}}
+Ce point de terminaison vous donne la possibilité de récupérer la liste de vos commandes en process avec leurs statuts actuels.
+
+Les résultats sont affichés en pagination avec 40 commandes par page.
+
+Il est possible de naviguer entre les pages en utilisant le paramètre page.
+
+Par défaut, le point de terminaison renvoie les commandes en process crée lors des derniers 90 jours, vous pouvez utiliser les paramètres start_date et end_date pour personnaliser la période selon vos besoins.
+
+NB: les commandes archivés sont exclut du retour des resultat pour ce point de terminaison
+
+PARAMS
+page
+{{int}}
+
+page a afficher | int
+
+start_date
+{{Y-m-d}}
+
+Filtre par date de creation de la commande | Y-m-d
+
+end_date
+{{Y-m-d}}
+
+Filtre par date de creation de la commande | Y-m-d
+Example Request
+Liste des commandes avec status
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'GET',
+  'url': '{{url}}/api/v1/get/orders?page={{int}}',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (12)
+View More
+json
+{
+  "current_page": 1,
+  "data": [
+    {
+      "tracking": "ECG4SU2112195902",
+      "reference": null,
+      "client": "kas",
+      "phone": "0560351041",
+      "phone_2": null,
+      "adresse": "Alger",
+      "commune": "Ain Taya",
+      "wilaya_id": 16,
+Example Response
+Body
+Headers (12)
+Date
+Mon, 20 Dec 2021 09:35:48 GMT
+
+Server
+Apache/2.4.35 (Win64) OpenSSL/1.1.1i PHP/7.4.16
+
+X-Powered-By
+PHP/7.4.16
+
+Cache-Control
+no-cache, private
+
+X-RateLimit-Limit
+60
+
+X-RateLimit-Remaining
+57
+
+phpdebugbar-id
+Xd03242435e0a967c4dbb97ef750a621f
+
+Access-Control-Allow-Origin
+*
+
+Content-Length
+2417
+
+Keep-Alive
+timeout=5, max=100
+
+Connection
+Keep-Alive
+
+Content-Type
+application/json
+
+
+
+GET
+Filtre des commandes par status
+{{url}}/api/v1/get/orders/status?api_token={{token}}&trackings={{tracking1}},{{tracking2}},{{tracking3}}&status={{status1}},{{status2}},{{status3}}
+Ce point de terminaison vous donne la possibilité de filtrer la liste de vos commandes par leurs statuts .
+
+Le nombre maximum de trackings soumis est de 100 par requête.
+
+les statuts disponibles sont identique a l'affichage du menu sur votre compte expéditeur :
+
+prete_a_expedier,
+en_ramassage,
+en_preparation_stock,
+vers_hub,
+en_hub,
+vers_wilaya,
+en_preparation,
+en_livraison,
+suspendu,
+livre_non_encaisse,
+encaisse_non_paye,
+paiements_prets,
+paye_et_archive,
+retour_chez_livreur,
+retour_transit_entrepot,
+retour_en_traitement,
+retour_recu,
+retour_archive,
+annule
+all
+PARAMS
+api_token
+{{token}}
+
+token généré a partir de votre compte | obligatoire
+
+trackings
+{{tracking1}},{{tracking2}},{{tracking3}}
+
+trackings des commandes | string | obligatoire
+
+status
+{{status1}},{{status2}},{{status3}}
+
+status des commandes | string | obligatoire
+
+Example Request
+Filtre des commandes par status
+View More
+nodejs
+var request = require('request');
+var options = {
+  'method': 'GET',
+  'url': '{{url}}/api/v1/get/orders/status?api_token={{token}}&trackings={{tracking1}},{{tracking2}},{{tracking3}}&status={{status1}},{{status2}},{{status3}}',
+  'headers': {
+  }
+};
+request(options, function (error, response) {
+  if (error) throw new Error(error);
+  console.log(response.body);
+});
+200 OK
+Example Response
+Body
+Headers (20)
+View More
+json
+{
+  "data": {
+    "ECLWIT2505052286": {
+      "status": "en_preparation",
+      "order_id": "1237",
+      "desk_phone": "",
+      "desk_commune": "",
+      "desk_map_link": "",
+      "desk_address": "",
+      "activity": [
+        {
+Example Response
+Body
+Headers (20)
+Server
+nginx/1.27.5
+
+Content-Type
+application/json
+
+Transfer-Encoding
+chunked
+
+Connection
+keep-alive
+
+Vary
+Accept-Encoding
+
+X-Powered-By
+PHP/8.3.21
+
+Cache-Control
+no-cache, private
+
+Date
+Wed, 16 Jul 2025 01:39:36 GMT
+
+X-RateLimit-Limit-Day
+15000
+
+X-RateLimit-Remaining-Day
+14985
+
+X-RateLimit-Reset-Day
+1752714620
+
+X-RateLimit-Limit-Hour
+1500
+
+X-RateLimit-Remaining-Hour
+1485
+
+X-RateLimit-Reset-Hour
+1752631820
+
+X-RateLimit-Limit-Minute
+50
+
+X-RateLimit-Remaining-Minute
+47
+
+X-RateLimit-Reset-Minute
+1752630023
+
+phpdebugbar-id
+X4ac9b3cfeb0141879413203733814646
+
+Access-Control-Allow-Origin
+*
+
+Content-Encoding
+gzip
+
