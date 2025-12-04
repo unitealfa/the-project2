@@ -584,6 +584,12 @@
   color: #059669;
 }
 
+.orders-table__phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .orders-table__phone {
   display: inline-flex;
   align-items: center;
@@ -608,6 +614,34 @@
   border-color: #86efac;
   color: #166534;
   box-shadow: 0 8px 20px rgba(34, 197, 94, 0.2);
+}
+
+.orders-table__whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f0fdf4;
+  color: #15803d;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.orders-table__whatsapp:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.25);
+  transform: scale(1.05);
+}
+
+.orders-table__whatsapp svg {
+  width: 16px;
+  height: 16px;
 }
 
 .orders-table__phone-number {

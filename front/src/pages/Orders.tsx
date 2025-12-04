@@ -2732,40 +2732,68 @@ const Orders: React.FC = () => {
 
             const isCopied = copiedKey === copyKey;
 
+            const normalizedForWhatsapp = normalizePhone(
+              rawPhoneValue || trimmedDisplayText
+            );
+            const whatsappPhone = normalizedForWhatsapp.startsWith("0")
+              ? "213" + normalizedForWhatsapp.slice(1)
+              : normalizedForWhatsapp;
+            const whatsappUrl = `https://wa.me/${whatsappPhone.replace(/\D/g, "")}?text=Bonjour`;
+
             return (
               <td
                 key={h}
                 className="orders-table__cell orders-table__cell--phone"
               >
-                <button
-                  type="button"
-                  className={`orders-table__phone${
-                    isCopied ? " is-copied" : ""
-                  }`}
-                  onClick={() => handleCopyValue(valueToCopy, copyKey)}
-                  title={
-                    isCopied ? "Numéro copié" : "Cliquer pour copier le numéro"
-                  }
-                >
-                  <span className="orders-table__phone-number">
-                    {phoneDisplayText}
-                  </span>
-                  <svg
-                    className="orders-table__phone-icon"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
+                <div className="orders-table__phone-actions">
+                  <button
+                    type="button"
+                    className={`orders-table__phone${
+                      isCopied ? " is-copied" : ""
+                    }`}
+                    onClick={() => handleCopyValue(valueToCopy, copyKey)}
+                    title={
+                      isCopied ? "Numéro copié" : "Cliquer pour copier le numéro"
+                    }
                   >
-                    <path
-                      d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm1 4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2
+                    <span className="orders-table__phone-number">
+                      {phoneDisplayText}
+                    </span>
+                    <svg
+                      className="orders-table__phone-icon"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm1 4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2
 Zm0 14H8V7h9v12Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </button>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="orders-table__whatsapp"
+                    title="Ouvrir WhatsApp"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
                       fill="currentColor"
-                    />
-                  </svg>
-                </button>
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a6.963 6.963 0 0 0-6.962 6.962 6.971 6.971 0 0 0 1.399 4.115L2.323 22l4.282-1.123a6.966 6.966 0 0 0 10.064-6.755 6.972 6.972 0 0 0-6.973-6.961h.003m0-1.333C12.471 5.413 17.53 10.472 17.53 16.946c0 6.475-5.059 11.534-11.534 11.534a11.533 11.533 0 0 1-5.487-1.375L0 24l1.924-5.604a11.534 11.534 0 0 1 1.752-18.737A11.532 11.532 0 0 1 11.996 4.646Z" />
+                    </svg>
+                  </a>
+                </div>
               </td>
             );
           }
