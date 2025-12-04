@@ -2383,6 +2383,7 @@ const Orders: React.FC = () => {
     commentValue,
     onCommentChange,
     onCommentEdit,
+    renderSelectionCell,
   }: {
     row: OrderRow;
     idx: number;
@@ -2415,6 +2416,7 @@ const Orders: React.FC = () => {
       commentValue: string,
       summary: OrderSummary
     ) => void;
+    renderSelectionCell?: () => React.ReactNode;
   }) {
     const { name: nom_client, phoneDial: telephone } = summary;
 
@@ -2503,6 +2505,7 @@ const Orders: React.FC = () => {
 
     return (
       <tr className="orders-row">
+        {renderSelectionCell && renderSelectionCell()}
         {headers.map((h) => {
           const normalizedHeader = (h || "")
             .trim()
@@ -2797,6 +2800,27 @@ Zm0 14H8V7h9v12Z"
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
 
+  // Sélection multiple des commandes
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const isSelected = React.useCallback((id: string) => selectedIds.has(id), [selectedIds]);
+  const toggleSelected = React.useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearSelection = React.useCallback(() => setSelectedIds(new Set()), []);
+  const selectAllOnPage = React.useCallback((rowsOnPage: OrderRow[]) => {
+    const next = new Set<string>();
+    rowsOnPage.forEach((row) => {
+      const summary = extractOrderSummary(row);
+      const id = summary.rowId || summary.displayRowLabel || '';
+      if (id) next.add(id);
+    });
+    setSelectedIds(next);
+  }, []);
+
   const [orderComments, setOrderComments] = React.useState<Record<string, string>>({});
   const updateOrderComment = React.useCallback((key: string, value: string) => {
     setOrderComments((prev) => {
@@ -3004,6 +3028,46 @@ Zm0 14H8V7h9v12Z"
     }
     productsCacheLoadedRef.current = true;
   }, [registerProductsInCache, token]);
+
+  
+  const smartCommuneResolverGlobal = React.useCallback((communeName: string, wilayaName: string, wilayaCode: number): string => {
+    const normalizeText = (text: string): string => {
+      if (!text) return "";
+      return text
+        .replace(/[éèêë]/g, "e")
+        .replace(/[àâä]/g, "a")
+        .replace(/[ùûü]/g, "u")
+        .replace(/[îï]/g, "i")
+        .replace(/[ôö]/g, "o")
+        .replace(/[ç]/g, "c")
+        .replace(/[ñ]/g, "n")
+        .replace(/[ý]/g, "y")
+        .replace(/[æ]/g, "ae")
+        .replace(/[œ]/g, "oe")
+        .replace(/['`]/g, "")
+        .replace(/[-_]/g, " ")
+        .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    };
+    const aliasMap: Record<string, string> = {
+      birtouta: "bir touta",
+      khraicia: "khraissia",
+      "el harrach": "el harrach",
+      "dar el beida": "dar el beida",
+    };
+    const normalizedCommune = normalizeText(communeName);
+    if (normalizedCommune) return aliasMap[normalizedCommune] || normalizedCommune;
+    const normalizedWilaya = normalizeText(wilayaName);
+    if (normalizedWilaya) return aliasMap[normalizedWilaya] || normalizedWilaya;
+    const wilaya = WILAYAS.find((w) => w.wilaya_id === wilayaCode);
+    if (wilaya) {
+      const fromCode = normalizeText(wilaya.wilaya_name);
+      return aliasMap[fromCode] || fromCode || "alger";
+    }
+    return "alger";
+  }, []);
 
   const applyStockUpdateToCache = React.useCallback(
     (options: {
@@ -4670,9 +4734,187 @@ Zm0 14H8V7h9v12Z"
             </div>
 
             <div className="orders-table-wrapper">
+              {paginatedRows.length > 0 && (
+                <div className="orders-bulkbar">
+                  <label className="orders-bulkbar__selectall">
+                    <input
+                      type="checkbox"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          selectAllOnPage(paginatedRows);
+                        } else {
+                          clearSelection();
+                        }
+                      }}
+                      checked={paginatedRows.every((row) => {
+                        const s = extractOrderSummary(row);
+                        const id = s.rowId || s.displayRowLabel || '';
+                        return id && selectedIds.has(id);
+                      }) && paginatedRows.length > 0}
+                    />
+                    Sélectionner cette page
+                  </label>
+                  <span className="orders-bulkbar__count">
+                    {selectedIds.size} sélectionnée(s)
+                  </span>
+                  <div className="orders-bulkbar__actions">
+                    <button
+                      type="button"
+                      className="orders-button orders-button--primary"
+                      disabled={selectedIds.size === 0}
+                      onClick={async () => {
+                        if (selectedIds.size === 0) return;
+                        if (!window.confirm(`Valider ${selectedIds.size} commande(s) ?`)) return;
+                        for (const row of paginatedRows) {
+                          const s = extractOrderSummary(row);
+                          const id = s.rowId || s.displayRowLabel || '';
+                          if (!id || !selectedIds.has(id)) continue;
+                          try {
+                            // Choisir l'API selon le paramètre de livraison de la commande
+                            const currentRowId = String(row['id-sheet'] || row['ID'] || '');
+                            const settings = orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
+                            if (settings.deliveryType === 'livreur') {
+                              // Assignation livreur: mettre statut 'Assigné' sans appeler API externe
+                              await handleUpdateRowStatus(s.rowId, 'Assigné', { previousStatus: s.status, row, deliveryType: 'livreur', deliveryPersonId: settings.deliveryPersonId || undefined });
+                              continue;
+                            }
+                            const apiCfg = resolveDeliveryApiConfig(settings.deliveryType);
+                            const url = `${apiCfg.baseUrl}${DHD_CREATE_PATH}`;
+                            // Calcul montant similaire au flux individuel
+                            const parseAmount = (value: unknown): number | null => {
+                              if (value === undefined || value === null) return null;
+                              const cleaned = String(value)
+                                .replace(/\s+/g, "")
+                                .replace(/[^\d,.-]/g, "")
+                                .replace(/,/g, ".");
+                              if (!cleaned) return null;
+                              const parsed = parseFloat(cleaned);
+                              return Number.isFinite(parsed) ? parsed : null;
+                            };
+                            const quantityForTotal = (() => {
+                              const raw = String(row["Quantité"] || row["Quantite"] || row["Qte"] || "1");
+                              const sanitized = raw.replace(/[^\d]/g, "");
+                              const n = parseInt(sanitized, 10);
+                              return Number.isNaN(n) || n <= 0 ? 1 : n;
+                            })();
+                            const unitPriceForTotal = (() => {
+                              const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+                              for (const key of candidates) {
+                                if (key in row) {
+                                  const parsed = parseAmount(row[key]);
+                                  if (parsed !== null) return parsed;
+                                }
+                              }
+                              return null;
+                            })();
+                            const amountFromSheet = (() => {
+                              const candidates = ["Total", "total", "Montant", "Montant total", "Prix total"];
+                              for (const key of candidates) {
+                                if (key in row) {
+                                  const parsed = parseAmount(row[key]);
+                                  if (parsed !== null) return parsed;
+                                }
+                              }
+                              return null;
+                            })();
+                            const computedFromUnit = unitPriceForTotal !== null ? unitPriceForTotal * quantityForTotal : null;
+                            const montantNumber = amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
+                            const wilayaCode = parseInt(String(getWilayaIdByName(row['Wilaya'] as any))) || 16;
+                            const communeResolved = smartCommuneResolverGlobal(
+                              (row['Commune'] as any) || '',
+                              (row['Wilaya'] as any) || '',
+                              wilayaCode
+                            );
+                            const remarkFromSheet = (() => {
+                              const remarkKeys = [
+                                "Remarque","Remarques","Commentaire","Commentaires","Note","Notes","Observation","Observations",
+                              ];
+                              for (const key of remarkKeys) {
+                                const val = row[key];
+                                if (val === undefined || val === null) continue;
+                                const t = String(val).trim();
+                                if (t) return t;
+                              }
+                              return '';
+                            })();
+                            const finalRemark = (orderComments[resolveCommentKey(s, s.rowId || s.displayRowLabel || '')] || '').trim() || remarkFromSheet;
+                            const payload = {
+                              nom_client: s.name || s.rawName || 'CLIENT',
+                              telephone: s.phoneDial || '',
+                              telephone_2: s.phoneDial || '',
+                              adresse: '.',
+                              code_wilaya: wilayaCode,
+                              montant: String(Math.round(montantNumber)),
+                              type: '1',
+                              stop_desk: '0',
+                              stock: '0',
+                              fragile: '0',
+                              produit: extractProductLabel(row) || (row['Produit'] as any) || '',
+                              commune: communeResolved || 'alger',
+                              remarque: finalRemark,
+                              Remarque: finalRemark,
+                            };
+                            console.log('[BULK] POST', url, payload);
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 15000);
+                            const resp = await fetch(url, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                ...(apiCfg.token ? { Authorization: `Bearer ${apiCfg.token}` } : {}),
+                              },
+                              body: JSON.stringify(payload),
+                              signal: controller.signal,
+                            });
+                            clearTimeout(timeoutId);
+                            const text = await resp.text();
+                            let data: any; try { data = JSON.parse(text); } catch { data = text; }
+                            console.log('[BULK] Response', resp.status, data);
+                            if (resp.ok) {
+                              await handleUpdateRowStatus(s.rowId, 'ready_to_ship', { previousStatus: s.status, row });
+                            } else {
+                              console.error('[BULK] API error', resp.status, data);
+                              alert(`Erreur API (${resp.status}) pour ${s.rawName || s.name}: ${typeof data==='string'?data: (data?.message||'')}`);
+                            }
+                          } catch (err) {
+                            console.error('Erreur validation bulk:', err);
+                            alert(`Erreur réseau/timeout pour ${s.rawName || s.name}`);
+                          }
+                        }
+                        clearSelection();
+                      }}
+                    >
+                      Valider sélection
+                    </button>
+                    <button
+                      type="button"
+                      className="orders-button orders-button--danger"
+                      disabled={selectedIds.size === 0}
+                      onClick={async () => {
+                        if (selectedIds.size === 0) return;
+                        if (!window.confirm(`Supprimer ${selectedIds.size} commande(s) ?`)) return;
+                        for (const row of paginatedRows) {
+                          const s = extractOrderSummary(row);
+                          const id = s.rowId || s.displayRowLabel || '';
+                          if (!id || !selectedIds.has(id)) continue;
+                          try {
+                            await handleUpdateRowStatus(s.rowId, 'abandoned', { previousStatus: s.status, row });
+                          } catch (err) {
+                            console.error('Erreur suppression bulk:', err);
+                          }
+                        }
+                        clearSelection();
+                      }}
+                    >
+                      Supprimer sélection
+                    </button>
+                  </div>
+                </div>
+              )}
               <table className="orders-table">
                 <thead>
                   <tr>
+                    <th className="orders-table__header">Sélect.</th>
                     {headers.map((h) => (
                       <th key={h} className="orders-table__header">
                         {h}
@@ -4730,6 +4972,21 @@ Zm0 14H8V7h9v12Z"
                         commentValue={commentValue}
                         onCommentChange={updateOrderComment}
                         onCommentEdit={handleCommentEditRequest}
+                        // Checkbox de sélection
+                        renderSelectionCell={() => {
+                          const id = summary.rowId || summary.displayRowLabel || '';
+                          const checked = !!id && isSelected(id);
+                          return (
+                            <td className="orders-table__cell orders-table__cell--select">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => id && toggleSelected(id)}
+                                aria-label="Sélectionner la commande"
+                              />
+                            </td>
+                          );
+                        }}
                       />
                     );
                   })}
@@ -4737,7 +4994,7 @@ Zm0 14H8V7h9v12Z"
                     <tr className="orders-row orders-row--empty">
                       <td
                         className="orders-table__cell"
-                        colSpan={headers.length + 4}
+                        colSpan={headers.length + 5}
                       >
                         Aucune commande trouvée.
                       </td>
