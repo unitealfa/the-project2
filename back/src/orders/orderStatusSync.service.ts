@@ -8,6 +8,12 @@ const DEFAULT_DHD_API_BASE_URL =
 const DEFAULT_DHD_API_TOKEN =
   process.env.DHD_API_TOKEN ??
   'FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i';
+const DEFAULT_SOOK_API_BASE_URL =
+  process.env.SOOK_API_URL ?? DEFAULT_DHD_API_BASE_URL;
+const DEFAULT_SOOK_API_TOKEN =
+  process.env.SOOK_API_TOKEN ??
+  process.env.DHD_API_TOKEN ??
+  'NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D';
 
 const DHD_ORDERS_PATH = '/api/v1/get/orders';
 const OFFICIAL_SYNC_TIMEOUT_MS = 10000;
@@ -20,11 +26,14 @@ interface RawOfficialOrderEntry {
   [key: string]: unknown;
 }
 
+export type DeliveryApiType = 'api_dhd' | 'api_sook';
+
 export interface SyncOrderPayload {
   rowId: string;
   tracking?: string;
   reference?: string;
   currentStatus?: string;
+  deliveryType?: DeliveryApiType | 'livreur' | string | null;
 }
 
 export interface SyncOfficialStatusesParams {
@@ -202,6 +211,28 @@ const DHD_CANCELLED_KEYWORDS_AR = [
   'ملغاة',
 ];
 
+type DeliveryApiConfig = {
+  type: DeliveryApiType;
+  label: string;
+  baseUrl: string;
+  token?: string | null;
+};
+
+const DELIVERY_API_CONFIGS: Record<DeliveryApiType, DeliveryApiConfig> = {
+  api_dhd: {
+    type: 'api_dhd',
+    label: 'DHD',
+    baseUrl: DEFAULT_DHD_API_BASE_URL,
+    token: DEFAULT_DHD_API_TOKEN,
+  },
+  api_sook: {
+    type: 'api_sook',
+    label: 'Sook en ligne',
+    baseUrl: DEFAULT_SOOK_API_BASE_URL,
+    token: DEFAULT_SOOK_API_TOKEN,
+  },
+};
+
 const mapOfficialStatusToSheet = (status: unknown): string | null => {
   if (typeof status !== 'string') return null;
   const trimmedStatus = status.trim();
@@ -260,19 +291,23 @@ const sanitizeOrders = (orders: SyncOrderPayload[]): SyncOrderPayload[] =>
       currentStatus: order?.currentStatus
         ? String(order.currentStatus).trim()
         : undefined,
+      deliveryType: order?.deliveryType
+        ? (String(order.deliveryType).trim().toLowerCase() as SyncOrderPayload['deliveryType'])
+        : undefined,
     }))
     .filter((order) => order.rowId);
 
-const buildRequestHeaders = () => {
-  if (!DEFAULT_DHD_API_TOKEN) {
+const buildRequestHeaders = (config: DeliveryApiConfig) => {
+  if (!config.token) {
     return undefined;
   }
   return {
-    Authorization: `Bearer ${DEFAULT_DHD_API_TOKEN}`,
+    Authorization: `Bearer ${config.token}`,
   };
 };
 
 const fetchOrdersPage = async (
+  config: DeliveryApiConfig,
   page: number,
   startDate?: string,
   endDate?: string
@@ -290,10 +325,10 @@ const fetchOrdersPage = async (
   }
 
   const response = await axios.get(
-    `${DEFAULT_DHD_API_BASE_URL.replace(/\/$/, '')}${DHD_ORDERS_PATH}`,
+    `${config.baseUrl.replace(/\/$/, '')}${DHD_ORDERS_PATH}`,
     {
       params,
-      headers: buildRequestHeaders(),
+      headers: buildRequestHeaders(config),
       timeout: OFFICIAL_SYNC_TIMEOUT_MS,
     }
   );
@@ -322,172 +357,217 @@ export const syncOfficialStatuses = async (
     };
   }
 
-  const ordersByTracking = new Map<string, SyncOrderPayload[]>();
-  const ordersByReference = new Map<string, SyncOrderPayload[]>();
-
-  sanitizedOrders.forEach((order) => {
-    const trackingKey = normalizeIdentifier(order.tracking);
-    if (trackingKey) {
-      const bucket = ordersByTracking.get(trackingKey) ?? [];
-      bucket.push(order);
-      ordersByTracking.set(trackingKey, bucket);
-    }
-    const referenceKey = normalizeIdentifier(order.reference);
-    if (referenceKey) {
-      const bucket = ordersByReference.get(referenceKey) ?? [];
-      bucket.push(order);
-      ordersByReference.set(referenceKey, bucket);
-    }
-  });
-
-  if (ordersByTracking.size === 0 && ordersByReference.size === 0) {
-    return {
-      updates: [],
-      notFound: sanitizedOrders.map((order) => ({
-        rowId: order.rowId,
-        tracking: order.tracking,
-        reference: order.reference,
-      })),
-      skipped: [],
-      errors: [],
-      fetchedOrders: 0,
-      pagesFetched: 0,
-    };
-  }
-
-  const matches = new Map<string, { entry: RawOfficialOrderEntry; status: string }>();
-  let page = 1;
-  let lastPage = 1;
-  let pagesFetched = 0;
-  let fetchedOrders = 0;
-
-  while (page <= lastPage && page <= MAX_PAGES_TO_SCAN) {
-    const { data, last_page } = await fetchOrdersPage(
-      page,
-      params.startDate,
-      params.endDate
-    );
-    pagesFetched += 1;
-    fetchedOrders += data.length;
-    if (typeof last_page === 'number' && last_page > 0) {
-      lastPage = last_page;
-    }
-
-    data.forEach((entry) => {
-      const trackingKey = normalizeIdentifier(
-        typeof entry?.tracking === 'string' ? entry.tracking : undefined
-      );
-      const referenceKey = normalizeIdentifier(
-        typeof entry?.reference === 'string' ? entry.reference : undefined
-      );
-      const officialStatus =
-        typeof entry?.status === 'string' ? entry.status : '';
-
-      const associatedOrders = new Set<SyncOrderPayload>();
-
-      if (trackingKey && ordersByTracking.has(trackingKey)) {
-        ordersByTracking.get(trackingKey)?.forEach((order) =>
-          associatedOrders.add(order)
-        );
-      }
-
-      if (referenceKey && ordersByReference.has(referenceKey)) {
-        ordersByReference.get(referenceKey)?.forEach((order) =>
-          associatedOrders.add(order)
-        );
-      }
-
-      associatedOrders.forEach((order) => {
-        if (!matches.has(order.rowId)) {
-          matches.set(order.rowId, {
-            entry,
-            status: officialStatus,
-          });
-        }
-      });
-    });
-
-    if (matches.size >= sanitizedOrders.length) {
-      break;
-    }
-
-    page += 1;
-  }
-
   const updates: SyncOfficialStatusesResult['updates'] = [];
   const notFound: SyncOfficialStatusesResult['notFound'] = [];
   const skipped: SyncOfficialStatusesResult['skipped'] = [];
   const errors: SyncOfficialStatusesResult['errors'] = [];
+  let fetchedOrders = 0;
+  let pagesFetched = 0;
 
-  for (const order of sanitizedOrders) {
-    const match = matches.get(order.rowId);
-    if (!match) {
-      notFound.push({
-        rowId: order.rowId,
-        tracking: order.tracking,
-        reference: order.reference,
-      });
-      continue;
-    }
+  const groupedOrders = new Map<DeliveryApiType, SyncOrderPayload[]>();
 
-    const mappedStatus = mapOfficialStatusToSheet(match.status);
-    if (!mappedStatus) {
+  sanitizedOrders.forEach((order) => {
+    const deliveryTypeRaw = order.deliveryType
+      ? String(order.deliveryType).trim().toLowerCase()
+      : '';
+    if (deliveryTypeRaw === 'livreur') {
       skipped.push({
         rowId: order.rowId,
         tracking: order.tracking,
         reference: order.reference,
-        reason: 'unknown_status',
+        reason: 'delivery_person_order',
       });
-      continue;
+      return;
     }
-
-    if (statusesEqual(order.currentStatus, mappedStatus)) {
-      continue;
-    }
-
-    try {
-      await sheetService.updateStatus({
-        rowId: order.rowId,
-        status: mappedStatus,
-        tracking: order.tracking,
-      });
-
-      updates.push({
+    const deliveryTypeCandidate: DeliveryApiType =
+      deliveryTypeRaw === 'api_sook' ? 'api_sook' : 'api_dhd';
+    if (!DELIVERY_API_CONFIGS[deliveryTypeCandidate]) {
+      skipped.push({
         rowId: order.rowId,
         tracking: order.tracking,
         reference: order.reference,
-        officialStatus: match.status ?? '',
-        newStatus: mappedStatus,
-        previousStatus: order.currentStatus,
+        reason: 'unsupported_delivery_type',
       });
+      return;
+    }
+    const bucket = groupedOrders.get(deliveryTypeCandidate) ?? [];
+    bucket.push(order);
+    groupedOrders.set(deliveryTypeCandidate, bucket);
+  });
 
-      // Décrémenter automatiquement le stock si le statut devient "livrée" (delivered)
-      // et que le statut précédent n'était pas déjà "livrée" (pour éviter les doubles décrémentations)
-      const normalizedMappedStatus = mappedStatus.toLowerCase().trim();
-      const normalizedPreviousStatus = order.currentStatus ? String(order.currentStatus).toLowerCase().trim() : '';
-      const isDelivered = normalizedMappedStatus === 'delivered' || normalizedMappedStatus === 'livrée';
-      const wasAlreadyDelivered = normalizedPreviousStatus === 'delivered' || normalizedPreviousStatus === 'livrée';
+  const processOrdersForConfig = async (
+    orders: SyncOrderPayload[],
+    config: DeliveryApiConfig
+  ) => {
+    const ordersByTracking = new Map<string, SyncOrderPayload[]>();
+    const ordersByReference = new Map<string, SyncOrderPayload[]>();
 
-      if (isDelivered && !wasAlreadyDelivered) {
-        // Récupérer la commande depuis la base de données pour avoir accès à la ligne (row)
-        const existingOrder = await Order.findOne({ rowId: order.rowId });
-        if (existingOrder?.row) {
-          // Décrémenter le stock de manière asynchrone (ne pas bloquer la synchronisation)
-          decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
-            console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
-          });
-        }
+    orders.forEach((order) => {
+      const trackingKey = normalizeIdentifier(order.tracking);
+      if (trackingKey) {
+        const bucket = ordersByTracking.get(trackingKey) ?? [];
+        bucket.push(order);
+        ordersByTracking.set(trackingKey, bucket);
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      errors.push({
-        rowId: order.rowId,
-        tracking: order.tracking,
-        reference: order.reference,
-        error: message,
-      });
+      const referenceKey = normalizeIdentifier(order.reference);
+      if (referenceKey) {
+        const bucket = ordersByReference.get(referenceKey) ?? [];
+        bucket.push(order);
+        ordersByReference.set(referenceKey, bucket);
+      }
+    });
+
+    if (ordersByTracking.size === 0 && ordersByReference.size === 0) {
+      orders.forEach((order) =>
+        notFound.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+        })
+      );
+      return;
     }
+
+    const matches = new Map<string, { entry: RawOfficialOrderEntry; status: string }>();
+    let page = 1;
+    let lastPage = 1;
+
+    while (page <= lastPage && page <= MAX_PAGES_TO_SCAN) {
+      const { data, last_page } = await fetchOrdersPage(
+        config,
+        page,
+        params.startDate,
+        params.endDate
+      );
+      pagesFetched += 1;
+      fetchedOrders += data.length;
+      if (typeof last_page === 'number' && last_page > 0) {
+        lastPage = last_page;
+      }
+
+      data.forEach((entry) => {
+        const trackingKey = normalizeIdentifier(
+          typeof entry?.tracking === 'string' ? entry.tracking : undefined
+        );
+        const referenceKey = normalizeIdentifier(
+          typeof entry?.reference === 'string' ? entry.reference : undefined
+        );
+        const officialStatus =
+          typeof entry?.status === 'string' ? entry.status : '';
+
+        const associatedOrders = new Set<SyncOrderPayload>();
+
+        if (trackingKey && ordersByTracking.has(trackingKey)) {
+          ordersByTracking.get(trackingKey)?.forEach((order) =>
+            associatedOrders.add(order)
+          );
+        }
+
+        if (referenceKey && ordersByReference.has(referenceKey)) {
+          ordersByReference.get(referenceKey)?.forEach((order) =>
+            associatedOrders.add(order)
+          );
+        }
+
+        associatedOrders.forEach((order) => {
+          if (!matches.has(order.rowId)) {
+            matches.set(order.rowId, {
+              entry,
+              status: officialStatus,
+            });
+          }
+        });
+      });
+
+      if (matches.size >= orders.length) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    for (const order of orders) {
+      const match = matches.get(order.rowId);
+      if (!match) {
+        notFound.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+        });
+        return;
+      }
+
+      const mappedStatus = mapOfficialStatusToSheet(match.status);
+      if (!mappedStatus) {
+        skipped.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+          reason: 'unknown_status',
+        });
+        return;
+      }
+
+      if (statusesEqual(order.currentStatus, mappedStatus)) {
+        return;
+      }
+
+      try {
+        await sheetService.updateStatus({
+          rowId: order.rowId,
+          status: mappedStatus,
+          tracking: order.tracking,
+        });
+
+        updates.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+          officialStatus: match.status ?? '',
+          newStatus: mappedStatus,
+          previousStatus: order.currentStatus,
+        });
+
+        const normalizedMappedStatus = mappedStatus.toLowerCase().trim();
+        const normalizedPreviousStatus = order.currentStatus ? String(order.currentStatus).toLowerCase().trim() : '';
+        const isDelivered = normalizedMappedStatus === 'delivered' || normalizedMappedStatus === 'livrée';
+        const wasAlreadyDelivered = normalizedPreviousStatus === 'delivered' || normalizedPreviousStatus === 'livrée';
+
+        if (isDelivered && !wasAlreadyDelivered) {
+          const existingOrder = await Order.findOne({ rowId: order.rowId });
+          if (existingOrder?.row) {
+            decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
+              console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
+            });
+          }
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Erreur inconnue';
+        errors.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+          error: message,
+        });
+      }
+    }
+  };
+
+  for (const [type, orders] of groupedOrders.entries()) {
+    const config = DELIVERY_API_CONFIGS[type];
+    if (!config?.token) {
+      orders.forEach((order) =>
+        skipped.push({
+          rowId: order.rowId,
+          tracking: order.tracking,
+          reference: order.reference,
+          reason: 'missing_token',
+        })
+      );
+      continue;
+    }
+    await processOrdersForConfig(orders, config);
   }
 
   return {

@@ -975,6 +975,7 @@ type OfficialStatusOrderPayload = {
   tracking: string;
   reference?: string;
   currentStatus?: string;
+  deliveryType?: DeliveryType;
 };
 
 const extractTrackingStatus = (payload: any): string | null => {
@@ -3917,6 +3918,12 @@ Zm0 14H8V7h9v12Z"
       const summary = extractOrderSummary(row);
       const rowId = summary.rowId.trim();
       if (!rowId) return;
+      const settings =
+        orderDeliverySettings[rowId] || {
+          deliveryType: "api_dhd" as DeliveryType,
+          deliveryPersonId: null,
+        };
+      if (settings.deliveryType === "livreur") return;
       const trackingRaw = extractTrackingValue(row);
       if (!trackingRaw) return;
       if (!isLikelyTrackingValue(trackingRaw)) return;
@@ -3929,6 +3936,7 @@ Zm0 14H8V7h9v12Z"
           tracking,
           reference: referenceValue ? referenceValue : undefined,
           currentStatus: summary.status,
+          deliveryType: settings.deliveryType,
         });
       }
     });

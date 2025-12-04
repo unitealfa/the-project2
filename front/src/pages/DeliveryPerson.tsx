@@ -327,18 +327,6 @@ const DeliveryPerson: React.FC = () => {
                     </div>
 
                     <div className="delivery-person-order-actions">
-                      <button
-                        onClick={() => handleDownloadBordereau(order)}
-                        className="delivery-person-btn delivery-person-btn--info"
-                      >
-                        Télécharger le bordereau
-                      </button>
-                      <button
-                        onClick={() => handlePreviewBordereau(order)}
-                        className="delivery-person-btn delivery-person-btn--info"
-                      >
-                        Prévisualiser le PDF
-                      </button>
                       {!isOrderCompleted(order.status) && (
                         <>
                           <button
