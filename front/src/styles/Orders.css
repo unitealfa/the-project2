@@ -215,11 +215,46 @@
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
   background: #ffffff;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .orders-row:hover {
   box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
+}
+
+.orders-row--submitting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(1px);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.orders-row--submitting::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid #dbeafe;
+  border-top-color: #2563eb;
+  animation: orders-row-spin 0.8s linear infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes orders-row-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .orders-row--empty {

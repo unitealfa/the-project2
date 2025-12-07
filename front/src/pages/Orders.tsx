@@ -1327,6 +1327,7 @@ const Orders: React.FC = () => {
     commentKey,
     commentValue = "",
     onCommentChange,
+    onSubmittingChange,
   }: {
     row: OrderRow;
     summary: OrderSummary;
@@ -1336,26 +1337,17 @@ const Orders: React.FC = () => {
       context?: UpdateStatusContext
     ) => Promise<void>;
     onDelivered: (
-      payload: {
-        code?: string;
-        name?: string;
-        variant: string;
-      quantity: number;
-    },
-    rowId: string
-  ) => Promise<void>;
+      payload: { code?: string; name?: string; variant: string; quantity: number },
+      rowId: string
+    ) => Promise<void>;
     onRestoreStock?: (
-      payload: {
-        code?: string;
-        name?: string;
-        variant: string;
-        quantity: number;
-      }
+      payload: { code?: string; name?: string; variant: string; quantity: number }
     ) => Promise<void>;
     variant?: "table" | "modal";
     commentKey?: string;
     commentValue?: string;
     onCommentChange?: (key: string, value: string) => void;
+    onSubmittingChange?: (value: boolean) => void;
   }) {
     const {
       name: nom_client,
@@ -1505,6 +1497,12 @@ const Orders: React.FC = () => {
     const [deliveryType, setDeliveryType] = React.useState<DeliveryType>('api_dhd');
     const [deliveryPersonId, setDeliveryPersonId] = React.useState<string | null>(null);
 
+    React.useEffect(() => {
+      if (onSubmittingChange) {
+        onSubmittingChange(submitting);
+      }
+    }, [submitting, onSubmittingChange]);
+
     const resolveDeliverySettings = React.useCallback(() => {
       const currentRowId = String(row["id-sheet"] || row["ID"] || "");
       const deliverySettings =
@@ -1573,18 +1571,13 @@ const Orders: React.FC = () => {
           setTimeout(() => toast.remove(), 400);
         }, duration);
       };
-      const confirmed = window.confirm(
-        `Êtes-vous sûr de vouloir envoyer la validation pour ${nom_client} ?`
-      );
-      if (!confirmed) {
-        return;
-      }
-
       // Validation : si le type de livraison est "livreur", un livreur doit être sélectionné
       if (selectedDeliveryType === 'livreur' && !deliveryPersonId) {
         alert('Veuillez sélectionner un livreur pour cette commande.');
         return;
       }
+
+      setSubmitting(true);
 
       const adr = ".";
       const rawProductLabel =
@@ -2129,6 +2122,9 @@ const Orders: React.FC = () => {
         );
       } finally {
         setSubmitting(false);
+        if (onSubmittingChange) {
+          onSubmittingChange(false);
+        }
       }
     }, [
       nom_client,
@@ -2426,6 +2422,7 @@ const Orders: React.FC = () => {
     const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
+    const [rowSubmitting, setRowSubmitting] = React.useState(false);
 
     const sanitizedCommentKey = React.useMemo(
       () =>
@@ -2505,8 +2502,12 @@ const Orders: React.FC = () => {
       []
     );
 
+    const rowClassName = rowSubmitting
+      ? "orders-row orders-row--submitting"
+      : "orders-row";
+
     return (
-      <tr className="orders-row">
+      <tr className={rowClassName}>
         {renderSelectionCell && renderSelectionCell()}
         {headers.map((h) => {
           const normalizedHeader = (h || "")
@@ -2883,6 +2884,7 @@ Zm0 14H8V7h9v12Z"
             commentKey={commentKey}
             commentValue={commentValue}
             onCommentChange={onCommentChange}
+            onSubmittingChange={setRowSubmitting}
           />
         </td>
         <td className="orders-table__cell orders-table__cell--status">
