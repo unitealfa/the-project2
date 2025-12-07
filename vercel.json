@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "back/api/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "front/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "front/dist" }
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/back/api/index.ts" },
+    { "src": "/(.*)", "dest": "/front/$1" }
+  ]
+}
