@@ -18,10 +18,18 @@ import {
 
 const router = Router();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Compute uploads directory (read-only fs on Vercel => use /tmp)
+const uploadsDir =
+  process.env.UPLOADS_DIR ||
+  (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads'));
+
+// Ensure uploads directory exists (ignore errors on read-only fs)
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Unable to create uploads directory, file upload may fail:', err);
 }
 
 // Multer storage config

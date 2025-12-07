@@ -8,7 +8,10 @@ import productRoutes from './products/product.routes';
 import orderRoutes from './orders/order.routes';
 
 dotenv.config();
-connectDB();
+// Keep reference to avoid unhandled rejections in serverless/runtime
+connectDB().catch((err) => {
+  console.error('Initial Mongo connection failed', err);
+});
 
 const app = express();
 app.use(cors());
@@ -46,8 +49,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
-// Static serving for uploaded files
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Static serving for uploaded files (read-only on Vercel; use /tmp fallback if provided)
+const uploadsDir =
+  process.env.UPLOADS_DIR ||
+  (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads'));
+app.use('/uploads', express.static(uploadsDir));
 
 export default app;
 

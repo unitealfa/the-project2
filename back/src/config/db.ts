@@ -39,8 +39,15 @@ const ensureAdminExists = async () => {
 
 const connectDB = async () => {
     try {
+        // Reuse existing connection in serverless environments to avoid crashes/overheads.
+        if (mongoose.connection.readyState === 1) {
+            return;
+        }
+
         const connectionUri =
-            process.env.MONGO_URI || 'mongodb://127.0.0.1:27017';
+            process.env.MONGO_URI ||
+            process.env.MONGODB_URI ||
+            'mongodb://127.0.0.1:27017';
 
         const connectionOptions: mongoose.ConnectOptions = {};
 
@@ -52,8 +59,10 @@ const connectDB = async () => {
         console.log('MongoDB connected');
         await ensureAdminExists();
     } catch (err) {
-        console.error(err);
-        process.exit(1);
+        console.error('MongoDB connection error:', err);
+        // In serverless environments we should not terminate the process.
+        // Propagate the error so the caller can decide how to handle it.
+        throw err;
     }
 };
 

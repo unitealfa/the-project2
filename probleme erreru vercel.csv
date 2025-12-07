@@ -1,0 +1,251 @@
+TimeUTC,timestampInMs,requestPath,requestMethod,requestQueryString,responseStatusCode,requestId,requestUserAgent,level,environment,branch,vercelCache,type,function,host,deploymentDomain,deploymentId,durationMs,region,maxMemoryUsed,memorySize,message,projectId,traceId,sessionId,invocationId,instanceId,concurrency
+2025-12-07 20:16:00,1765138560283,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,zp9f4-1765138559378-87b2c2f7e5ac,vercel-favicon/1.0,error,production,main,MISS,serverless,/favicon.ico,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:59,1765138559378,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,zp9f4-1765138559378-87b2c2f7e5ac,vercel-favicon/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,849,iad1,136,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX79WDWXECZ7G377BV73P0F,,-1
+2025-12-07 20:15:58,1765138558324,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,65xd5-1765138557388-fd8cf667b189,vercel-favicon/1.0,error,production,main,MISS,serverless,/favicon.ico,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:57,1765138557388,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,65xd5-1765138557388-fd8cf667b189,vercel-favicon/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,881,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX79TFMG87NT9BRWSQ18F8G,,-1
+2025-12-07 20:15:57,1765138557270,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,jkks4-1765138556362-b2b146cbe111,vercel-favicon/1.0,error,production,main,MISS,serverless,/,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:56,1765138556362,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,jkks4-1765138556362-b2b146cbe111,vercel-favicon/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,841,iad1,137,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX79SFZNF58EGW9G141MDMK,,-1
+2025-12-07 20:15:55,1765138555239,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,vncnq-1765138554342-8df2a620ee3c,vercel-favicon/1.0,error,production,main,,serverless,,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:54,1765138554342,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,vncnq-1765138554342-8df2a620ee3c,vercel-favicon/1.0,,production,main,,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,838,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX79QGKDT8F8GTBFFHDYP6R,,-1
+2025-12-07 20:15:43,1765138543097,the-project2backendouazza.vercel.app/favicon.ico,GET,,500,wrfsx-1765138542101-255777e23dab,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",error,production,main,MISS,serverless,/favicon.ico,the-project2backendouazza.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:42,1765138542101,the-project2backendouazza.vercel.app/favicon.ico,GET,,500,wrfsx-1765138542101-255777e23dab,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,812,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX79BNXMR6MKACE7KV4JJPD,,-1
+2025-12-07 20:15:41,1765138541217,the-project2backendouazza.vercel.app/,GET,,500,kknsl-1765138540004-9cb4993e9a00,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",error,production,main,MISS,serverless,/,the-project2backendouazza.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:40,1765138540004,the-project2backendouazza.vercel.app/,GET,,500,kknsl-1765138540004-9cb4993e9a00,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,838,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX799TCQJ3D2PQ3XT1C8B13,,-1
+2025-12-07 20:15:31,1765138531645,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,qrrkl-1765138530660-2392dc6f3347,vercel-screenshot/1.0,error,production,main,MISS,serverless,/favicon.ico,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:30,1765138530660,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,qrrkl-1765138530660-2392dc6f3347,vercel-screenshot/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,833,iad1,136,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX790FG9DN0FDF2D0SR3JMY,,-1
+2025-12-07 20:15:31,1765138531530,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,mcxw5-1765138530624-98f3a4f629f6,vercel-screenshot/1.0,error,production,main,MISS,serverless,/favicon.ico,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:30,1765138530624,the-project2backendouazza-qfl1tacu0.vercel.app/favicon.ico,GET,,500,mcxw5-1765138530624-98f3a4f629f6,vercel-screenshot/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,844,iad1,136,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX790BAVF10HNBQPAMN4CRM,,-1
+2025-12-07 20:15:30,1765138530534,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,9svq4-1765138529619-96c72266bf24,vercel-screenshot/1.0,error,production,main,,serverless,,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:29,1765138529619,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,9svq4-1765138529619-96c72266bf24,vercel-screenshot/1.0,,production,main,,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,847,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX78ZBZ4HHJZY74KDRVDQZY,,-1
+2025-12-07 20:15:30,1765138530569,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,d899j-1765138529546-a5dbee2ddb9b,vercel-screenshot/1.0,error,production,main,MISS,serverless,/,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:29,1765138529546,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,d899j-1765138529546-a5dbee2ddb9b,vercel-screenshot/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,862,iad1,136,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX78ZCWYXBECX3KA60836J9,,-1
+2025-12-07 20:15:29,1765138529407,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,hhhxp-1765138527025-f7d4e6c4f4ce,vercel-screenshot/1.0,error,production,main,,serverless,,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:27,1765138527025,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,,hhhxp-1765138527025-f7d4e6c4f4ce,vercel-screenshot/1.0,,production,main,,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,910,iad1,136,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX78X1YMMBQEJC9AA6P650Y,,-1
+2025-12-07 20:15:29,1765138529485,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,65xd5-1765138527007-90edb63bfc6b,vercel-screenshot/1.0,error,production,main,MISS,serverless,/,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,,,,,"Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Error: ENOENT: no such file or directory, mkdir '/var/task/uploads'
+    at Object.mkdirSync (node:fs:1349:26)
+    at Object.<anonymous> (/var/task/back/src/products/product.routes.js:17:18)
+    at Module.<anonymous> (/opt/rust/bytecode.js:2:1435)
+    at A.l._compile (/opt/rust/bytecode.js:2:3182)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1299:12)
+    at /opt/rust/nodejs.js:2:13529
+    at Module.on (/opt/rust/nodejs.js:2:13907)
+    at e.<computed>.Ge._load (/opt/rust/nodejs.js:2:13499) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/var/task/uploads'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.",prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,,,
+2025-12-07 20:15:27,1765138527007,the-project2backendouazza-qfl1tacu0.vercel.app/,GET,,500,65xd5-1765138527007-90edb63bfc6b,vercel-screenshot/1.0,,production,main,MISS,serverless,/api/index.ts,the-project2backendouazza-qfl1tacu0.vercel.app,the-project2backendouazza-qfl1tacu0.vercel.app,dpl_6KVBjwTmrWB81qSCXsfWZ4Fo9J3H,846,iad1,135,2048,,prj_8AXkR2ItD0pUFpt4KB6LrDmEEQeC,,,01KBX78X1XPDZKH8F5H2W7YYVY,,-1
