@@ -1,11 +1,9 @@
 {
   "version": 2,
   "builds": [
-    { "src": "back/api/index.ts", "use": "@vercel/node" }
+    { "src": "api/index.ts", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/back/api/index.ts" }
-  ],
-  "installCommand": "cd back && npm install",
-  "buildCommand": "cd back && npm run build"
+    { "src": "/(.*)", "dest": "/api/index.ts" }
+  ]
 }
