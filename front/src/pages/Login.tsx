@@ -441,7 +441,9 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
-          <button type="submit" style={buttonStyle}>Se connecter</button>
+          <button type="submit" style={buttonStyle} disabled={isSending || isVerifying}>
+            {isSending || isVerifying ? "Connexion..." : "Se connecter"}
+          </button>
         </form>
         <button type="button" onClick={openForgotModal} style={forgotButtonStyle}>
           Mot de passe oublié ?
