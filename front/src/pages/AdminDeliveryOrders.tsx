@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { AuthContext } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 import "../styles/AdminDeliveryOrders.css";
 
 type DeliveryType = "api_dhd" | "api_sook" | "livreur";
@@ -81,7 +82,7 @@ const AdminDeliveryOrders: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/orders/delivery-person/orders");
+      const response = await apiFetch("/api/orders/delivery-person/orders");
       const data = await response.json();
       if (!data.success) {
         throw new Error(data.message || "Erreur lors du chargement des commandes");

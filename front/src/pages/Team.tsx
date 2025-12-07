@@ -3,6 +3,7 @@ import React, { useEffect, useState, useContext, useMemo, useCallback } from 're
 import { useParams, Link } from 'react-router-dom';
 import { User } from '../types';
 import { AuthContext } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 import '../styles/Team.css';
 
@@ -16,7 +17,7 @@ const Team: React.FC = () => {
 
   const fetchTeam = useCallback(async () => {
     try {
-      const res = await fetch('/api/users', {
+      const res = await apiFetch('/api/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
@@ -47,7 +48,7 @@ const Team: React.FC = () => {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const res = await apiFetch(`/api/users/${userId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

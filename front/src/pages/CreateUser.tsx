@@ -4,6 +4,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';import { CreateUserDto } from '../types';
 import { AuthContext } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 import '../styles/Team.css';
 
@@ -80,7 +81,7 @@ const CreateUser: React.FC = () => {
     }
 
     try {
-      const res = await fetch('/api/users/create', {
+      const res = await apiFetch('/api/users/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

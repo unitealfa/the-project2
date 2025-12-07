@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { User } from '../types';
 import { AuthContext } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 import '../styles/Team.css';
 
@@ -30,7 +31,7 @@ const UserDetail: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`/api/users/${selectedUserId}`, {
+        const res = await apiFetch(`/api/users/${selectedUserId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = await res.json().catch(() => null);

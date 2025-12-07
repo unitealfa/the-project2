@@ -2,6 +2,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 import '../styles/DeliveryHistory.css';
 
 interface OrderRow {
@@ -82,7 +83,7 @@ const DeliveryHistory: React.FC = () => {
         return;
       }
       setLoading(true);
-      const response = await fetch(`/api/orders/delivery-person/${user.id}/history`);
+      const response = await apiFetch(`/api/orders/delivery-person/${user.id}/history`);
       const data = await response.json();
 
       if (data.success) {

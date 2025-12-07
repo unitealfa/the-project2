@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
+import { apiFetch } from "../utils/api";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -2969,7 +2970,7 @@ Zm0 14H8V7h9v12Z"
   React.useEffect(() => {
     const fetchDeliveryPersons = async () => {
       try {
-        const response = await fetch('/api/orders/delivery-persons');
+        const response = await apiFetch('/api/orders/delivery-persons');
         const data = await response.json();
         if (data.success) {
           setDeliveryPersons(data.deliveryPersons);
@@ -3117,7 +3118,7 @@ Zm0 14H8V7h9v12Z"
       return;
     }
 
-    const response = await fetch("/api/products", {
+    const response = await apiFetch("/api/products", {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -3641,7 +3642,7 @@ Zm0 14H8V7h9v12Z"
         );
       }
       try {
-        const res = await fetch(SHEET_SYNC_ENDPOINT, {
+        const res = await apiFetch(SHEET_SYNC_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4053,7 +4054,7 @@ Zm0 14H8V7h9v12Z"
 
     (async () => {
       try {
-        const res = await fetch('/api/orders/sync-statuses', {
+        const res = await apiFetch('/api/orders/sync-statuses', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4190,7 +4191,7 @@ Zm0 14H8V7h9v12Z"
       // Note: La décrémentation se fait aussi automatiquement dans le backend quand le statut passe à "delivered"
       // On essaie quand même de décrémenter ici pour mettre à jour le cache, mais on n'affiche pas d'erreur si ça échoue
       try {
-        const res = await fetch("/api/products/decrement-bulk-allow-negative", {
+        const res = await apiFetch("/api/products/decrement-bulk-allow-negative", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4291,7 +4292,7 @@ Zm0 14H8V7h9v12Z"
       quantity: number;
     }) => {
       try {
-        const res = await fetch("/api/products/increment-bulk", {
+        const res = await apiFetch("/api/products/increment-bulk", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

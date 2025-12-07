@@ -15,6 +15,7 @@ import { MapPin, Package } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import type { ProductDto } from "../types";
 import "../styles/AdminDashboard.css";
+import { apiFetch } from "../utils/api";
 
 const PRODUCT_NAME_KEYS = [
   "Produit",
@@ -610,7 +611,7 @@ const Admin: React.FC = () => {
 
     (async () => {
       try {
-        const response = await fetch("/api/products", {
+        const response = await apiFetch("/api/products", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

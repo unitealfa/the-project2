@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CreateUserDto, User } from '../types';
 import { AuthContext } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '../utils/api';
 
 import '../styles/Team.css';
 
@@ -35,7 +36,7 @@ const EditUser: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`/api/users/${userId}`, {
+        const res = await apiFetch(`/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = await res.json().catch(() => null);
@@ -127,7 +128,7 @@ const EditUser: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const res = await apiFetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

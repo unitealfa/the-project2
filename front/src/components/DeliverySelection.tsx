@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { apiFetch } from '../utils/api';
 
 type DeliveryType = 'api_dhd' | 'api_sook' | 'livreur';
 
@@ -32,7 +33,7 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
     const fetchDeliveryPersons = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/orders/delivery-persons');
+        const response = await apiFetch('/api/orders/delivery-persons');
         const data = await response.json();
         if (data.success) {
           setDeliveryPersons(data.deliveryPersons);

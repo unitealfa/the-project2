@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { ProductDto } from '../types';
+import { apiFetch } from '../utils/api';
 import '../styles/Products.css';
 
 const emptyForm: ProductDto = {
@@ -30,7 +31,7 @@ const Products: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/products', {
+      const res = await apiFetch('/api/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
@@ -118,7 +119,7 @@ const Products: React.FC = () => {
       if (imageFile) fd.append('image', imageFile);
       fd.append('variants', JSON.stringify(form.variants || []));
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -147,7 +148,7 @@ const Products: React.FC = () => {
     if (!canEdit || !id) return;
     if (!confirm('Supprimer ce produit ?')) return;
     try {
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await apiFetch(`/api/products/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -4,6 +4,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { AuthContext } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 const Login: React.FC = () => {
   const [email, setEmail]       = useState('');
@@ -60,7 +61,7 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/users/login', {
+      const res = await apiFetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -106,7 +107,7 @@ const Login: React.FC = () => {
     setVerificationCompleted(false);
     setVerificationCode('');
     try {
-      const res = await fetch('/api/users/forgot-password', {
+      const res = await apiFetch('/api/users/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -162,7 +163,7 @@ const Login: React.FC = () => {
     setErrorMessage('');
     setVerificationMessage('');
     try {
-      const res = await fetch('/api/users/verify-code', {
+      const res = await apiFetch('/api/users/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: verificationCode }),

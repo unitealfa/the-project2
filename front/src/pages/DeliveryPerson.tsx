@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { AuthContext } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 import "../styles/DeliveryPerson.css";
 
 interface OrderRow {
@@ -74,7 +75,7 @@ const DeliveryPerson: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/orders/delivery-person/${user.id}/orders`
       );
       const data = await response.json();
@@ -100,7 +101,7 @@ const DeliveryPerson: React.FC = () => {
     action: "validate" | "cancel"
   ) => {
     try {
-      const response = await fetch("/api/orders/status", {
+      const response = await apiFetch("/api/orders/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
