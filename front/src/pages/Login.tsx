@@ -20,6 +20,7 @@ const Login: React.FC = () => {
   const [verificationMessage, setVerificationMessage]   = useState('');
   const [verificationCompleted, setVerificationCompleted] = useState(false);
   const [hasRequestedReset, setHasRequestedReset]       = useState(false);
+  const [showPassword, setShowPassword]                 = useState(false);
   const navigate = useNavigate();
   const { user, login } = useContext(AuthContext);
 
@@ -393,16 +394,52 @@ const Login: React.FC = () => {
           </div>
           <div style={fieldSpacingStyle}>
             <label style={labelStyle} htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              style={inputStyle}
-              onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
-              onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                style={{ ...inputStyle, paddingRight: '2.75rem' }}
+                onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
+                onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '10px',
+                  transform: 'translateY(-50%)',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#111',
+                }}
+              >
+                {showPassword ? (
+                  // Icône "œil barré" minimaliste pour rester dans le thème
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-5 0-9-4-9-8 0-1.43.38-2.78 1.06-3.94" />
+                    <path d="M6.06 6.06A10.07 10.07 0 0 1 12 4c5 0 9 4 9 8 0 1.43-.38 2.78-1.06 3.94" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  // Icône "œil" minimaliste
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <button type="submit" style={buttonStyle}>Se connecter</button>
         </form>
