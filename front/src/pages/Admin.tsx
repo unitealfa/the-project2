@@ -1366,7 +1366,7 @@ useEffect(() => {
       {isLoading && (
         <div className="admin-loader" role="status" aria-live="polite">
           <div className="admin-loader__spinner" />
-          <p>Chargement des donn\u00e9es...</p>
+          <p>Chargement</p>
         </div>
       )}
       <header className="dashboard-header">
