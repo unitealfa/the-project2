@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useContext } from "react";
+﻿import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
@@ -2972,18 +2972,19 @@ Zm0 14H8V7h9v12Z"
       try {
         const response = await apiFetch('/api/orders/delivery-persons');
         const data = await response.json();
-        if (data.success) {
+        if (data.success && Array.isArray(data.deliveryPersons)) {
           setDeliveryPersons(data.deliveryPersons);
+        } else {
+          setDeliveryPersons([]);
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des livreurs:', error);
+        console.warn('Erreur lors de la récupération des livreurs:', error);
+        setDeliveryPersons([]);
       }
     };
 
     fetchDeliveryPersons();
-  }, []);
-
-  const handleCommentEditRequest = React.useCallback(
+  }, []);  const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
       setCommentEditor({
         isOpen: true,
@@ -3125,7 +3126,9 @@ Zm0 14H8V7h9v12Z"
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      console.warn("Chargement produits échoué:", response.status);
+      productsCacheLoadedRef.current = true;
+      return;
     }
 
     const products = await response.json();
@@ -5490,3 +5493,4 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
+

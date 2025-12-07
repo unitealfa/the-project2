@@ -577,7 +577,9 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
   const { user, token } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
+  const [rowsLoading, setRowsLoading] = useState(true);
   const [products, setProducts] = useState<ProductDto[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [timeFilterMonth, setTimeFilterMonth] = useState<string>(
     () => getDefaultMonthValue()
@@ -591,6 +593,7 @@ const Admin: React.FC = () => {
   const chartInstanceRef = useRef<ChartInstance | null>(null);
   const adminUser = user && user.role === "admin" ? user : null;
   const [isProfitModalOpen, setProfitModalOpen] = useState(false);
+  const isLoading = rowsLoading || productsLoading;
 
   useEffect(() => {
     if (!adminUser) {
@@ -604,10 +607,12 @@ const Admin: React.FC = () => {
   useEffect(() => {
     if (!adminUser || !token) {
       setProducts([]);
+      setProductsLoading(false);
       return;
     }
 
     let cancelled = false;
+    setProductsLoading(true);
 
     (async () => {
       try {
@@ -625,11 +630,11 @@ const Admin: React.FC = () => {
         if (cancelled) return;
 
         const mapped: ProductDto[] = Array.isArray(data)
-          ? data.map((item: any) => ({
-              id: item._id || item.id,
-              code: typeof item.code === "string" ? item.code : undefined,
-              name: typeof item.name === "string" ? item.name : "",
-              costPrice: Number(item.costPrice ?? 0) || 0,
+            ? data.map((item: any) => ({
+                id: item._id || item.id,
+                code: typeof item.code === "string" ? item.code : undefined,
+                name: typeof item.name === "string" ? item.name : "",
+                costPrice: Number(item.costPrice ?? 0) || 0,
               salePrice: Number(item.salePrice ?? 0) || 0,
               variants: Array.isArray(item.variants)
                 ? item.variants.map((variant: any) => ({
@@ -644,6 +649,10 @@ const Admin: React.FC = () => {
       } catch (error) {
         if (!cancelled) {
           setProducts([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setProductsLoading(false);
         }
       }
     })();
@@ -745,6 +754,8 @@ const Admin: React.FC = () => {
         setRows(mapped);
       } catch (error) {
         // silencieux
+      } finally {
+        setRowsLoading(false);
       }
     })();
   }, []);
@@ -1352,6 +1363,12 @@ useEffect(() => {
 
   return (
     <div className="admin-dashboard">
+      {isLoading && (
+        <div className="admin-loader" role="status" aria-live="polite">
+          <div className="admin-loader__spinner" />
+          <p>Chargement des donn\u00e9es...</p>
+        </div>
+      )}
       <header className="dashboard-header">
         <div>
           <h1>Tableau de bord</h1>

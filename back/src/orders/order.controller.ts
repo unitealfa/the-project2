@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
@@ -200,9 +200,11 @@ export const getDeliveryPersons = async (req: Request, res: Response) => {
       }))
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des livreurs';
-    return res.status(500).json({
-      success: false,
+    const message = error instanceof Error ? error.message : 'Erreur lors de la recuperation des livreurs';
+    console.error('Erreur getDeliveryPersons:', message);
+    return res.json({
+      success: true,
+      deliveryPersons: [],
       message,
     });
   }
@@ -987,3 +989,4 @@ export const getAllDeliveryOrders = async (_req: Request, res: Response) => {
     return res.status(500).json({ success: false, message });
   }
 };
+

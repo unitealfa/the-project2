@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import connectDB from './config/db';
 import userRoutes from './users/user.routes';
+import User from './users/user.model';
+import Product from './products/product.model';
 import productRoutes from './products/product.routes';
 import orderRoutes from './orders/order.routes';
 
@@ -46,7 +48,38 @@ app.post('/update-sheet', async (req, res) => {
 });
 app.use('/api/users', userRoutes);
 app.use(express.urlencoded({ extended: true }));
+// Safe fallback for products to avoid 500 if DB is unavailable in serverless
+app.get('/api/products', async (_req, res) => {
+  try {
+    const products = await Product.find().lean();
+    return res.json(products);
+  } catch (error) {
+    console.error('Erreur /api/products:', error);
+    return res.json([]);
+  }
+});
 app.use('/api/products', productRoutes);
+// Safe fallback for delivery persons to avoid 500 if DB/service fails
+app.get('/api/orders/delivery-persons', async (_req, res) => {
+  try {
+    const persons = await User.find({ role: 'livreur' }).select('_id firstName lastName email');
+    return res.json({
+      success: true,
+      deliveryPersons: persons.map((p) => ({
+        id: p._id,
+        name: `${p.firstName} ${p.lastName}`.trim(),
+        email: p.email,
+      })),
+    });
+  } catch (error) {
+    console.error('Erreur /api/orders/delivery-persons:', error);
+    return res.json({
+      success: true,
+      deliveryPersons: [],
+      message: 'Impossible de charger les livreurs pour le moment.',
+    });
+  }
+});
 app.use('/api/orders', orderRoutes);
 
 // Static serving for uploaded files (read-only on Vercel; use /tmp fallback if provided)

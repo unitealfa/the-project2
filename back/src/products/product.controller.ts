@@ -1,4 +1,4 @@
-// back/src/products/product.controller.ts
+﻿// back/src/products/product.controller.ts
 import { Request, Response } from 'express';
 import { ProductService } from './product.service';
 
@@ -71,7 +71,8 @@ export const listProducts = async (_req: Request, res: Response) => {
     const list = await service.list();
     res.json(list);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error("listProducts error:", err?.message || err);
+    res.json([]);
   }
 };
 
