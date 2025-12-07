@@ -21,6 +21,7 @@ const Login: React.FC = () => {
   const [verificationCompleted, setVerificationCompleted] = useState(false);
   const [hasRequestedReset, setHasRequestedReset]       = useState(false);
   const [showPassword, setShowPassword]                 = useState(false);
+  const [isAuthenticating, setIsAuthenticating]         = useState(false);
   const navigate = useNavigate();
   const { user, login } = useContext(AuthContext);
 
@@ -62,6 +63,7 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsAuthenticating(true);
       const res = await apiFetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,6 +99,8 @@ const Login: React.FC = () => {
         ? err.message
         : "Impossible d'effectuer la connexion. Veuillez réessayer.";
       alert(message);
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -475,8 +479,12 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
-          <button type="submit" style={buttonStyle} disabled={isSending || isVerifying}>
-            {isSending || isVerifying ? (
+          <button
+            type="submit"
+            style={buttonStyle}
+            disabled={isAuthenticating || isSending || isVerifying}
+          >
+            {isAuthenticating ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                 {spinnerIcon}
                 <span>Connexion...</span>
