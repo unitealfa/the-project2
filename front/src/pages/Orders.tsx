@@ -90,15 +90,15 @@ const normalizeVariantNameForCache = (value: string | null | undefined) =>
   normalizeTextValue(value);
 
 const DEFAULT_VARIANT_NORMALIZED = new Set([
-  'default',
-  'defaut',
-  'sans variante',
-  'aucune',
-  'aucun',
-  'aucune variante',
-  'standard',
-  'n/a',
-  'na',
+  "default",
+  "defaut",
+  "sans variante",
+  "aucune",
+  "aucun",
+  "aucune variante",
+  "standard",
+  "n/a",
+  "na",
 ]);
 
 const isMeaningfulVariantName = (value: string) =>
@@ -120,7 +120,6 @@ const buildProductCacheKeys = (
   return keys;
 };
 
-
 const VARIANT_KEY_CANDIDATE_SET = new Set(
   VARIANT_KEY_CANDIDATES.map((candidate) => normalizeKey(candidate))
 );
@@ -131,7 +130,9 @@ const extractProductLabel = (row: OrderRow): string => {
   for (const [rawKey, value] of Object.entries(row)) {
     const normalizedKey = normalizeKey(rawKey);
     if (!normalizedKey) continue;
-    if (PRODUCT_KEY_KEYWORDS.some((keyword) => normalizedKey.includes(keyword))) {
+    if (
+      PRODUCT_KEY_KEYWORDS.some((keyword) => normalizedKey.includes(keyword))
+    ) {
       const trimmed = String(value ?? "").trim();
       if (trimmed) {
         return trimmed;
@@ -153,12 +154,12 @@ const splitProductLabel = (
     value.replace(/[-–—:|]+\s*$/, "").trim();
   const sanitizeVariant = (value: string) =>
     value
-      .replace(/^[\s-–—:|\[\]]+/, '')
-      .replace(/[\s\[\]]+$/, '')
-      .replace(/\s+/g, ' ')
+      .replace(/^[\s-–—:|\[\]]+/, "")
+      .replace(/[\s\[\]]+$/, "")
+      .replace(/\s+/g, " ")
       .trim();
 
-      const trySlashSeparated = () => {
+  const trySlashSeparated = () => {
     const slashParts = trimmed
       .split(/[\/]+/)
       .map((part) => part.trim())
@@ -166,7 +167,7 @@ const splitProductLabel = (
 
     if (slashParts.length >= 2) {
       const variant = sanitizeVariant(slashParts[slashParts.length - 1]);
-      const baseName = cleanupBaseName(slashParts.slice(0, -1).join(' / '));
+      const baseName = cleanupBaseName(slashParts.slice(0, -1).join(" / "));
       if (variant) {
         return {
           baseName: baseName || trimmed,
@@ -201,7 +202,7 @@ const splitProductLabel = (
       };
     }
   }
-    const slashSeparatedResult = trySlashSeparated();
+  const slashSeparatedResult = trySlashSeparated();
   if (slashSeparatedResult) {
     return slashSeparatedResult;
   }
@@ -210,9 +211,7 @@ const splitProductLabel = (
   for (const separator of separators) {
     const index = trimmed.lastIndexOf(separator);
     if (index > 0 && index < trimmed.length - separator.length) {
-      const variant = sanitizeVariant(
-        trimmed.slice(index + separator.length)
-      );
+      const variant = sanitizeVariant(trimmed.slice(index + separator.length));
       const baseName = cleanupBaseName(trimmed.slice(0, index));
       if (variant) {
         return {
@@ -276,14 +275,7 @@ const extractQuantityValue = (row: OrderRow): number => {
 };
 
 const extractProductCode = (row: OrderRow): string => {
-  const candidates = [
-    "Code",
-    "code",
-    "SKU",
-    "Sku",
-    "Référence",
-    "Reference",
-  ];
+  const candidates = ["Code", "code", "SKU", "Sku", "Référence", "Reference"];
   for (const key of candidates) {
     if (key in row) {
       const trimmed = String(row[key] ?? "").trim();
@@ -315,7 +307,7 @@ type SheetStatus =
 const SHEET_SYNC_ENDPOINT =
   import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? "/api/orders/status";
 
-  const OFFICIAL_STATUS_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const OFFICIAL_STATUS_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 type TimeFilter = "all" | "day" | "week" | "month";
 
@@ -495,13 +487,13 @@ const DHD_API_TOKEN =
   import.meta.env.VITE_DHD_API_TOKEN ??
   "FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i";
 
-  const SOOK_API_BASE_URL = (
+const SOOK_API_BASE_URL = (
   import.meta.env.VITE_SOOK_API_URL ?? DEFAULT_DHD_BASE_URL
 ).replace(/\/$/, "");
 const SOOK_API_TOKEN =
   import.meta.env.VITE_SOOK_API_TOKEN ??
   "NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D";
-  
+
 const DHD_CREATE_PATH = "/api/v1/create/order";
 const DHD_TRACKING_PATH = "/api/v1/get/tracking/info";
 const DHD_UPDATES_PATH = "/api/v1/get/maj";
@@ -509,11 +501,14 @@ const DHD_UPDATES_PATH = "/api/v1/get/maj";
 type DeliveryApiType = "api_dhd" | "api_sook";
 type DeliveryType = DeliveryApiType | "livreur";
 
-const DELIVERY_API_CONFIG: Record<DeliveryApiType, {
-  label: string;
-  baseUrl: string;
-  token: string | null;
-}> = {
+const DELIVERY_API_CONFIG: Record<
+  DeliveryApiType,
+  {
+    label: string;
+    baseUrl: string;
+    token: string | null;
+  }
+> = {
   api_dhd: {
     label: "BL Bébé",
     baseUrl: DHD_API_BASE_URL,
@@ -526,10 +521,13 @@ const DELIVERY_API_CONFIG: Record<DeliveryApiType, {
   },
 };
 
-const buildDeliveryApiUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
+const buildDeliveryApiUrl = (baseUrl: string, path: string) =>
+  `${baseUrl}${path}`;
 
 const resolveDeliveryApiConfig = (type: DeliveryType) =>
-  type === "api_sook" ? DELIVERY_API_CONFIG.api_sook : DELIVERY_API_CONFIG.api_dhd;
+  type === "api_sook"
+    ? DELIVERY_API_CONFIG.api_sook
+    : DELIVERY_API_CONFIG.api_dhd;
 type DeliveryApiConfig = ReturnType<typeof resolveDeliveryApiConfig>;
 
 const normalizeStatus = (status: string) =>
@@ -637,11 +635,7 @@ const DHD_RETURNED_KEYWORDS_AR = [
   "رفض الاستلام",
 ];
 
-const DHD_SHIPPED_KEYWORDS_AR = [
-  "تم الشحن",
-  "في الطريق",
-  "في التوصيل",
-];
+const DHD_SHIPPED_KEYWORDS_AR = ["تم الشحن", "في الطريق", "في التوصيل"];
 
 const DHD_CANCELLED_KEYWORDS_AR = [
   "تم الإلغاء",
@@ -658,13 +652,12 @@ const containsNormalizedKeyword = (
 const containsRawKeyword = (text: string, keywords: readonly string[]) =>
   keywords.some((keyword) => keyword && text.includes(keyword));
 
-
 const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
   if (typeof status !== "string") return null;
   const trimmedStatus = status.trim();
   if (!trimmedStatus) return null;
   const normalized = normalizeStatus(trimmedStatus);
-  
+
   if (
     containsNormalizedKeyword(normalized, DHD_RETURNED_KEYWORDS) ||
     containsRawKeyword(trimmedStatus, DHD_RETURNED_KEYWORDS_AR)
@@ -687,7 +680,7 @@ const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
     return "SHIPPED";
   }
 
-    if (
+  if (
     containsNormalizedKeyword(normalized, DHD_CANCELLED_KEYWORDS) ||
     containsRawKeyword(trimmedStatus, DHD_CANCELLED_KEYWORDS_AR)
   ) {
@@ -824,10 +817,11 @@ const DELIVERY_MODE_LABELS: Record<CustomerDeliveryMode, string> = {
   stop_desk: "Stop desk",
 };
 
-const DELIVERY_MODE_OPTIONS: { value: CustomerDeliveryMode; label: string }[] = [
-  { value: "a_domicile", label: DELIVERY_MODE_LABELS.a_domicile },
-  { value: "stop_desk", label: DELIVERY_MODE_LABELS.stop_desk },
-];
+const DELIVERY_MODE_OPTIONS: { value: CustomerDeliveryMode; label: string }[] =
+  [
+    { value: "a_domicile", label: DELIVERY_MODE_LABELS.a_domicile },
+    { value: "stop_desk", label: DELIVERY_MODE_LABELS.stop_desk },
+  ];
 
 const DELIVERY_MODE_HEADER_KEYS = [
   "Type de livraison",
@@ -999,12 +993,13 @@ const Orders: React.FC = () => {
   const [statusSyncDisabled, setStatusSyncDisabled] =
     React.useState<boolean>(false);
   const syncDisabledRef = React.useRef<boolean>(false);
-  const officialStatusSyncRef = React.useRef<{ lastSync: number; pending: boolean }>(
-    {
-      lastSync: 0,
-      pending: false,
-    }
-  );
+  const officialStatusSyncRef = React.useRef<{
+    lastSync: number;
+    pending: boolean;
+  }>({
+    lastSync: 0,
+    pending: false,
+  });
   // Adresse saisie par l'utilisateur pour chaque commande (indexée par idx)
 
   // Composant optimisé pour une ligne de commande
@@ -1248,16 +1243,18 @@ const Orders: React.FC = () => {
       "Montant total",
       "Prix total",
     ];
-    
+
     for (const key of candidates) {
       if (key in row) {
         const parsed = parseAmount(row[key]);
         if (parsed !== null) {
           // Formater avec séparateur de milliers
-          return parsed.toLocaleString('fr-FR', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }) + " DA";
+          return (
+            parsed.toLocaleString("fr-FR", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }) + " DA"
+          );
         }
       }
     }
@@ -1273,7 +1270,13 @@ const Orders: React.FC = () => {
     })();
 
     const unitPriceForTotal = (() => {
-      const priceCandidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+      const priceCandidates = [
+        "Prix unitaire",
+        "Prix",
+        "PrixU",
+        "PU",
+        "Prix U",
+      ];
       for (const key of priceCandidates) {
         if (key in row) {
           const parsed = parseAmount(row[key]);
@@ -1285,10 +1288,12 @@ const Orders: React.FC = () => {
 
     if (unitPriceForTotal !== null) {
       const computed = unitPriceForTotal * quantityForTotal;
-      return computed.toLocaleString('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }) + " DA";
+      return (
+        computed.toLocaleString("fr-FR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }) + " DA"
+      );
     }
 
     return "—";
@@ -1337,12 +1342,20 @@ const Orders: React.FC = () => {
       context?: UpdateStatusContext
     ) => Promise<void>;
     onDelivered: (
-      payload: { code?: string; name?: string; variant: string; quantity: number },
+      payload: {
+        code?: string;
+        name?: string;
+        variant: string;
+        quantity: number;
+      },
       rowId: string
     ) => Promise<void>;
-    onRestoreStock?: (
-      payload: { code?: string; name?: string; variant: string; quantity: number }
-    ) => Promise<void>;
+    onRestoreStock?: (payload: {
+      code?: string;
+      name?: string;
+      variant: string;
+      quantity: number;
+    }) => Promise<void>;
     variant?: "table" | "modal";
     commentKey?: string;
     commentValue?: string;
@@ -1494,8 +1507,11 @@ const Orders: React.FC = () => {
     const [submitting, setSubmitting] = React.useState<boolean>(false);
     const [delivering, setDelivering] = React.useState<boolean>(false);
     const [abandoning, setAbandoning] = React.useState<boolean>(false);
-    const [deliveryType, setDeliveryType] = React.useState<DeliveryType>('api_dhd');
-    const [deliveryPersonId, setDeliveryPersonId] = React.useState<string | null>(null);
+    const [deliveryType, setDeliveryType] =
+      React.useState<DeliveryType>("api_dhd");
+    const [deliveryPersonId, setDeliveryPersonId] = React.useState<
+      string | null
+    >(null);
 
     React.useEffect(() => {
       if (onSubmittingChange) {
@@ -1505,23 +1521,23 @@ const Orders: React.FC = () => {
 
     const resolveDeliverySettings = React.useCallback(() => {
       const currentRowId = String(row["id-sheet"] || row["ID"] || "");
-      const deliverySettings =
-       orderDeliverySettings[currentRowId] || {
-          deliveryType: 'api_dhd' as DeliveryType,
-          deliveryPersonId: null,
-        };
+      const deliverySettings = orderDeliverySettings[currentRowId] || {
+        deliveryType: "api_dhd" as DeliveryType,
+        deliveryPersonId: null,
+      };
       return { currentRowId, deliverySettings };
     }, [orderDeliverySettings, row]);
 
     const handleSendToApi = React.useCallback(async () => {
       // Récupérer les paramètres de livraison pour cette commande
       const { currentRowId, deliverySettings } = resolveDeliverySettings();
-      const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
+      const { deliveryType: selectedDeliveryType, deliveryPersonId } =
+        deliverySettings;
 
       const showToast = (
         message: string,
-        variant: 'success' | 'warning' = 'success',
-        duration = variant === 'success' ? 3000 : 5000
+        variant: "success" | "warning" = "success",
+        duration = variant === "success" ? 3000 : 5000
       ) => {
         if (typeof document === "undefined") {
           return;
@@ -1546,14 +1562,16 @@ const Orders: React.FC = () => {
           pointerEvents: "none",
         };
 
-        const gradients: Record<'success' | 'warning', string> = {
+        const gradients: Record<"success" | "warning", string> = {
           success: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
           warning: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         };
 
         const toast = document.createElement("div");
         toast.textContent = message;
-        Object.assign(toast.style, baseStyles, { background: gradients[variant] });
+        Object.assign(toast.style, baseStyles, {
+          background: gradients[variant],
+        });
         document.body.appendChild(toast);
 
         if (typeof requestAnimationFrame === "function") {
@@ -1572,8 +1590,8 @@ const Orders: React.FC = () => {
         }, duration);
       };
       // Validation : si le type de livraison est "livreur", un livreur doit être sélectionné
-      if (selectedDeliveryType === 'livreur' && !deliveryPersonId) {
-        alert('Veuillez sélectionner un livreur pour cette commande.');
+      if (selectedDeliveryType === "livreur" && !deliveryPersonId) {
+        alert("Veuillez sélectionner un livreur pour cette commande.");
         return;
       }
 
@@ -1649,7 +1667,6 @@ const Orders: React.FC = () => {
         return "";
       })();
 
-
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
         telephone: telephone || "0000000000",
@@ -1679,7 +1696,6 @@ const Orders: React.FC = () => {
         Remarque: finalRemark,
         remarque: finalRemark,
       };
-
 
       console.log("Données normalisées:", {
         original_commune: row["Commune"],
@@ -1744,10 +1760,7 @@ const Orders: React.FC = () => {
           if (respUpdates.ok) {
             const updatesList = extractDhdUpdates(dataUpdates);
             const statusFromUpdates = deriveStatusFromUpdates(updatesList);
-            if (
-              statusFromUpdates &&
-              statusFromUpdates !== currentStatus
-            ) {
+            if (statusFromUpdates && statusFromUpdates !== currentStatus) {
               await applyStatusUpdate(statusFromUpdates, trackingValue);
               return;
             }
@@ -1854,30 +1867,33 @@ const Orders: React.FC = () => {
           );
         }
 
-        if (selectedDeliveryType === 'livreur') {
+        if (selectedDeliveryType === "livreur") {
           try {
-            await applyStatusUpdate('Assigné', '');
+            await applyStatusUpdate("Assigné", "");
             showToast(
               `✅ Commande assignée au livreur pour ${nom_client}`,
-              'success',
+              "success",
               3200
             );
             if (stockUpdateFailedMessage) {
               showToast(
                 `⚠️ Pensez à ajuster manuellement le stock pour ${
-                  stockPayload.name || stockPayload.code || 'ce produit'
+                  stockPayload.name || stockPayload.code || "ce produit"
                 }.`,
-                'warning',
+                "warning",
                 6000
               );
               stockUpdateFailedMessage = null;
             }
             if (trimmedComment) {
-              updateComment('');
+              updateComment("");
             }
           } catch (assignError) {
             await revertStockIfNeeded();
-            console.error("Erreur lors de l'assignation au livreur:", assignError);
+            console.error(
+              "Erreur lors de l'assignation au livreur:",
+              assignError
+            );
             const message =
               assignError instanceof Error
                 ? assignError.message
@@ -1889,7 +1905,8 @@ const Orders: React.FC = () => {
           return;
         }
 
-        const currentDeliveryApiConfig = resolveDeliveryApiConfig(selectedDeliveryType);
+        const currentDeliveryApiConfig =
+          resolveDeliveryApiConfig(selectedDeliveryType);
         deliveryApiConfig = currentDeliveryApiConfig;
 
         const url = buildDeliveryApiUrl(
@@ -1899,7 +1916,10 @@ const Orders: React.FC = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        console.log(`Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`, url);
+        console.log(
+          `Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`,
+          url
+        );
         console.log("Données:", finalData);
 
         const doPost = async (payload: any) => {
@@ -1945,7 +1965,6 @@ const Orders: React.FC = () => {
         ) {
           const trackingValue = resolveTracking(responseData) || "N/A";
 
-
           showToast(
             `✅ Commande envoyée avec succès (${nom_client}) via ${currentDeliveryApiConfig.label}`,
             "success",
@@ -1953,7 +1972,9 @@ const Orders: React.FC = () => {
           );
           if (stockUpdateFailedMessage) {
             showToast(
-              `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"}.`,
+              `⚠️ Pensez à ajuster manuellement le stock pour ${
+                stockPayload.name || stockPayload.code || "ce produit"
+              }.`,
               "warning",
               6000
             );
@@ -2028,7 +2049,9 @@ const Orders: React.FC = () => {
                       headers: {
                         "Content-Type": "application/json",
                         ...(currentDeliveryApiConfig.token
-                          ? { Authorization: `Bearer ${currentDeliveryApiConfig.token}` }
+                          ? {
+                              Authorization: `Bearer ${currentDeliveryApiConfig.token}`,
+                            }
                           : {}),
                       },
                       body: JSON.stringify(attemptData),
@@ -2110,11 +2133,8 @@ const Orders: React.FC = () => {
         }
       } catch (error) {
         await revertStockIfNeeded();
-        const apiLabel = deliveryApiConfig?.label ?? 'inconnue';
-        console.error(
-          `Erreur lors de l'appel API ${apiLabel}:`,
-          error
-        );
+        const apiLabel = deliveryApiConfig?.label ?? "inconnue";
+        console.error(`Erreur lors de l'appel API ${apiLabel}:`, error);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         alert(
@@ -2151,10 +2171,11 @@ const Orders: React.FC = () => {
       if (!confirmed) return;
       try {
         setAbandoning(true);
-         const { deliverySettings } = resolveDeliverySettings();
-        const { deliveryType: selectedDeliveryType, deliveryPersonId } = deliverySettings;
+        const { deliverySettings } = resolveDeliverySettings();
+        const { deliveryType: selectedDeliveryType, deliveryPersonId } =
+          deliverySettings;
         const resolvedDeliveryPersonId =
-          selectedDeliveryType === 'livreur' && deliveryPersonId
+          selectedDeliveryType === "livreur" && deliveryPersonId
             ? deliveryPersonId
             : undefined;
         await onUpdateStatus(rowId, "abandoned", {
@@ -2186,7 +2207,7 @@ const Orders: React.FC = () => {
         const { deliveryType: selectedDeliveryType, deliveryPersonId } =
           deliverySettings;
         const resolvedDeliveryPersonId =
-          selectedDeliveryType === 'livreur' && deliveryPersonId
+          selectedDeliveryType === "livreur" && deliveryPersonId
             ? deliveryPersonId
             : undefined;
         const quantity = extractQuantityValue(row);
@@ -2215,9 +2236,12 @@ const Orders: React.FC = () => {
         } catch (e: any) {
           // Ne pas afficher d'erreur si la décrémentation échoue
           // Le backend le fera automatiquement
-          console.log("ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:", e?.message);
+          console.log(
+            "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
+            e?.message
+          );
         }
-        
+
         // Mettre à jour le statut à "delivered" (cela déclenchera aussi la décrémentation automatique dans le backend)
         await onUpdateStatus(rowId, "delivered", {
           previousStatus: initialSheetStatus,
@@ -2229,10 +2253,16 @@ const Orders: React.FC = () => {
         // Afficher une erreur seulement si c'est un problème de mise à jour du statut
         // Pas pour les erreurs de décrémentation
         const errorMessage = e?.message || "Erreur lors de la livraison";
-        if (!errorMessage.includes("Produit introuvable") && !errorMessage.includes("introuvable")) {
+        if (
+          !errorMessage.includes("Produit introuvable") &&
+          !errorMessage.includes("introuvable")
+        ) {
           alert(errorMessage);
         } else {
-          console.log("ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:", errorMessage);
+          console.log(
+            "ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:",
+            errorMessage
+          );
         }
       } finally {
         setDelivering(false);
@@ -2255,9 +2285,7 @@ const Orders: React.FC = () => {
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9_-]+/g, "-");
-      const commentFieldId = `order-comment-${
-        sanitizedCommentKey || "field"
-      }`;
+      const commentFieldId = `order-comment-${sanitizedCommentKey || "field"}`;
       return (
         <div className="orders-modal__actions-container">
           <div className="orders-modal__comment">
@@ -2279,14 +2307,14 @@ const Orders: React.FC = () => {
               Ce commentaire sera envoyé avec la commande.
             </p>
           </div>
-          
+
           <DeliverySelection
             onDeliveryTypeChange={setDeliveryType}
             onDeliveryPersonChange={setDeliveryPersonId}
             deliveryType={deliveryType}
             deliveryPersonId={deliveryPersonId}
           />
-          
+
           <div className={containerClass}>
             <button
               type="button"
@@ -2434,10 +2462,7 @@ const Orders: React.FC = () => {
       [commentKey]
     );
     const commentFieldId = React.useMemo(
-      () =>
-        `orders-table-comment-${
-          sanitizedCommentKey || `row-${idx}`
-        }`,
+      () => `orders-table-comment-${sanitizedCommentKey || `row-${idx}`}`,
       [sanitizedCommentKey, idx]
     );
     const handleCommentEdit = React.useCallback(() => {
@@ -2608,15 +2633,15 @@ const Orders: React.FC = () => {
             const meaningfulRowVariant =
               variantFromRow && isMeaningfulVariantName(variantFromRow)
                 ? variantFromRow
-                : '';
+                : "";
             const meaningfulFallbackVariant =
               fallbackVariant && isMeaningfulVariantName(fallbackVariant)
                 ? fallbackVariant
-                : '';
+                : "";
             const variantLabel = (
               meaningfulRowVariant ||
               meaningfulFallbackVariant ||
-              (variantFromRow ? variantFromRow : '')
+              (variantFromRow ? variantFromRow : "")
             ).trim();
 
             if (!variantLabel) {
@@ -2740,7 +2765,10 @@ const Orders: React.FC = () => {
             const whatsappPhone = normalizedForWhatsapp.startsWith("0")
               ? "213" + normalizedForWhatsapp.slice(1)
               : normalizedForWhatsapp;
-            const whatsappUrl = `https://wa.me/${whatsappPhone.replace(/\D/g, "")}?text=Bonjour`;
+            const whatsappUrl = `https://wa.me/${whatsappPhone.replace(
+              /\D/g,
+              ""
+            )}?text=Bonjour`;
 
             return (
               <td
@@ -2755,7 +2783,9 @@ const Orders: React.FC = () => {
                     }`}
                     onClick={() => handleCopyValue(valueToCopy, copyKey)}
                     title={
-                      isCopied ? "Numéro copié" : "Cliquer pour copier le numéro"
+                      isCopied
+                        ? "Numéro copié"
+                        : "Cliquer pour copier le numéro"
                     }
                   >
                     <span className="orders-table__phone-number">
@@ -2819,8 +2849,9 @@ Zm0 14H8V7h9v12Z"
               {trimmedDisplayText ? (
                 isQuantityColumn ? (
                   <>
-                    
-                    <span className="orders-qty-value">{trimmedDisplayText}</span>
+                    <span className="orders-qty-value">
+                      {trimmedDisplayText}
+                    </span>
                   </>
                 ) : (
                   trimmedDisplayText
@@ -2844,7 +2875,7 @@ Zm0 14H8V7h9v12Z"
               className="orders-table__comment-label"
             >
               Commentaire (optionnel)
-             </label>
+            </label>
             <button
               type="button"
               id={commentFieldId}
@@ -2910,11 +2941,15 @@ Zm0 14H8V7h9v12Z"
 
   // Sélection multiple des commandes
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const isSelected = React.useCallback((id: string) => selectedIds.has(id), [selectedIds]);
+  const isSelected = React.useCallback(
+    (id: string) => selectedIds.has(id),
+    [selectedIds]
+  );
   const toggleSelected = React.useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
@@ -2923,13 +2958,15 @@ Zm0 14H8V7h9v12Z"
     const next = new Set<string>();
     rowsOnPage.forEach((row) => {
       const summary = extractOrderSummary(row);
-      const id = summary.rowId || summary.displayRowLabel || '';
+      const id = summary.rowId || summary.displayRowLabel || "";
       if (id) next.add(id);
     });
     setSelectedIds(next);
   }, []);
 
-  const [orderComments, setOrderComments] = React.useState<Record<string, string>>({});
+  const [orderComments, setOrderComments] = React.useState<
+    Record<string, string>
+  >({});
   const updateOrderComment = React.useCallback((key: string, value: string) => {
     setOrderComments((prev) => {
       const trimmed = value.trim();
@@ -2960,19 +2997,26 @@ Zm0 14H8V7h9v12Z"
   });
 
   // État pour gérer les paramètres de livraison de chaque commande
-  const [orderDeliverySettings, setOrderDeliverySettings] = React.useState<Record<string, {
-    deliveryType: DeliveryType;
-    deliveryPersonId: string | null;
-  }>>({});
+  const [orderDeliverySettings, setOrderDeliverySettings] = React.useState<
+    Record<
+      string,
+      {
+        deliveryType: DeliveryType;
+        deliveryPersonId: string | null;
+      }
+    >
+  >({});
 
   // État pour gérer la liste des livreurs
-  const [deliveryPersons, setDeliveryPersons] = React.useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [deliveryPersons, setDeliveryPersons] = React.useState<
+    Array<{ id: string; name: string; email: string }>
+  >([]);
 
   // Charger la liste des livreurs une seule fois
   React.useEffect(() => {
     const fetchDeliveryPersons = async () => {
       try {
-        const response = await apiFetch('/api/orders/delivery-persons');
+        const response = await apiFetch("/api/orders/delivery-persons");
         const data = await response.json();
         if (data.success && Array.isArray(data.deliveryPersons)) {
           setDeliveryPersons(data.deliveryPersons);
@@ -2980,13 +3024,14 @@ Zm0 14H8V7h9v12Z"
           setDeliveryPersons([]);
         }
       } catch (error) {
-        console.warn('Erreur lors de la récupération des livreurs:', error);
+        console.warn("Erreur lors de la récupération des livreurs:", error);
         setDeliveryPersons([]);
       }
     };
 
     fetchDeliveryPersons();
-  }, []);  const handleCommentEditRequest = React.useCallback(
+  }, []);
+  const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
       setCommentEditor({
         isOpen: true,
@@ -3051,10 +3096,12 @@ Zm0 14H8V7h9v12Z"
     productName: "",
     currentVariant: "",
   });
-  const [availableVariants, setAvailableVariants] = React.useState<Array<{
-    name: string;
-    quantity: number;
-  }>>([]);
+  const [availableVariants, setAvailableVariants] = React.useState<
+    Array<{
+      name: string;
+      quantity: number;
+    }>
+  >([]);
   const [loadingVariants, setLoadingVariants] = React.useState(false);
 
   const productVariantCacheRef = React.useRef<
@@ -3097,14 +3144,12 @@ Zm0 14H8V7h9v12Z"
       products.forEach((product) => {
         if (!product) return;
         const entry = {
-          name: String(product.name ?? '').trim(),
+          name: String(product.name ?? "").trim(),
           code:
-            typeof product.code === 'string'
-              ? product.code.trim()
-              : undefined,
+            typeof product.code === "string" ? product.code.trim() : undefined,
           variants: Array.isArray(product.variants)
             ? product.variants.map((variant: any) => ({
-                name: String(variant?.name ?? '').trim(),
+                name: String(variant?.name ?? "").trim(),
                 quantity: Number(variant?.quantity ?? 0) || 0,
               }))
             : [],
@@ -3140,45 +3185,49 @@ Zm0 14H8V7h9v12Z"
     productsCacheLoadedRef.current = true;
   }, [registerProductsInCache, token]);
 
-  
-  const smartCommuneResolverGlobal = React.useCallback((communeName: string, wilayaName: string, wilayaCode: number): string => {
-    const normalizeText = (text: string): string => {
-      if (!text) return "";
-      return text
-        .replace(/[éèêë]/g, "e")
-        .replace(/[àâä]/g, "a")
-        .replace(/[ùûü]/g, "u")
-        .replace(/[îï]/g, "i")
-        .replace(/[ôö]/g, "o")
-        .replace(/[ç]/g, "c")
-        .replace(/[ñ]/g, "n")
-        .replace(/[ý]/g, "y")
-        .replace(/[æ]/g, "ae")
-        .replace(/[œ]/g, "oe")
-        .replace(/['`]/g, "")
-        .replace(/[-_]/g, " ")
-        .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLowerCase();
-    };
-    const aliasMap: Record<string, string> = {
-      birtouta: "bir touta",
-      khraicia: "khraissia",
-      "el harrach": "el harrach",
-      "dar el beida": "dar el beida",
-    };
-    const normalizedCommune = normalizeText(communeName);
-    if (normalizedCommune) return aliasMap[normalizedCommune] || normalizedCommune;
-    const normalizedWilaya = normalizeText(wilayaName);
-    if (normalizedWilaya) return aliasMap[normalizedWilaya] || normalizedWilaya;
-    const wilaya = WILAYAS.find((w) => w.wilaya_id === wilayaCode);
-    if (wilaya) {
-      const fromCode = normalizeText(wilaya.wilaya_name);
-      return aliasMap[fromCode] || fromCode || "alger";
-    }
-    return "alger";
-  }, []);
+  const smartCommuneResolverGlobal = React.useCallback(
+    (communeName: string, wilayaName: string, wilayaCode: number): string => {
+      const normalizeText = (text: string): string => {
+        if (!text) return "";
+        return text
+          .replace(/[éèêë]/g, "e")
+          .replace(/[àâä]/g, "a")
+          .replace(/[ùûü]/g, "u")
+          .replace(/[îï]/g, "i")
+          .replace(/[ôö]/g, "o")
+          .replace(/[ç]/g, "c")
+          .replace(/[ñ]/g, "n")
+          .replace(/[ý]/g, "y")
+          .replace(/[æ]/g, "ae")
+          .replace(/[œ]/g, "oe")
+          .replace(/['`]/g, "")
+          .replace(/[-_]/g, " ")
+          .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+      };
+      const aliasMap: Record<string, string> = {
+        birtouta: "bir touta",
+        khraicia: "khraissia",
+        "el harrach": "el harrach",
+        "dar el beida": "dar el beida",
+      };
+      const normalizedCommune = normalizeText(communeName);
+      if (normalizedCommune)
+        return aliasMap[normalizedCommune] || normalizedCommune;
+      const normalizedWilaya = normalizeText(wilayaName);
+      if (normalizedWilaya)
+        return aliasMap[normalizedWilaya] || normalizedWilaya;
+      const wilaya = WILAYAS.find((w) => w.wilaya_id === wilayaCode);
+      if (wilaya) {
+        const fromCode = normalizeText(wilaya.wilaya_name);
+        return aliasMap[fromCode] || fromCode || "alger";
+      }
+      return "alger";
+    },
+    []
+  );
 
   const applyStockUpdateToCache = React.useCallback(
     (options: {
@@ -3223,11 +3272,7 @@ Zm0 14H8V7h9v12Z"
         });
       });
 
-      if (
-        impacted &&
-        variantModalOpen.isOpen &&
-        variantModalOpen.orderRow
-      ) {
+      if (impacted && variantModalOpen.isOpen && variantModalOpen.orderRow) {
         const modalCode = extractProductCode(variantModalOpen.orderRow);
         const modalKeys = getCacheKeysForProduct(
           modalCode,
@@ -3258,7 +3303,7 @@ Zm0 14H8V7h9v12Z"
     ]
   );
 
-   const resolveProductForStockPayload = React.useCallback(
+  const resolveProductForStockPayload = React.useCallback(
     async (payload: {
       code?: string;
       name?: string;
@@ -3391,9 +3436,7 @@ Zm0 14H8V7h9v12Z"
       return;
     }
 
-    const updatedRow = rows.find(
-      (row) => getRowIdentifier(row) === identifier
-    );
+    const updatedRow = rows.find((row) => getRowIdentifier(row) === identifier);
 
     if (!updatedRow || updatedRow === selectedOrder) {
       return;
@@ -3401,7 +3444,6 @@ Zm0 14H8V7h9v12Z"
 
     setSelectedOrder(updatedRow);
   }, [getRowIdentifier, rows, selectedOrder]);
-
 
   const selectedSummary = React.useMemo(
     () => (selectedOrder ? extractOrderSummary(selectedOrder) : null),
@@ -3784,7 +3826,12 @@ Zm0 14H8V7h9v12Z"
           ["Wilaya"],
           ["Commune", "Ville"],
           ["Variante", "Variation", "Taille", "Variante produit", "Option"],
-          ["Type de livraison", "Type livraison", "Mode de livraison", "Livraison"],
+          [
+            "Type de livraison",
+            "Type livraison",
+            "Mode de livraison",
+            "Livraison",
+          ],
         ];
 
         const normalizedUniqueHeaders = uniqueHeaders.map((header) => ({
@@ -3934,21 +3981,26 @@ Zm0 14H8V7h9v12Z"
               );
             });
 
-            ensureCanonicalField("Type de livraison", (normalizedKey, tokens) => {
-              const hasType = tokens.some((token) => token === "type" || token === "mode");
-              const hasLivraison = tokens.some(
-                (token) => token === "livraison" || token === "delivery"
-              );
-              if (hasType && hasLivraison) return true;
-              return (
-                normalizedKey.includes("livraison") &&
-                (normalizedKey.includes("type") ||
-                  normalizedKey.includes("mode") ||
-                  normalizedKey.includes("option"))
-              );
-            });
+            ensureCanonicalField(
+              "Type de livraison",
+              (normalizedKey, tokens) => {
+                const hasType = tokens.some(
+                  (token) => token === "type" || token === "mode"
+                );
+                const hasLivraison = tokens.some(
+                  (token) => token === "livraison" || token === "delivery"
+                );
+                if (hasType && hasLivraison) return true;
+                return (
+                  normalizedKey.includes("livraison") &&
+                  (normalizedKey.includes("type") ||
+                    normalizedKey.includes("mode") ||
+                    normalizedKey.includes("option"))
+                );
+              }
+            );
 
-             ensureCanonicalField("Tracking", (normalizedKey, tokens) => {
+            ensureCanonicalField("Tracking", (normalizedKey, tokens) => {
               if (tokens.some((token) => token === "tracking")) return true;
               if (tokens.some((token) => token === "suivi")) return true;
               if (tokens.some((token) => token === "awb")) return true;
@@ -4009,7 +4061,7 @@ Zm0 14H8V7h9v12Z"
     };
   }, [loadSheetData]);
 
-   React.useEffect(() => {
+  React.useEffect(() => {
     if (!rows.length) return;
     if (syncDisabledRef.current) return;
 
@@ -4028,11 +4080,10 @@ Zm0 14H8V7h9v12Z"
       const summary = extractOrderSummary(row);
       const rowId = summary.rowId.trim();
       if (!rowId) return;
-      const settings =
-        orderDeliverySettings[rowId] || {
-          deliveryType: "api_dhd" as DeliveryType,
-          deliveryPersonId: null,
-        };
+      const settings = orderDeliverySettings[rowId] || {
+        deliveryType: "api_dhd" as DeliveryType,
+        deliveryPersonId: null,
+      };
       if (settings.deliveryType === "livreur") return;
       const trackingRaw = extractTrackingValue(row);
       if (!trackingRaw) return;
@@ -4059,10 +4110,10 @@ Zm0 14H8V7h9v12Z"
 
     (async () => {
       try {
-        const res = await apiFetch('/api/orders/sync-statuses', {
-          method: 'POST',
+        const res = await apiFetch("/api/orders/sync-statuses", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             orders: Array.from(payloadMap.values()),
@@ -4076,8 +4127,7 @@ Zm0 14H8V7h9v12Z"
           data = text;
         }
         if (!res.ok) {
-          const message =
-            typeof data === 'string' ? data : data?.message ?? '';
+          const message = typeof data === "string" ? data : data?.message ?? "";
           throw new Error(message || `HTTP ${res.status}`);
         }
 
@@ -4086,13 +4136,9 @@ Zm0 14H8V7h9v12Z"
           const updatesMap = new Map<string, string>();
           updates.forEach((update: any) => {
             const updateRowId =
-              typeof update?.rowId === 'string'
-                ? update.rowId.trim()
-                : '';
+              typeof update?.rowId === "string" ? update.rowId.trim() : "";
             const newStatus =
-              typeof update?.newStatus === 'string'
-                ? update.newStatus
-                : '';
+              typeof update?.newStatus === "string" ? update.newStatus : "";
             if (updateRowId && newStatus) {
               updatesMap.set(updateRowId, newStatus);
             }
@@ -4101,8 +4147,8 @@ Zm0 14H8V7h9v12Z"
           if (updatesMap.size > 0) {
             setRows((prevRows) =>
               prevRows.map((row) => {
-                const sheetRowId = String(row['id-sheet'] ?? '').trim();
-                const fallbackRowId = String(row['ID'] ?? '').trim();
+                const sheetRowId = String(row["id-sheet"] ?? "").trim();
+                const fallbackRowId = String(row["ID"] ?? "").trim();
                 const candidateIds = [sheetRowId, fallbackRowId].filter(
                   (value) => Boolean(value)
                 );
@@ -4119,7 +4165,7 @@ Zm0 14H8V7h9v12Z"
         }
       } catch (error) {
         console.error(
-          'Erreur lors de la synchronisation des statuts officiels',
+          "Erreur lors de la synchronisation des statuts officiels",
           error
         );
       } finally {
@@ -4196,32 +4242,46 @@ Zm0 14H8V7h9v12Z"
       // Note: La décrémentation se fait aussi automatiquement dans le backend quand le statut passe à "delivered"
       // On essaie quand même de décrémenter ici pour mettre à jour le cache, mais on n'affiche pas d'erreur si ça échoue
       try {
-        const res = await apiFetch("/api/products/decrement-bulk-allow-negative", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ items: [resolvedPayload] }),
-        });
+        const res = await apiFetch(
+          "/api/products/decrement-bulk-allow-negative",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ items: [resolvedPayload] }),
+          }
+        );
         const data = await res.json();
-        
+
         // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
         // On continue silencieusement
         if (!res.ok) {
-          console.log("ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:", data?.message || "Échec décrémentation");
+          console.log(
+            "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
+            data?.message || "Échec décrémentation"
+          );
           return; // Sortir silencieusement sans erreur
         }
-        
+
         const failures = Array.isArray(data?.results)
           ? data.results.filter((r: any) => !r.ok)
           : [];
         if (failures.length) {
           // Ne pas lancer d'erreur, juste logger
-          console.log("ℹ️ Décrémentation partielle, le backend le fera automatiquement:", failures.map((f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`).join(", "));
+          console.log(
+            "ℹ️ Décrémentation partielle, le backend le fera automatiquement:",
+            failures
+              .map(
+                (f: any) =>
+                  `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
+              )
+              .join(", ")
+          );
           return; // Sortir silencieusement sans erreur
         }
-      
+
         const results = Array.isArray(data?.results) ? data.results : [];
         results.forEach((result: any) => {
           if (!result || !result.ok) return;
@@ -4249,10 +4309,12 @@ Zm0 14H8V7h9v12Z"
           const lowStockNames = lowStockItems
             .map((item: any) => {
               const stockStatus = item.finalStock < 0 ? "négatif" : "épuisé";
-              return `${item.name || item.code || ""} (${item.variant}) - Stock ${stockStatus}: ${item.finalStock}`;
+              return `${item.name || item.code || ""} (${
+                item.variant
+              }) - Stock ${stockStatus}: ${item.finalStock}`;
             })
             .join(", ");
-          
+
           // Afficher un toast d'avertissement pour le stock faible/négatif
           const toast = document.createElement("div");
           toast.textContent = `⚠️ Stock faible/négatif pour: ${lowStockNames}`;
@@ -4282,7 +4344,10 @@ Zm0 14H8V7h9v12Z"
       } catch (e) {
         // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
         // On continue silencieusement
-        console.log("ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:", e);
+        console.log(
+          "ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:",
+          e
+        );
         // Ne pas throw, continuer silencieusement
       }
     },
@@ -4343,208 +4408,213 @@ Zm0 14H8V7h9v12Z"
     [applyStockUpdateToCache, token]
   );
 
-  const handleVariantClick = useCallback(async (row: OrderRow) => {
-    const productName = String(row["Produit"] || "").trim();
-    const rawVariant = String(
-      row["Variante"] || row["Variation"] || row["Taille"] || ""
-    ).trim();
-    const extractedVariant = extractVariantValue(row);
-    const currentVariant = (
-      (rawVariant && isMeaningfulVariantName(rawVariant)
-        ? rawVariant
-        : extractedVariant && isMeaningfulVariantName(extractedVariant)
-        ? extractedVariant
-        : rawVariant || extractedVariant || "default")
-    ).trim();
+  const handleVariantClick = useCallback(
+    async (row: OrderRow) => {
+      const productName = String(row["Produit"] || "").trim();
+      const rawVariant = String(
+        row["Variante"] || row["Variation"] || row["Taille"] || ""
+      ).trim();
+      const extractedVariant = extractVariantValue(row);
+      const currentVariant = (
+        rawVariant && isMeaningfulVariantName(rawVariant)
+          ? rawVariant
+          : extractedVariant && isMeaningfulVariantName(extractedVariant)
+          ? extractedVariant
+          : rawVariant || extractedVariant || "default"
+      ).trim();
 
-    if (!productName) {
-      alert("Aucun produit trouvé pour cette commande");
-      return;
-    }
+      if (!productName) {
+        alert("Aucun produit trouvé pour cette commande");
+        return;
+      }
 
-    setVariantModalOpen({
-      isOpen: true,
-      orderRow: row,
-      productName,
-      currentVariant,
-    });
-    const productCode = extractProductCode(row);
-    const cacheKeys = getCacheKeysForProduct(productCode, productName);
-    const cachedEntry = readProductFromCache(productCode, productName);
-
-    console.log("[VariantModal] open", {
-      rowId: row["id-sheet"] || row["ID"] || "",
-      productName,
-      productCode,
-      currentVariant,
-      cacheKeys,
-    });
-
-    if (cachedEntry) {
-      console.log("[VariantModal] cache hit", {
-        productCode,
+      setVariantModalOpen({
+        isOpen: true,
+        orderRow: row,
         productName,
-        variants: cachedEntry.variants,
+        currentVariant,
       });
-      setAvailableVariants(
-        cachedEntry.variants.map((variant) => ({ ...variant }))
-      );
-      setLoadingVariants(false);
-      cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
-      return;
-    }
+      const productCode = extractProductCode(row);
+      const cacheKeys = getCacheKeysForProduct(productCode, productName);
+      const cachedEntry = readProductFromCache(productCode, productName);
 
-    const alreadyMarkedMissing = cacheKeys.every((key) =>
-      missingProductKeysRef.current.has(key)
-    );
-
-    if (productsCacheLoadedRef.current && alreadyMarkedMissing) {
-      console.warn("[VariantModal] already marked missing", {
-        productCode,
+      console.log("[VariantModal] open", {
+        rowId: row["id-sheet"] || row["ID"] || "",
         productName,
+        productCode,
+        currentVariant,
         cacheKeys,
       });
-      setAvailableVariants([]);
-      setLoadingVariants(false);
-      alert("Aucune variante trouvée pour ce produit");
-      return;
-    }
 
-    setLoadingVariants(true);
-    let loadError: unknown = null;
-    try {
-      await ensureProductsCacheLoaded();
-    } catch (error) {
-      loadError = error;
-      console.error("Erreur lors du chargement des variantes:", error);
-      alert("Erreur lors du chargement des variantes");
-      setAvailableVariants([]);
-    } finally {
-      setLoadingVariants(false);
-    }
+      if (cachedEntry) {
+        console.log("[VariantModal] cache hit", {
+          productCode,
+          productName,
+          variants: cachedEntry.variants,
+        });
+        setAvailableVariants(
+          cachedEntry.variants.map((variant) => ({ ...variant }))
+        );
+        setLoadingVariants(false);
+        cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
+        return;
+      }
 
-    if (loadError) {
-      return;
-    }
-
-    const refreshedEntry = readProductFromCache(productCode, productName);
-    if (refreshedEntry && refreshedEntry.variants.length > 0) {
-      console.log("[VariantModal] refreshed variants", {
-        productCode,
-        productName,
-        variants: refreshedEntry.variants,
-      });
-      setAvailableVariants(
-        refreshedEntry.variants.map((variant) => ({ ...variant }))
+      const alreadyMarkedMissing = cacheKeys.every((key) =>
+        missingProductKeysRef.current.has(key)
       );
-      cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
-    } else {
-      console.warn("[VariantModal] no variants found after refresh", {
-        productCode,
-        productName,
-      });
-      setAvailableVariants([]);
-      cacheKeys.forEach((key) => missingProductKeysRef.current.add(key));
-      alert("Aucune variante trouvée pour ce produit");
-    }
-  }, [
-    ensureProductsCacheLoaded,
-    getCacheKeysForProduct,
-    missingProductKeysRef,
-    readProductFromCache,
-  ]);
 
-  const handleVariantSelect = useCallback(async (selectedVariant: string) => {
-    if (!variantModalOpen.orderRow) return;
-
-    const row = variantModalOpen.orderRow;
-    const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
-    
-    if (!rowId) {
-      alert("Impossible d'identifier la commande");
-      return;
-    }
-
-    try {
-      const trimmedVariant = selectedVariant.trim() || "default";
-      const updatedRow: OrderRow = { ...row };
-      let variantKeyUpdated = false;
-      for (const key of Object.keys(updatedRow)) {
-        if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
-          updatedRow[key] = trimmedVariant;
-          variantKeyUpdated = true;
-        }
+      if (productsCacheLoadedRef.current && alreadyMarkedMissing) {
+        console.warn("[VariantModal] already marked missing", {
+          productCode,
+          productName,
+          cacheKeys,
+        });
+        setAvailableVariants([]);
+        setLoadingVariants(false);
+        alert("Aucune variante trouvée pour ce produit");
+        return;
       }
-      if (!variantKeyUpdated) {
-        updatedRow["Variante"] = trimmedVariant;
-      }
-      // Mettre à jour la variante dans le Google Sheet
-      await syncStatus(rowId, getRowStatus(row), {
-        previousStatus: getRowStatus(row),
-        row: updatedRow,
-      });
 
-      // Mettre à jour l'état local
-      setRows((prevRows) =>
-        prevRows.map((r) => {
-          const currentRowId = String(r["id-sheet"] || r["ID"] || "").trim();
-          if (currentRowId === rowId) {
-            const nextRow: OrderRow = { ...r };
-            let updated = false;
-            for (const key of Object.keys(nextRow)) {
-              if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
-                nextRow[key] = trimmedVariant;
-                updated = true;
-              }
-            }
-            if (!updated) {
-              nextRow["Variante"] = trimmedVariant;
-            }
-            return nextRow;
+      setLoadingVariants(true);
+      let loadError: unknown = null;
+      try {
+        await ensureProductsCacheLoaded();
+      } catch (error) {
+        loadError = error;
+        console.error("Erreur lors du chargement des variantes:", error);
+        alert("Erreur lors du chargement des variantes");
+        setAvailableVariants([]);
+      } finally {
+        setLoadingVariants(false);
+      }
+
+      if (loadError) {
+        return;
+      }
+
+      const refreshedEntry = readProductFromCache(productCode, productName);
+      if (refreshedEntry && refreshedEntry.variants.length > 0) {
+        console.log("[VariantModal] refreshed variants", {
+          productCode,
+          productName,
+          variants: refreshedEntry.variants,
+        });
+        setAvailableVariants(
+          refreshedEntry.variants.map((variant) => ({ ...variant }))
+        );
+        cacheKeys.forEach((key) => missingProductKeysRef.current.delete(key));
+      } else {
+        console.warn("[VariantModal] no variants found after refresh", {
+          productCode,
+          productName,
+        });
+        setAvailableVariants([]);
+        cacheKeys.forEach((key) => missingProductKeysRef.current.add(key));
+        alert("Aucune variante trouvée pour ce produit");
+      }
+    },
+    [
+      ensureProductsCacheLoaded,
+      getCacheKeysForProduct,
+      missingProductKeysRef,
+      readProductFromCache,
+    ]
+  );
+
+  const handleVariantSelect = useCallback(
+    async (selectedVariant: string) => {
+      if (!variantModalOpen.orderRow) return;
+
+      const row = variantModalOpen.orderRow;
+      const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
+
+      if (!rowId) {
+        alert("Impossible d'identifier la commande");
+        return;
+      }
+
+      try {
+        const trimmedVariant = selectedVariant.trim() || "default";
+        const updatedRow: OrderRow = { ...row };
+        let variantKeyUpdated = false;
+        for (const key of Object.keys(updatedRow)) {
+          if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
+            updatedRow[key] = trimmedVariant;
+            variantKeyUpdated = true;
           }
-          return r;
-        })
-      );
+        }
+        if (!variantKeyUpdated) {
+          updatedRow["Variante"] = trimmedVariant;
+        }
+        // Mettre à jour la variante dans le Google Sheet
+        await syncStatus(rowId, getRowStatus(row), {
+          previousStatus: getRowStatus(row),
+          row: updatedRow,
+        });
 
-      // Fermer le modal
-      setVariantModalOpen({
-        isOpen: false,
-        orderRow: null,
-        productName: "",
-        currentVariant: trimmedVariant,
-      });
+        // Mettre à jour l'état local
+        setRows((prevRows) =>
+          prevRows.map((r) => {
+            const currentRowId = String(r["id-sheet"] || r["ID"] || "").trim();
+            if (currentRowId === rowId) {
+              const nextRow: OrderRow = { ...r };
+              let updated = false;
+              for (const key of Object.keys(nextRow)) {
+                if (VARIANT_KEY_CANDIDATE_SET.has(normalizeKey(key))) {
+                  nextRow[key] = trimmedVariant;
+                  updated = true;
+                }
+              }
+              if (!updated) {
+                nextRow["Variante"] = trimmedVariant;
+              }
+              return nextRow;
+            }
+            return r;
+          })
+        );
 
-      // Afficher un message de succès
-      const toast = document.createElement("div");
-      toast.textContent = `✅ Variante mise à jour vers "${trimmedVariant}"`;
-      Object.assign(toast.style, {
-        position: "fixed",
-        bottom: "24px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-        color: "#fff",
-        padding: "12px 18px",
-        borderRadius: "12px",
-        boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
-        fontSize: "0.9rem",
-        fontWeight: "600",
-        zIndex: "2000",
-        opacity: "0",
-        transition: "opacity 0.3s ease",
-      });
-      document.body.appendChild(toast);
-      setTimeout(() => (toast.style.opacity = "1"), 50);
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 400);
-      }, 3000);
+        // Fermer le modal
+        setVariantModalOpen({
+          isOpen: false,
+          orderRow: null,
+          productName: "",
+          currentVariant: trimmedVariant,
+        });
 
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de la variante:", error);
-      alert("Erreur lors de la mise à jour de la variante");
-    }
-  }, [variantModalOpen.orderRow, syncStatus]);
+        // Afficher un message de succès
+        const toast = document.createElement("div");
+        toast.textContent = `✅ Variante mise à jour vers "${trimmedVariant}"`;
+        Object.assign(toast.style, {
+          position: "fixed",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+          color: "#fff",
+          padding: "12px 18px",
+          borderRadius: "12px",
+          boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
+          fontSize: "0.9rem",
+          fontWeight: "600",
+          zIndex: "2000",
+          opacity: "0",
+          transition: "opacity 0.3s ease",
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => (toast.style.opacity = "1"), 50);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 400);
+        }, 3000);
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour de la variante:", error);
+        alert("Erreur lors de la mise à jour de la variante");
+      }
+    },
+    [variantModalOpen.orderRow, syncStatus]
+  );
 
   const handleDeliveryTypeChange = React.useCallback(
     async (row: OrderRow, nextMode: CustomerDeliveryMode) => {
@@ -4642,42 +4712,61 @@ Zm0 14H8V7h9v12Z"
     const trimmedQuery = query.trim().toLowerCase();
     const normalizedStatus = statusFilter.trim().toLowerCase();
 
-    return rows.filter((row) => {
-      if (trimmedQuery) {
-        const matchesQuery = searchableHeaders
-          .filter((k) => k in row)
-          .some((key) => (row[key] || "").toLowerCase().includes(trimmedQuery));
-        if (!matchesQuery) {
-          return false;
+    return rows
+      .filter((row) => {
+        if (trimmedQuery) {
+          const matchesQuery = searchableHeaders
+            .filter((k) => k in row)
+            .some((key) =>
+              (row[key] || "").toLowerCase().includes(trimmedQuery)
+            );
+          if (!matchesQuery) {
+            return false;
+          }
         }
-      }
 
-      if (statusFilter !== "all") {
-        const rowStatus = getRowStatus(row).toLowerCase();
-        if (rowStatus !== normalizedStatus) {
-          return false;
+        if (statusFilter !== "all") {
+          const rowStatus = getRowStatus(row).toLowerCase();
+          if (rowStatus !== normalizedStatus) {
+            return false;
+          }
         }
-      }
 
-      if (timeFilter !== "all") {
-        if (!activeTimeRange) {
-          return false;
+        if (timeFilter !== "all") {
+          if (!activeTimeRange) {
+            return false;
+          }
+          const rowDate = extractRowDate(row);
+          if (!rowDate) {
+            return false;
+          }
+          const timestamp = rowDate.getTime();
+          if (
+            timestamp < activeTimeRange.start.getTime() ||
+            timestamp > activeTimeRange.end.getTime()
+          ) {
+            return false;
+          }
         }
-        const rowDate = extractRowDate(row);
-        if (!rowDate) {
-          return false;
-        }
-        const timestamp = rowDate.getTime();
-        if (
-          timestamp < activeTimeRange.start.getTime() ||
-          timestamp > activeTimeRange.end.getTime()
-        ) {
-          return false;
-        }
-      }
 
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => {
+        const dateA = extractRowDate(a);
+        const dateB = extractRowDate(b);
+
+        // If both have dates, sort by date descending (latest first)
+        if (dateA && dateB) {
+          return dateB.getTime() - dateA.getTime();
+        }
+
+        // If only one has a date, put the one with date first
+        if (dateA && !dateB) return -1;
+        if (!dateA && dateB) return 1;
+
+        // If neither has a date, maintain original order
+        return 0;
+      });
   }, [
     rows,
     query,
@@ -4890,11 +4979,13 @@ Zm0 14H8V7h9v12Z"
                           clearSelection();
                         }
                       }}
-                      checked={paginatedRows.every((row) => {
-                        const s = extractOrderSummary(row);
-                        const id = s.rowId || s.displayRowLabel || '';
-                        return id && selectedIds.has(id);
-                      }) && paginatedRows.length > 0}
+                      checked={
+                        paginatedRows.every((row) => {
+                          const s = extractOrderSummary(row);
+                          const id = s.rowId || s.displayRowLabel || "";
+                          return id && selectedIds.has(id);
+                        }) && paginatedRows.length > 0
+                      }
                     />
                     Sélectionner cette page
                   </label>
@@ -4908,25 +4999,48 @@ Zm0 14H8V7h9v12Z"
                       disabled={selectedIds.size === 0}
                       onClick={async () => {
                         if (selectedIds.size === 0) return;
-                        if (!window.confirm(`Valider ${selectedIds.size} commande(s) ?`)) return;
+                        if (
+                          !window.confirm(
+                            `Valider ${selectedIds.size} commande(s) ?`
+                          )
+                        )
+                          return;
                         for (const row of paginatedRows) {
                           const s = extractOrderSummary(row);
-                          const id = s.rowId || s.displayRowLabel || '';
+                          const id = s.rowId || s.displayRowLabel || "";
                           if (!id || !selectedIds.has(id)) continue;
                           try {
                             // Choisir l'API selon le paramètre de livraison de la commande
-                            const currentRowId = String(row['id-sheet'] || row['ID'] || '');
-                            const settings = orderDeliverySettings[currentRowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
-                            if (settings.deliveryType === 'livreur') {
+                            const currentRowId = String(
+                              row["id-sheet"] || row["ID"] || ""
+                            );
+                            const settings = orderDeliverySettings[
+                              currentRowId
+                            ] || {
+                              deliveryType: "api_dhd",
+                              deliveryPersonId: null,
+                            };
+                            if (settings.deliveryType === "livreur") {
                               // Assignation livreur: mettre statut 'Assigné' sans appeler API externe
-                              await handleUpdateRowStatus(s.rowId, 'Assigné', { previousStatus: s.status, row, deliveryType: 'livreur', deliveryPersonId: settings.deliveryPersonId || undefined });
+                              await handleUpdateRowStatus(s.rowId, "Assigné", {
+                                previousStatus: s.status,
+                                row,
+                                deliveryType: "livreur",
+                                deliveryPersonId:
+                                  settings.deliveryPersonId || undefined,
+                              });
                               continue;
                             }
-                            const apiCfg = resolveDeliveryApiConfig(settings.deliveryType);
+                            const apiCfg = resolveDeliveryApiConfig(
+                              settings.deliveryType
+                            );
                             const url = `${apiCfg.baseUrl}${DHD_CREATE_PATH}`;
                             // Calcul montant similaire au flux individuel
-                            const parseAmount = (value: unknown): number | null => {
-                              if (value === undefined || value === null) return null;
+                            const parseAmount = (
+                              value: unknown
+                            ): number | null => {
+                              if (value === undefined || value === null)
+                                return null;
                               const cleaned = String(value)
                                 .replace(/\s+/g, "")
                                 .replace(/[^\d,.-]/g, "")
@@ -4936,13 +5050,24 @@ Zm0 14H8V7h9v12Z"
                               return Number.isFinite(parsed) ? parsed : null;
                             };
                             const quantityForTotal = (() => {
-                              const raw = String(row["Quantité"] || row["Quantite"] || row["Qte"] || "1");
+                              const raw = String(
+                                row["Quantité"] ||
+                                  row["Quantite"] ||
+                                  row["Qte"] ||
+                                  "1"
+                              );
                               const sanitized = raw.replace(/[^\d]/g, "");
                               const n = parseInt(sanitized, 10);
                               return Number.isNaN(n) || n <= 0 ? 1 : n;
                             })();
                             const unitPriceForTotal = (() => {
-                              const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
+                              const candidates = [
+                                "Prix unitaire",
+                                "Prix",
+                                "PrixU",
+                                "PU",
+                                "Prix U",
+                              ];
                               for (const key of candidates) {
                                 if (key in row) {
                                   const parsed = parseAmount(row[key]);
@@ -4952,7 +5077,13 @@ Zm0 14H8V7h9v12Z"
                               return null;
                             })();
                             const amountFromSheet = (() => {
-                              const candidates = ["Total", "total", "Montant", "Montant total", "Prix total"];
+                              const candidates = [
+                                "Total",
+                                "total",
+                                "Montant",
+                                "Montant total",
+                                "Prix total",
+                              ];
                               for (const key of candidates) {
                                 if (key in row) {
                                   const parsed = parseAmount(row[key]);
@@ -4961,17 +5092,33 @@ Zm0 14H8V7h9v12Z"
                               }
                               return null;
                             })();
-                            const computedFromUnit = unitPriceForTotal !== null ? unitPriceForTotal * quantityForTotal : null;
-                            const montantNumber = amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
-                            const wilayaCode = parseInt(String(getWilayaIdByName(row['Wilaya'] as any))) || 16;
+                            const computedFromUnit =
+                              unitPriceForTotal !== null
+                                ? unitPriceForTotal * quantityForTotal
+                                : null;
+                            const montantNumber =
+                              amountFromSheet ??
+                              computedFromUnit ??
+                              quantityForTotal * 1000;
+                            const wilayaCode =
+                              parseInt(
+                                String(getWilayaIdByName(row["Wilaya"] as any))
+                              ) || 16;
                             const communeResolved = smartCommuneResolverGlobal(
-                              (row['Commune'] as any) || '',
-                              (row['Wilaya'] as any) || '',
+                              (row["Commune"] as any) || "",
+                              (row["Wilaya"] as any) || "",
                               wilayaCode
                             );
                             const remarkFromSheet = (() => {
                               const remarkKeys = [
-                                "Remarque","Remarques","Commentaire","Commentaires","Note","Notes","Observation","Observations",
+                                "Remarque",
+                                "Remarques",
+                                "Commentaire",
+                                "Commentaires",
+                                "Note",
+                                "Notes",
+                                "Observation",
+                                "Observations",
                               ];
                               for (const key of remarkKeys) {
                                 const val = row[key];
@@ -4979,50 +5126,91 @@ Zm0 14H8V7h9v12Z"
                                 const t = String(val).trim();
                                 if (t) return t;
                               }
-                              return '';
+                              return "";
                             })();
-                            const finalRemark = (orderComments[resolveCommentKey(s, s.rowId || s.displayRowLabel || '')] || '').trim() || remarkFromSheet;
+                            const finalRemark =
+                              (
+                                orderComments[
+                                  resolveCommentKey(
+                                    s,
+                                    s.rowId || s.displayRowLabel || ""
+                                  )
+                                ] || ""
+                              ).trim() || remarkFromSheet;
                             const payload = {
-                              nom_client: s.name || s.rawName || 'CLIENT',
-                              telephone: s.phoneDial || '',
-                              telephone_2: s.phoneDial || '',
-                              adresse: '.',
+                              nom_client: s.name || s.rawName || "CLIENT",
+                              telephone: s.phoneDial || "",
+                              telephone_2: s.phoneDial || "",
+                              adresse: ".",
                               code_wilaya: wilayaCode,
                               montant: String(Math.round(montantNumber)),
-                              type: '1',
-                              stop_desk: '0',
-                              stock: '0',
-                              fragile: '0',
-                              produit: extractProductLabel(row) || (row['Produit'] as any) || '',
-                              commune: communeResolved || 'alger',
+                              type: "1",
+                              stop_desk: "0",
+                              stock: "0",
+                              fragile: "0",
+                              produit:
+                                extractProductLabel(row) ||
+                                (row["Produit"] as any) ||
+                                "",
+                              commune: communeResolved || "alger",
                               remarque: finalRemark,
                               Remarque: finalRemark,
                             };
-                            console.log('[BULK] POST', url, payload);
+                            console.log("[BULK] POST", url, payload);
                             const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 15000);
+                            const timeoutId = setTimeout(
+                              () => controller.abort(),
+                              15000
+                            );
                             const resp = await fetch(url, {
-                              method: 'POST',
+                              method: "POST",
                               headers: {
-                                'Content-Type': 'application/json',
-                                ...(apiCfg.token ? { Authorization: `Bearer ${apiCfg.token}` } : {}),
+                                "Content-Type": "application/json",
+                                ...(apiCfg.token
+                                  ? { Authorization: `Bearer ${apiCfg.token}` }
+                                  : {}),
                               },
                               body: JSON.stringify(payload),
                               signal: controller.signal,
                             });
                             clearTimeout(timeoutId);
                             const text = await resp.text();
-                            let data: any; try { data = JSON.parse(text); } catch { data = text; }
-                            console.log('[BULK] Response', resp.status, data);
+                            let data: any;
+                            try {
+                              data = JSON.parse(text);
+                            } catch {
+                              data = text;
+                            }
+                            console.log("[BULK] Response", resp.status, data);
                             if (resp.ok) {
-                              await handleUpdateRowStatus(s.rowId, 'ready_to_ship', { previousStatus: s.status, row });
+                              await handleUpdateRowStatus(
+                                s.rowId,
+                                "ready_to_ship",
+                                { previousStatus: s.status, row }
+                              );
                             } else {
-                              console.error('[BULK] API error', resp.status, data);
-                              alert(`Erreur API (${resp.status}) pour ${s.rawName || s.name}: ${typeof data==='string'?data: (data?.message||'')}`);
+                              console.error(
+                                "[BULK] API error",
+                                resp.status,
+                                data
+                              );
+                              alert(
+                                `Erreur API (${resp.status}) pour ${
+                                  s.rawName || s.name
+                                }: ${
+                                  typeof data === "string"
+                                    ? data
+                                    : data?.message || ""
+                                }`
+                              );
                             }
                           } catch (err) {
-                            console.error('Erreur validation bulk:', err);
-                            alert(`Erreur réseau/timeout pour ${s.rawName || s.name}`);
+                            console.error("Erreur validation bulk:", err);
+                            alert(
+                              `Erreur réseau/timeout pour ${
+                                s.rawName || s.name
+                              }`
+                            );
                           }
                         }
                         clearSelection();
@@ -5036,15 +5224,23 @@ Zm0 14H8V7h9v12Z"
                       disabled={selectedIds.size === 0}
                       onClick={async () => {
                         if (selectedIds.size === 0) return;
-                        if (!window.confirm(`Supprimer ${selectedIds.size} commande(s) ?`)) return;
+                        if (
+                          !window.confirm(
+                            `Supprimer ${selectedIds.size} commande(s) ?`
+                          )
+                        )
+                          return;
                         for (const row of paginatedRows) {
                           const s = extractOrderSummary(row);
-                          const id = s.rowId || s.displayRowLabel || '';
+                          const id = s.rowId || s.displayRowLabel || "";
                           if (!id || !selectedIds.has(id)) continue;
                           try {
-                            await handleUpdateRowStatus(s.rowId, 'abandoned', { previousStatus: s.status, row });
+                            await handleUpdateRowStatus(s.rowId, "abandoned", {
+                              previousStatus: s.status,
+                              row,
+                            });
                           } catch (err) {
-                            console.error('Erreur suppression bulk:', err);
+                            console.error("Erreur suppression bulk:", err);
                           }
                         }
                         clearSelection();
@@ -5118,7 +5314,8 @@ Zm0 14H8V7h9v12Z"
                         onCommentEdit={handleCommentEditRequest}
                         // Checkbox de sélection
                         renderSelectionCell={() => {
-                          const id = summary.rowId || summary.displayRowLabel || '';
+                          const id =
+                            summary.rowId || summary.displayRowLabel || "";
                           const checked = !!id && isSelected(id);
                           return (
                             <td className="orders-table__cell orders-table__cell--select">
@@ -5188,7 +5385,7 @@ Zm0 14H8V7h9v12Z"
         )}
       </div>
 
-       {commentEditor.isOpen && (
+      {commentEditor.isOpen && (
         <div
           className="orders-modal"
           role="dialog"
@@ -5358,12 +5555,9 @@ Zm0 14H8V7h9v12Z"
 
                 const displayValue = (value ?? "").toString().trim();
                 if (
-                  DELIVERY_MODE_HEADER_KEY_SET.has(
-                    normalizedHeaderKeyForMatch
-                  )
+                  DELIVERY_MODE_HEADER_KEY_SET.has(normalizedHeaderKeyForMatch)
                 ) {
-                  const currentMode =
-                    normalizeSheetDeliveryMode(displayValue);
+                  const currentMode = normalizeSheetDeliveryMode(displayValue);
                   return (
                     <div key={key} className="orders-modal__detail">
                       <span className="orders-modal__detail-label">
@@ -5419,24 +5613,28 @@ Zm0 14H8V7h9v12Z"
         >
           <div
             className="orders-modal__backdrop"
-            onClick={() => setVariantModalOpen({
-              isOpen: false,
-              orderRow: null,
-              productName: "",
-              currentVariant: "",
-            })}
+            onClick={() =>
+              setVariantModalOpen({
+                isOpen: false,
+                orderRow: null,
+                productName: "",
+                currentVariant: "",
+              })
+            }
             aria-hidden="true"
           />
           <div className="orders-modal__content" role="document">
             <button
               type="button"
               className="orders-modal__close"
-              onClick={() => setVariantModalOpen({
-                isOpen: false,
-                orderRow: null,
-                productName: "",
-                currentVariant: "",
-              })}
+              onClick={() =>
+                setVariantModalOpen({
+                  isOpen: false,
+                  orderRow: null,
+                  productName: "",
+                  currentVariant: "",
+                })
+              }
               aria-label="Fermer"
             >
               ×
@@ -5473,15 +5671,19 @@ Zm0 14H8V7h9v12Z"
                           : ""
                       }`}
                       onClick={() => handleVariantSelect(variant.name)}
-                      disabled={variant.name === variantModalOpen.currentVariant}
+                      disabled={
+                        variant.name === variantModalOpen.currentVariant
+                      }
                     >
                       <div className="orders-modal__variant-info">
                         <span className="orders-modal__variant-name">
                           {variant.name}
                         </span>
-                        <span className={`orders-modal__variant-stock ${
-                          variant.quantity === 0 ? "is-zero" : ""
-                        }`}>
+                        <span
+                          className={`orders-modal__variant-stock ${
+                            variant.quantity === 0 ? "is-zero" : ""
+                          }`}
+                        >
                           Stock: {variant.quantity}
                         </span>
                       </div>
@@ -5521,4 +5723,3 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
-
