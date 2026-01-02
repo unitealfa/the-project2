@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCommunesByWilaya } from '../utils/communes';
+import './CommuneCorrectionModal.css';
 
 interface CommuneCorrectionModalProps {
     isOpen: boolean;
@@ -81,55 +82,32 @@ const CommuneCorrectionModal: React.FC<CommuneCorrectionModalProps> = ({
     useEffect(() => {
         const communes = getCommunesByWilaya(selectedWilaya);
         setAvailableCommunes(communes);
-
-        // If the currently selected commune is not in the new list, clear selection or try to match
-        // Or just let the user pick
     }, [selectedWilaya]);
 
     if (!isOpen) return null;
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-        }}>
-            <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                width: '400px',
-                maxWidth: '90vw',
-            }}>
-                <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.25rem', color: '#dc2626' }}>
-                    ⚠️ Correction requise
-                </h2>
-                <p style={{ marginBottom: '20px', color: '#4b5563' }}>
-                    L'API a rejeté la commune ou la wilaya. L'adresse semble incorrecte. Veuillez corriger manuellement.
-                </p>
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <div className="modal-header">
+                    <h2 className="modal-title">
+                        <span className="modal-title-icon">⚠️</span>
+                        Correction requise
+                    </h2>
+                    <p className="modal-description">
+                        L'adresse semble incorrecte ou la commune a été rejetée par l'API. Veuillez sélectionner la bonne localisation.
+                    </p>
+                </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Wilaya</label>
+                <div className="modal-form-group">
+                    <label className="modal-label">Wilaya</label>
                     <select
+                        className="modal-select"
                         value={selectedWilaya}
                         onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
                             setSelectedWilaya(val);
-                            setSelectedCommune(''); // Reset commune when wilaya changes
-                        }}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
+                            setSelectedCommune('');
                         }}
                     >
                         {WILAYAS.map((w) => (
@@ -140,17 +118,12 @@ const CommuneCorrectionModal: React.FC<CommuneCorrectionModalProps> = ({
                     </select>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Commune</label>
+                <div className="modal-form-group">
+                    <label className="modal-label">Commune</label>
                     <select
+                        className="modal-select"
                         value={selectedCommune}
                         onChange={(e) => setSelectedCommune(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
-                        }}
                     >
                         <option value="">-- Sélectionner une commune --</option>
                         {availableCommunes.map((c) => (
@@ -161,31 +134,17 @@ const CommuneCorrectionModal: React.FC<CommuneCorrectionModalProps> = ({
                     </select>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <div className="modal-footer">
                     <button
+                        className="modal-btn modal-btn-secondary"
                         onClick={onClose}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
-                        }}
                     >
                         Annuler
                     </button>
                     <button
+                        className="modal-btn modal-btn-primary"
                         onClick={() => onConfirm(selectedWilaya, selectedCommune)}
                         disabled={!selectedWilaya || !selectedCommune}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            backgroundColor: '#2563eb',
-                            color: 'white',
-                            cursor: (!selectedWilaya || !selectedCommune) ? 'not-allowed' : 'pointer',
-                            opacity: (!selectedWilaya || !selectedCommune) ? 0.7 : 1,
-                        }}
                     >
                         Confirmer et Réessayer
                     </button>
