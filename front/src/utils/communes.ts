@@ -146,33 +146,102 @@ export function getCommunesByWilaya(wilayaCode: number | string): { fr: string, 
 
 /**
  * Get the wilaya ID from a commune name (French or Arabic).
+ * Optionally accepts a wilayaHint (name or code) to disambiguate communes
+ * that exist in multiple wilayas (e.g., "Ain Turk" in Bouira and Oran).
  * Returns the wilaya_id as a number, or 16 (Alger) as fallback if not found.
  */
-export function getWilayaIdByCommune(communeName: string | undefined | null): number {
+export function getWilayaIdByCommune(
+  communeName: string | undefined | null,
+  wilayaHint?: string | number | undefined | null
+): number {
   if (!communeName) return 16;
   const n = normalize(communeName);
   if (!n) return 16;
 
+  // If we have a wilaya hint (code or name), try to use it for disambiguation
+  if (wilayaHint) {
+    const hintStr = String(wilayaHint).trim();
+    const hintCode = parseInt(hintStr, 10);
+
+    // If hint is a valid wilaya code (1-58), search with that prefix
+    if (!isNaN(hintCode) && hintCode >= 1 && hintCode <= 58) {
+      const codePrefix = String(hintCode).padStart(2, '0');
+      for (const [, entry] of Object.entries((data as any).byCode)) {
+        const e = entry as any;
+        if (String(e.codeC).startsWith(codePrefix)) {
+          if (normalize(e.fr) === n || normalize(e.ar) === n) {
+            return hintCode;
+          }
+        }
+      }
+    }
+
+    // If hint is a wilaya name, try byFrWithWilaya or byArWithWilaya
+    const hintNorm = normalize(hintStr);
+    if (hintNorm) {
+      // Try commune + wilaya composite lookup
+      const byFr = (data as any).byFrWithWilaya?.[n + '||' + hintNorm];
+      if (byFr) {
+        // byFrWithWilaya returns the FR commune name, we need to find its wilaya
+        for (const [, entry] of Object.entries((data as any).byCode)) {
+          const e = entry as any;
+          if (normalize(e.fr) === normalize(byFr)) {
+            const wc = parseInt(String(e.wilayaCode), 10);
+            if (!isNaN(wc) && wc >= 1 && wc <= 58) return wc;
+          }
+        }
+      }
+
+      const byAr = (data as any).byArWithWilaya?.[n + '||' + hintNorm];
+      if (byAr) {
+        for (const [, entry] of Object.entries((data as any).byCode)) {
+          const e = entry as any;
+          if (normalize(e.fr) === normalize(byAr)) {
+            const wc = parseInt(String(e.wilayaCode), 10);
+            if (!isNaN(wc) && wc >= 1 && wc <= 58) return wc;
+          }
+        }
+      }
+    }
+  }
+
   // Search through byCode entries to find matching commune
+  // Collect all matches first, in case there are duplicates
+  const matches: number[] = [];
   for (const [, entry] of Object.entries((data as any).byCode)) {
     const e = entry as any;
     if (normalize(e.fr) === n || normalize(e.ar) === n) {
-      // Extract wilaya code from codeC (first 2 digits of postal code like "23001")
       const codeC = String(e.codeC || '');
       if (codeC.length >= 2) {
         const wilayaId = parseInt(codeC.substring(0, 2), 10);
         if (!isNaN(wilayaId) && wilayaId >= 1 && wilayaId <= 58) {
-          return wilayaId;
+          matches.push(wilayaId);
         }
-      }
-      // Also try wilayaCode field if available
-      if (e.wilayaCode) {
+      } else if (e.wilayaCode) {
         const wc = parseInt(String(e.wilayaCode), 10);
         if (!isNaN(wc) && wc >= 1 && wc <= 58) {
-          return wc;
+          matches.push(wc);
         }
       }
     }
+  }
+
+  // If only one match, return it
+  if (matches.length === 1) {
+    return matches[0];
+  }
+
+  // If multiple matches and we have a hint, try to find the best match
+  if (matches.length > 1 && wilayaHint) {
+    const hintCode = parseInt(String(wilayaHint), 10);
+    if (!isNaN(hintCode) && matches.includes(hintCode)) {
+      return hintCode;
+    }
+  }
+
+  // Return first match if any (for backwards compatibility)
+  if (matches.length > 0) {
+    return matches[0];
   }
 
   return 16; // Fallback to Alger

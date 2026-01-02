@@ -4,6 +4,7 @@ import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
 import { apiFetch } from "../utils/api";
 import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya, getWilayaIdByCommune } from "../utils/communes";
+import CommuneCorrectionModal from "../components/CommuneCorrectionModal";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -1463,6 +1464,17 @@ const Orders: React.FC = () => {
       string | null
     >(null);
 
+    const [correctionModalOpen, setCorrectionModalOpen] = React.useState(false);
+    const [initialCorrectionData, setInitialCorrectionData] = React.useState<{
+      commune: string;
+      wilayaCode: number;
+    }>({ commune: "", wilayaCode: 16 });
+
+    const handleCorrectionConfirm = (wilayaCode: number, communeName: string) => {
+      setCorrectionModalOpen(false);
+      handleSendToApi(communeName, wilayaCode);
+    };
+
     React.useEffect(() => {
       if (onSubmittingChange) {
         onSubmittingChange(submitting);
@@ -1478,7 +1490,7 @@ const Orders: React.FC = () => {
       return { currentRowId, deliverySettings };
     }, [orderDeliverySettings, row]);
 
-    const handleSendToApi = React.useCallback(async (manualCommune?: string) => {
+    const handleSendToApi = React.useCallback(async (manualCommune?: string, manualWilaya?: number) => {
       // Récupérer les paramètres de livraison pour cette commande
       const { currentRowId, deliverySettings } = resolveDeliverySettings();
       const { deliveryType: selectedDeliveryType, deliveryPersonId } =
@@ -1546,7 +1558,7 @@ const Orders: React.FC = () => {
       }
 
       // Commune resolution
-      const codeW = parseInt(String(code_wilaya)) || 16;
+      const codeW = manualWilaya ?? (parseInt(String(code_wilaya)) || 16);
       let commune = manualCommune || resolveCommuneName(
         row["Commune"] || "",
         row["Wilaya"] || "",
@@ -1639,7 +1651,9 @@ const Orders: React.FC = () => {
       })();
 
       // Get the wilaya code from the resolved commune name (more reliable than from row data)
-      const resolvedWilayaCode = getWilayaIdByCommune(commune);
+      // Pass the original code_wilaya as a hint for disambiguation of duplicate commune names
+      // If manualWilaya is provided, use it directly as the source of truth
+      const resolvedWilayaCode = manualWilaya ?? getWilayaIdByCommune(commune, codeW);
 
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
@@ -1966,6 +1980,21 @@ const Orders: React.FC = () => {
           );
         } else {
           await revertStockIfNeeded();
+          await revertStockIfNeeded();
+
+          // Check for 422 errors related to Commune/Wilaya
+          if (response.status === 422) {
+            const errorMsg = JSON.stringify(responseData).toLowerCase();
+            if (errorMsg.includes("commune") || errorMsg.includes("wilaya")) {
+              setInitialCorrectionData({
+                commune: commune || "",
+                wilayaCode: resolvedWilayaCode || 16
+              });
+              setCorrectionModalOpen(true);
+              return; // Stop here, don't alert
+            }
+          }
+
           alert(
             `❌ Erreur API (${response.status
             })\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
@@ -2193,44 +2222,53 @@ const Orders: React.FC = () => {
     }
 
     return (
-      <div className={containerClass}>
-        <button
-          type="button"
-          onClick={() => handleSendToApi()}
-          disabled={submitting || abandoning}
-          className={`orders-button orders-button--primary orders-button--icon${submitting ? " is-loading" : ""
-            }`}
-          aria-label={submitting ? "Envoi en cours…" : "Envoyer la validation"}
-          title="Envoyer la validation"
-        >
-          {submitting ? (
-            "Envoi…"
-          ) : (
-            <PaperPlaneIcon
-              aria-hidden="true"
-              className="orders-button__icon"
-            />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={handleMarkAbandoned}
-          disabled={abandoning || submitting}
-          className={`orders-button orders-button--danger${abandoning ? " is-loading" : ""
-            }`}
-        >
-          {abandoning ? "Abandon…" : "Abandonnée"}
-        </button>
-        <button
-          type="button"
-          onClick={handleMarkDelivered}
-          disabled={delivering || submitting || abandoning}
-          className={`orders-button orders-button--success${delivering ? " is-loading" : ""
-            }`}
-        >
-          {delivering ? "Traitement…" : "Marquer livrée"}
-        </button>
-      </div>
+      <>
+        <div className={containerClass}>
+          <button
+            type="button"
+            onClick={() => handleSendToApi()}
+            disabled={submitting || abandoning}
+            className={`orders-button orders-button--primary orders-button--icon${submitting ? " is-loading" : ""
+              }`}
+            aria-label={submitting ? "Envoi en cours…" : "Envoyer la validation"}
+            title="Envoyer la validation"
+          >
+            {submitting ? (
+              "Envoi…"
+            ) : (
+              <PaperPlaneIcon
+                aria-hidden="true"
+                className="orders-button__icon"
+              />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkAbandoned}
+            disabled={abandoning || submitting}
+            className={`orders-button orders-button--danger${abandoning ? " is-loading" : ""
+              }`}
+          >
+            {abandoning ? "Abandon…" : "Abandonnée"}
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkDelivered}
+            disabled={delivering || submitting || abandoning}
+            className={`orders-button orders-button--success${delivering ? " is-loading" : ""
+              }`}
+          >
+            {delivering ? "Traitement…" : "Marquer livrée"}
+          </button>
+        </div>
+        <CommuneCorrectionModal
+          isOpen={correctionModalOpen}
+          onClose={() => setCorrectionModalOpen(false)}
+          onConfirm={handleCorrectionConfirm}
+          initialCommune={initialCorrectionData.commune}
+          initialWilayaCode={initialCorrectionData.wilayaCode}
+        />
+      </>
     );
   });
 

@@ -7331,7 +7331,7 @@
     "35033": {
       "codeC": "35033",
       "fr": "Ouled Hedadj",
-      "ar": "",
+      "ar": "أولاد هداج",
       "wilayaCode": "35",
       "wilayaAr": "",
       "wilayaFr": "Boumerdès"
@@ -7339,7 +7339,7 @@
     "35035": {
       "codeC": "35035",
       "fr": "Laghata",
-      "ar": "",
+      "ar": "لقاطة",
       "wilayaCode": "35",
       "wilayaAr": "",
       "wilayaFr": "Boumerdès"
@@ -7347,7 +7347,7 @@
     "35036": {
       "codeC": "35036",
       "fr": "Hammedi",
-      "ar": "",
+      "ar": "حمادي",
       "wilayaCode": "35",
       "wilayaAr": "",
       "wilayaFr": "Boumerdès"
@@ -7355,7 +7355,7 @@
     "35037": {
       "codeC": "35037",
       "fr": "Khemis El Khechna",
-      "ar": "",
+      "ar": "خميس الخشنة",
       "wilayaCode": "35",
       "wilayaAr": "",
       "wilayaFr": "Boumerdès"
@@ -7363,7 +7363,7 @@
     "35038": {
       "codeC": "35038",
       "fr": "El Kharrouba",
-      "ar": "",
+      "ar": "الخروبة",
       "wilayaCode": "35",
       "wilayaAr": "",
       "wilayaFr": "Boumerdès"
@@ -8450,8 +8450,8 @@
     },
     "42015": {
       "codeC": "42015",
-      "fr": "Nodor",
-      "ar": "الداموس",
+      "fr": "Nador",
+      "ar": "الناظور",
       "wilayaCode": "42",
       "wilayaAr": "تيبازة",
       "wilayaFr": "Tipaza"
@@ -8523,7 +8523,7 @@
     "42030": {
       "codeC": "42030",
       "fr": "Bou Haroun",
-      "ar": "",
+      "ar": "بو هارون",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8531,7 +8531,7 @@
     "42032": {
       "codeC": "42032",
       "fr": "Sidi Ghiles",
-      "ar": "",
+      "ar": "سيدي غيلاس",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8539,7 +8539,7 @@
     "42033": {
       "codeC": "42033",
       "fr": "Messelmoun",
-      "ar": "",
+      "ar": "مسلمون",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8547,7 +8547,7 @@
     "42034": {
       "codeC": "42034",
       "fr": "Sidi Rached",
-      "ar": "",
+      "ar": "سيدي راشد",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8555,7 +8555,7 @@
     "42035": {
       "codeC": "42035",
       "fr": "Kolea",
-      "ar": "",
+      "ar": "القليعة",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8563,7 +8563,7 @@
     "42036": {
       "codeC": "42036",
       "fr": "Attatba",
-      "ar": "",
+      "ar": "الحطاطبة",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8571,7 +8571,7 @@
     "42040": {
       "codeC": "42040",
       "fr": "Sidi Semiane",
-      "ar": "",
+      "ar": "سيدي سميان",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8579,7 +8579,7 @@
     "42041": {
       "codeC": "42041",
       "fr": "Beni Milleuk",
-      "ar": "",
+      "ar": "بني ميلك",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -8587,7 +8587,7 @@
     "42042": {
       "codeC": "42042",
       "fr": "Hadjerat Ennous",
-      "ar": "",
+      "ar": "حجرة النص",
       "wilayaCode": "42",
       "wilayaAr": "",
       "wilayaFr": "Tipaza"
@@ -12299,7 +12299,7 @@
     "09026": {
       "codeC": "09026",
       "fr": "Bougara",
-      "ar": "",
+      "ar": "بوقرة",
       "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
@@ -12307,7 +12307,7 @@
     "09027": {
       "codeC": "09027",
       "fr": "Guerrouaou",
-      "ar": "",
+      "ar": "قرواو",
       "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
@@ -12315,7 +12315,7 @@
     "09028": {
       "codeC": "09028",
       "fr": "Ain Romana",
-      "ar": "",
+      "ar": "عين الرمانة",
       "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
@@ -12323,7 +12323,7 @@
     "09029": {
       "codeC": "09029",
       "fr": "Djebabra",
-      "ar": "",
+      "ar": "جبابرة",
       "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
