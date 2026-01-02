@@ -9,15 +9,23 @@ import Product from './products/product.model';
 import productRoutes from './products/product.routes';
 import orderRoutes from './orders/order.routes';
 
-dotenv.config();
-// Keep reference to avoid unhandled rejections in serverless/runtime
-connectDB().catch((err) => {
-  console.error('Initial Mongo connection failed', err);
-});
+// Initial Mongo connection removed in favor of middleware
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Middleware to ensure DB connection on every request
+app.use(async (req, res, next) => {
+  if (req.path === '/favicon.ico') return next();
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database Connection Failed:', error);
+    res.status(500).json({ success: false, message: 'Service temporarily unavailable' });
+  }
+});
 // Avoid favicon 500s when no icon is set
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 // Healthcheck/root route
