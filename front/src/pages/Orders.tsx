@@ -3,6 +3,7 @@ import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
 import { apiFetch } from "../utils/api";
+import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya } from "../utils/communes";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -471,8 +472,8 @@ const isNetworkError = (error: unknown) => {
     typeof error === "string"
       ? error
       : typeof error === "object" && "message" in error
-      ? String((error as any).message ?? "")
-      : "";
+        ? String((error as any).message ?? "")
+        : "";
   if (!message) return false;
   return /Failed to fetch|NetworkError|ECONNREFUSED|ECONNRESET|ENOTFOUND/i.test(
     message
@@ -773,13 +774,13 @@ const deriveStatusFromUpdates = (updates: any[]): SheetStatus | null => {
     index,
     timestamp: parseUpdateTimestamp(
       entry?.created_at ??
-        entry?.createdAt ??
-        entry?.updated_at ??
-        entry?.updatedAt ??
-        entry?.date ??
-        entry?.datetime ??
-        entry?.timestamp ??
-        null
+      entry?.createdAt ??
+      entry?.updated_at ??
+      entry?.updatedAt ??
+      entry?.date ??
+      entry?.datetime ??
+      entry?.timestamp ??
+      null
     ),
   }));
 
@@ -1452,57 +1453,6 @@ const Orders: React.FC = () => {
       return amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
     })();
 
-    const smartCommuneResolver = (
-      communeName: string,
-      wilayaName: string,
-      wilayaCode: number
-    ): string => {
-      const normalizeText = (text: string): string => {
-        if (!text) return "";
-        return text
-          .replace(/[éèêë]/g, "e")
-          .replace(/[àâä]/g, "a")
-          .replace(/[ùûü]/g, "u")
-          .replace(/[îï]/g, "i")
-          .replace(/[ôö]/g, "o")
-          .replace(/[ç]/g, "c")
-          .replace(/[ñ]/g, "n")
-          .replace(/[ý]/g, "y")
-          .replace(/[æ]/g, "ae")
-          .replace(/[œ]/g, "oe")
-          .replace(/['`]/g, "")
-          .replace(/[-_]/g, " ")
-          .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase();
-      };
-
-      const aliasMap: Record<string, string> = {
-        birtouta: "bir touta",
-        khraicia: "khraissia",
-        "el harrach": "el harrach",
-        "dar el beida": "dar el beida",
-      };
-
-      const normalizedCommune = normalizeText(communeName);
-      if (normalizedCommune) {
-        return aliasMap[normalizedCommune] || normalizedCommune;
-      }
-
-      const normalizedWilaya = normalizeText(wilayaName);
-      if (normalizedWilaya) {
-        return aliasMap[normalizedWilaya] || normalizedWilaya;
-      }
-
-      const wilaya = WILAYAS.find((w) => w.wilaya_id === wilayaCode);
-      if (wilaya) {
-        const fromCode = normalizeText(wilaya.wilaya_name);
-        return aliasMap[fromCode] || fromCode || "alger";
-      }
-
-      return "alger";
-    };
 
     const [submitting, setSubmitting] = React.useState<boolean>(false);
     const [delivering, setDelivering] = React.useState<boolean>(false);
@@ -1528,7 +1478,7 @@ const Orders: React.FC = () => {
       return { currentRowId, deliverySettings };
     }, [orderDeliverySettings, row]);
 
-    const handleSendToApi = React.useCallback(async () => {
+    const handleSendToApi = React.useCallback(async (manualCommune?: string) => {
       // Récupérer les paramètres de livraison pour cette commande
       const { currentRowId, deliverySettings } = resolveDeliverySettings();
       const { deliveryType: selectedDeliveryType, deliveryPersonId } =
@@ -1592,6 +1542,27 @@ const Orders: React.FC = () => {
       // Validation : si le type de livraison est "livreur", un livreur doit être sélectionné
       if (selectedDeliveryType === "livreur" && !deliveryPersonId) {
         alert("Veuillez sélectionner un livreur pour cette commande.");
+        return;
+      }
+
+      // Commune resolution
+      const codeW = parseInt(String(code_wilaya)) || 16;
+      let commune = manualCommune || resolveCommuneName(
+        row["Commune"] || "",
+        row["Wilaya"] || "",
+        codeW
+      );
+
+      if (!commune) {
+        setCommuneSelector({
+          isOpen: true,
+          wilayaCode: codeW,
+          wilayaName: String(row["Wilaya"] || ""),
+          onSelect: (selectedCommune: string) => {
+            handleSendToApi(selectedCommune);
+            setCommuneSelector(prev => ({ ...prev, isOpen: false }));
+          }
+        });
         return;
       }
 
@@ -1680,13 +1651,6 @@ const Orders: React.FC = () => {
         fragile: "0",
         produit: produit,
       };
-
-      const commune = smartCommuneResolver(
-        row["Commune"] || "",
-        row["Wilaya"] || "",
-        parseInt(String(code_wilaya)) || 16
-      );
-
       const trimmedComment = currentComment.trim();
       const finalRemark = trimmedComment || remarkFromSheet;
 
@@ -1809,10 +1773,9 @@ const Orders: React.FC = () => {
           }
           if (!respTracking.ok) {
             throw new Error(
-              `HTTP ${respTracking.status} - ${
-                typeof dataTracking === "string"
-                  ? dataTracking
-                  : JSON.stringify(dataTracking)
+              `HTTP ${respTracking.status} - ${typeof dataTracking === "string"
+                ? dataTracking
+                : JSON.stringify(dataTracking)
               }`
             );
           }
@@ -1877,8 +1840,7 @@ const Orders: React.FC = () => {
             );
             if (stockUpdateFailedMessage) {
               showToast(
-                `⚠️ Pensez à ajuster manuellement le stock pour ${
-                  stockPayload.name || stockPayload.code || "ce produit"
+                `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"
                 }.`,
                 "warning",
                 6000
@@ -1972,8 +1934,7 @@ const Orders: React.FC = () => {
           );
           if (stockUpdateFailedMessage) {
             showToast(
-              `⚠️ Pensez à ajuster manuellement le stock pour ${
-                stockPayload.name || stockPayload.code || "ce produit"
+              `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"
               }.`,
               "warning",
               6000
@@ -1989,131 +1950,6 @@ const Orders: React.FC = () => {
           if (trimmedComment) {
             updateComment("");
           }
-        } else if (response.status === 422) {
-          const msg =
-            responseData &&
-            typeof responseData === "object" &&
-            "message" in responseData
-              ? String(responseData.message)
-              : "";
-          const isCommuneIssue = msg.toLowerCase().includes("commune");
-
-          if (isCommuneIssue) {
-            const candidates: string[] = [];
-            const seen = new Set<string>();
-            const norm = (s: string) =>
-              (s || "")
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[̀-ͯ]/g, "")
-                .replace(/[^a-z\s]/g, "")
-                .replace(/\s+/g, " ")
-                .trim();
-
-            const pushCandidate = (c: string) => {
-              const key = norm(c);
-              if (key && !seen.has(key)) {
-                seen.add(key);
-                candidates.push(c);
-              }
-            };
-
-            pushCandidate(String(finalData.commune || ""));
-            pushCandidate(String(row["Wilaya"] || ""));
-            const codeNum = parseInt(String(code_wilaya)) || 16;
-            if (codeNum === 16) {
-              [
-                "alger",
-                "el harrach",
-                "dar el beida",
-                "khraissia",
-                "bir touta",
-                "bir mourad rais",
-              ].forEach(pushCandidate);
-            }
-
-            let success = false;
-            for (const communeCandidate of candidates) {
-              const attemptData = { ...finalData, commune: communeCandidate };
-              console.log("Retry avec commune:", communeCandidate);
-              try {
-                const controllerRetry = new AbortController();
-                const timeoutRetry = setTimeout(
-                  () => controllerRetry.abort(),
-                  10000
-                );
-                try {
-                  const { resp: r2, data: d2 } = await (async () => {
-                    const r = await fetch(url, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        ...(currentDeliveryApiConfig.token
-                          ? {
-                              Authorization: `Bearer ${currentDeliveryApiConfig.token}`,
-                            }
-                          : {}),
-                      },
-                      body: JSON.stringify(attemptData),
-                      signal: controllerRetry.signal,
-                    });
-                    const text2 = await r.text();
-                    let data2: any;
-                    try {
-                      data2 = JSON.parse(text2);
-                    } catch {
-                      data2 = text2;
-                    }
-                    return { resp: r, data: data2 };
-                  })();
-                  clearTimeout(timeoutRetry);
-                  if (r2.ok && (r2.status === 200 || r2.status === 201)) {
-                    const trackingValue = resolveTracking(d2) || "N/A";
-                    await ensureStockDecremented();
-                    await applyStatusUpdate("ready_to_ship", trackingValue);
-                    await syncTrackingStatus(
-                      trackingValue === "N/A" ? "" : trackingValue,
-                      currentDeliveryApiConfig
-                    );
-                    success = true;
-                    if (trimmedComment) {
-                      updateComment("");
-                    }
-                    break;
-                  }
-                  console.warn(
-                    `Échec retry commune (${
-                      r2.status
-                    }) lors du fallback\n\n${JSON.stringify(d2, null, 2)}`
-                  );
-                } finally {
-                  clearTimeout(timeoutRetry);
-                }
-              } catch (e) {
-                console.log("Erreur retry commune", e);
-              }
-            }
-
-            if (!success) {
-              await revertStockIfNeeded();
-              alert(
-                `❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
-                  responseData,
-                  null,
-                  2
-                )}\n\nEssais effectués: ${candidates.join(", ")}`
-              );
-            }
-          } else {
-            await revertStockIfNeeded();
-            alert(
-              `❌ Erreur de validation (422)\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
-                responseData,
-                null,
-                2
-              )}`
-            );
-          }
         } else if (response.status === 429) {
           await revertStockIfNeeded();
           alert(
@@ -2122,8 +1958,7 @@ const Orders: React.FC = () => {
         } else {
           await revertStockIfNeeded();
           alert(
-            `❌ Erreur API (${
-              response.status
+            `❌ Erreur API (${response.status
             })\n\nClient: ${nom_client}\n\nErreur:\n${JSON.stringify(
               responseData,
               null,
@@ -2318,11 +2153,10 @@ const Orders: React.FC = () => {
           <div className={containerClass}>
             <button
               type="button"
-              onClick={handleSendToApi}
+              onClick={() => handleSendToApi()}
               disabled={submitting || delivering || abandoning}
-              className={`orders-button orders-button--primary orders-modal__action-button${
-                submitting ? " is-loading" : ""
-              }`}
+              className={`orders-button orders-button--primary orders-modal__action-button${submitting ? " is-loading" : ""
+                }`}
             >
               {submitting ? "Envoi…" : "Confirmer et envoyer"}
             </button>
@@ -2330,9 +2164,8 @@ const Orders: React.FC = () => {
               type="button"
               onClick={handleMarkDelivered}
               disabled={delivering || submitting || abandoning}
-              className={`orders-button orders-button--success orders-modal__action-button${
-                delivering ? " is-loading" : ""
-              }`}
+              className={`orders-button orders-button--success orders-modal__action-button${delivering ? " is-loading" : ""
+                }`}
             >
               {delivering ? "Traitement…" : "Marquer livrée"}
             </button>
@@ -2340,9 +2173,8 @@ const Orders: React.FC = () => {
               type="button"
               onClick={handleMarkAbandoned}
               disabled={abandoning || submitting}
-              className={`orders-button orders-button--danger orders-modal__action-button${
-                abandoning ? " is-loading" : ""
-              }`}
+              className={`orders-button orders-button--danger orders-modal__action-button${abandoning ? " is-loading" : ""
+                }`}
             >
               {abandoning ? "Abandon…" : "Abandonnée"}
             </button>
@@ -2355,11 +2187,10 @@ const Orders: React.FC = () => {
       <div className={containerClass}>
         <button
           type="button"
-          onClick={handleSendToApi}
+          onClick={() => handleSendToApi()}
           disabled={submitting || abandoning}
-          className={`orders-button orders-button--primary orders-button--icon${
-            submitting ? " is-loading" : ""
-          }`}
+          className={`orders-button orders-button--primary orders-button--icon${submitting ? " is-loading" : ""
+            }`}
           aria-label={submitting ? "Envoi en cours…" : "Envoyer la validation"}
           title="Envoyer la validation"
         >
@@ -2376,9 +2207,8 @@ const Orders: React.FC = () => {
           type="button"
           onClick={handleMarkAbandoned}
           disabled={abandoning || submitting}
-          className={`orders-button orders-button--danger${
-            abandoning ? " is-loading" : ""
-          }`}
+          className={`orders-button orders-button--danger${abandoning ? " is-loading" : ""
+            }`}
         >
           {abandoning ? "Abandon…" : "Abandonnée"}
         </button>
@@ -2386,11 +2216,10 @@ const Orders: React.FC = () => {
           type="button"
           onClick={handleMarkDelivered}
           disabled={delivering || submitting || abandoning}
-          className={`orders-button orders-button--success${
-            delivering ? " is-loading" : ""
-          }`}
+          className={`orders-button orders-button--success${delivering ? " is-loading" : ""
+            }`}
         >
-          {delivering ? "Traitement…" : "decrementer du stock"}
+          {delivering ? "Traitement…" : "Marquer livrée"}
         </button>
       </div>
     );
@@ -2403,6 +2232,7 @@ const Orders: React.FC = () => {
     summary,
     onUpdateStatus,
     onDelivered,
+    onRestoreStock,
     onVariantClick,
     onDeliveryTypeChange,
     commentKey,
@@ -2429,6 +2259,12 @@ const Orders: React.FC = () => {
       },
       rowId: string
     ) => Promise<void>;
+    onRestoreStock?: (payload: {
+      code?: string;
+      name?: string;
+      variant: string;
+      quantity: number;
+    }) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
     onDeliveryTypeChange: (
       row: OrderRow,
@@ -2710,6 +2546,16 @@ const Orders: React.FC = () => {
           }
 
           if (isWilayaColumn || isCommuneColumn) {
+            const wilayaId = row["Wilaya"] || row["wilaya"] || "";
+            const communeName = row["Commune"] || row["commune"] || "";
+
+            const displayValue = isCommuneColumn
+              ? getFrenchForDisplay(trimmedDisplayText, wilayaId)
+              : getFrenchForDisplay("", trimmedDisplayText); // If it's wilaya column, we want to try to resolve it too? 
+            // Actually getFrenchForDisplay is designed for communes.
+            // For wilayas, if it's already a string, we might just want to keep it or resolve it.
+            // Let's look at getFrenchForDisplay implementation again.
+
             return (
               <td
                 key={h}
@@ -2718,7 +2564,9 @@ const Orders: React.FC = () => {
               >
                 {trimmedDisplayText ? (
                   <span className="orders-table__pill">
-                    {trimmedDisplayText}
+                    {isCommuneColumn
+                      ? getFrenchForDisplay(trimmedDisplayText, wilayaId)
+                      : getFrenchWilaya(trimmedDisplayText)}
                   </span>
                 ) : (
                   <span className="orders-table__muted">—</span>
@@ -2730,11 +2578,11 @@ const Orders: React.FC = () => {
           if (isPhoneColumn) {
             const rawPhoneValue = String(
               row[h] ||
-                row["Numero"] ||
-                row["Numéro"] ||
-                row["Téléphone"] ||
-                row["Telephone"] ||
-                ""
+              row["Numero"] ||
+              row["Numéro"] ||
+              row["Téléphone"] ||
+              row["Telephone"] ||
+              ""
             );
             const normalizedPhoneForCopy = normalizePhone(
               rawPhoneValue || trimmedDisplayText
@@ -2778,9 +2626,8 @@ const Orders: React.FC = () => {
                 <div className="orders-table__phone-actions">
                   <button
                     type="button"
-                    className={`orders-table__phone${
-                      isCopied ? " is-copied" : ""
-                    }`}
+                    className={`orders-table__phone${isCopied ? " is-copied" : ""
+                      }`}
                     onClick={() => handleCopyValue(valueToCopy, copyKey)}
                     title={
                       isCopied
@@ -2842,8 +2689,8 @@ Zm0 14H8V7h9v12Z"
                 isQuantityColumn
                   ? h || "Quantité"
                   : isIdSheetColumn
-                  ? ""
-                  : h || ""
+                    ? ""
+                    : h || ""
               }
             >
               {trimmedDisplayText ? (
@@ -2911,7 +2758,7 @@ Zm0 14H8V7h9v12Z"
             summary={summary}
             onUpdateStatus={onUpdateStatus}
             onDelivered={onDelivered}
-            onRestoreStock={handleRestoreStock}
+            onRestoreStock={onRestoreStock}
             commentKey={commentKey}
             commentValue={commentValue}
             onCommentChange={onCommentChange}
@@ -3049,9 +2896,9 @@ Zm0 14H8V7h9v12Z"
       setCommentEditor((prev) =>
         prev.isOpen
           ? {
-              ...prev,
-              value,
-            }
+            ...prev,
+            value,
+          }
           : prev
       );
     },
@@ -3104,6 +2951,18 @@ Zm0 14H8V7h9v12Z"
   >([]);
   const [loadingVariants, setLoadingVariants] = React.useState(false);
 
+  const [communeSelector, setCommuneSelector] = React.useState<{
+    isOpen: boolean;
+    wilayaCode: string | number;
+    wilayaName: string;
+    onSelect: (commune: string) => void;
+  }>({
+    isOpen: false,
+    wilayaCode: "",
+    wilayaName: "",
+    onSelect: () => { },
+  });
+
   const productVariantCacheRef = React.useRef<
     Map<
       string,
@@ -3149,9 +3008,9 @@ Zm0 14H8V7h9v12Z"
             typeof product.code === "string" ? product.code.trim() : undefined,
           variants: Array.isArray(product.variants)
             ? product.variants.map((variant: any) => ({
-                name: String(variant?.name ?? "").trim(),
-                quantity: Number(variant?.quantity ?? 0) || 0,
-              }))
+              name: String(variant?.name ?? "").trim(),
+              quantity: Number(variant?.quantity ?? 0) || 0,
+            }))
             : [],
         };
         const keys = getCacheKeysForProduct(entry.code, entry.name);
@@ -3185,49 +3044,6 @@ Zm0 14H8V7h9v12Z"
     productsCacheLoadedRef.current = true;
   }, [registerProductsInCache, token]);
 
-  const smartCommuneResolverGlobal = React.useCallback(
-    (communeName: string, wilayaName: string, wilayaCode: number): string => {
-      const normalizeText = (text: string): string => {
-        if (!text) return "";
-        return text
-          .replace(/[éèêë]/g, "e")
-          .replace(/[àâä]/g, "a")
-          .replace(/[ùûü]/g, "u")
-          .replace(/[îï]/g, "i")
-          .replace(/[ôö]/g, "o")
-          .replace(/[ç]/g, "c")
-          .replace(/[ñ]/g, "n")
-          .replace(/[ý]/g, "y")
-          .replace(/[æ]/g, "ae")
-          .replace(/[œ]/g, "oe")
-          .replace(/['`]/g, "")
-          .replace(/[-_]/g, " ")
-          .replace(/\b(centre|ville|commune|wilaya|daira)\b/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase();
-      };
-      const aliasMap: Record<string, string> = {
-        birtouta: "bir touta",
-        khraicia: "khraissia",
-        "el harrach": "el harrach",
-        "dar el beida": "dar el beida",
-      };
-      const normalizedCommune = normalizeText(communeName);
-      if (normalizedCommune)
-        return aliasMap[normalizedCommune] || normalizedCommune;
-      const normalizedWilaya = normalizeText(wilayaName);
-      if (normalizedWilaya)
-        return aliasMap[normalizedWilaya] || normalizedWilaya;
-      const wilaya = WILAYAS.find((w) => w.wilaya_id === wilayaCode);
-      if (wilaya) {
-        const fromCode = normalizeText(wilaya.wilaya_name);
-        return aliasMap[fromCode] || fromCode || "alger";
-      }
-      return "alger";
-    },
-    []
-  );
 
   const applyStockUpdateToCache = React.useCallback(
     (options: {
@@ -3260,10 +3076,10 @@ Zm0 14H8V7h9v12Z"
                 : 0;
             const rawNext =
               finalQuantityProvided !== undefined &&
-              Number.isFinite(finalQuantityProvided)
+                Number.isFinite(finalQuantityProvided)
                 ? finalQuantityProvided
                 : current -
-                  (Number.isFinite(decrementByValue) ? decrementByValue : 0);
+                (Number.isFinite(decrementByValue) ? decrementByValue : 0);
             const next = Number.isFinite(rawNext) ? rawNext : current;
             impacted = true;
             return { ...variant, quantity: next };
@@ -3452,11 +3268,11 @@ Zm0 14H8V7h9v12Z"
 
   const selectedOrderCommentKey = selectedSummary
     ? resolveCommentKey(
-        selectedSummary,
-        selectedSummary.displayRowLabel ||
-          selectedSummary.rowId ||
-          "selected-order"
-      )
+      selectedSummary,
+      selectedSummary.displayRowLabel ||
+      selectedSummary.rowId ||
+      "selected-order"
+    )
     : "";
   const selectedOrderCommentValue = selectedOrderCommentKey
     ? orderComments[selectedOrderCommentKey] ?? ""
@@ -3888,8 +3704,8 @@ Zm0 14H8V7h9v12Z"
               typeof existingIdRaw === "string"
                 ? existingIdRaw.trim()
                 : existingIdRaw !== undefined && existingIdRaw !== null
-                ? String(existingIdRaw).trim()
-                : "";
+                  ? String(existingIdRaw).trim()
+                  : "";
             const sheetRowNumber = dataIndex + 2; // +2 pour inclure la ligne d'en-tête
             obj["id-sheet"] = String(sheetRowNumber);
             if (normalizedId) {
@@ -4309,9 +4125,8 @@ Zm0 14H8V7h9v12Z"
           const lowStockNames = lowStockItems
             .map((item: any) => {
               const stockStatus = item.finalStock < 0 ? "négatif" : "épuisé";
-              return `${item.name || item.code || ""} (${
-                item.variant
-              }) - Stock ${stockStatus}: ${item.finalStock}`;
+              return `${item.name || item.code || ""} (${item.variant
+                }) - Stock ${stockStatus}: ${item.finalStock}`;
             })
             .join(", ");
 
@@ -4419,8 +4234,8 @@ Zm0 14H8V7h9v12Z"
         rawVariant && isMeaningfulVariantName(rawVariant)
           ? rawVariant
           : extractedVariant && isMeaningfulVariantName(extractedVariant)
-          ? extractedVariant
-          : rawVariant || extractedVariant || "default"
+            ? extractedVariant
+            : rawVariant || extractedVariant || "default"
       ).trim();
 
       if (!productName) {
@@ -4633,7 +4448,7 @@ Zm0 14H8V7h9v12Z"
         await syncStatus(rowId, currentStatus, {
           previousStatus: currentStatus,
           row: updatedRow,
-          deliveryType: nextMode,
+          deliveryType: nextMode as any,
         });
 
         setRows((prevRows) =>
@@ -4918,8 +4733,8 @@ Zm0 14H8V7h9v12Z"
                 const phoneHref = summary.phoneDial
                   ? `tel:${summary.phoneDial}`
                   : summary.displayPhone
-                  ? `tel:${summary.displayPhone.replace(/\s+/g, "")}`
-                  : "";
+                    ? `tel:${summary.displayPhone.replace(/\s+/g, "")}`
+                    : "";
                 return (
                   <button
                     type="button"
@@ -5052,9 +4867,9 @@ Zm0 14H8V7h9v12Z"
                             const quantityForTotal = (() => {
                               const raw = String(
                                 row["Quantité"] ||
-                                  row["Quantite"] ||
-                                  row["Qte"] ||
-                                  "1"
+                                row["Quantite"] ||
+                                row["Qte"] ||
+                                "1"
                               );
                               const sanitized = raw.replace(/[^\d]/g, "");
                               const n = parseInt(sanitized, 10);
@@ -5104,7 +4919,7 @@ Zm0 14H8V7h9v12Z"
                               parseInt(
                                 String(getWilayaIdByName(row["Wilaya"] as any))
                               ) || 16;
-                            const communeResolved = smartCommuneResolverGlobal(
+                            const communeResolved = resolveCommuneName(
                               (row["Commune"] as any) || "",
                               (row["Wilaya"] as any) || "",
                               wilayaCode
@@ -5131,10 +4946,10 @@ Zm0 14H8V7h9v12Z"
                             const finalRemark =
                               (
                                 orderComments[
-                                  resolveCommentKey(
-                                    s,
-                                    s.rowId || s.displayRowLabel || ""
-                                  )
+                                resolveCommentKey(
+                                  s,
+                                  s.rowId || s.displayRowLabel || ""
+                                )
                                 ] || ""
                               ).trim() || remarkFromSheet;
                             const payload = {
@@ -5195,20 +5010,17 @@ Zm0 14H8V7h9v12Z"
                                 data
                               );
                               alert(
-                                `Erreur API (${resp.status}) pour ${
-                                  s.rawName || s.name
-                                }: ${
-                                  typeof data === "string"
-                                    ? data
-                                    : data?.message || ""
+                                `Erreur API (${resp.status}) pour ${s.rawName || s.name
+                                }: ${typeof data === "string"
+                                  ? data
+                                  : data?.message || ""
                                 }`
                               );
                             }
                           } catch (err) {
                             console.error("Erreur validation bulk:", err);
                             alert(
-                              `Erreur réseau/timeout pour ${
-                                s.rawName || s.name
+                              `Erreur réseau/timeout pour ${s.rawName || s.name
                               }`
                             );
                           }
@@ -5496,9 +5308,9 @@ Zm0 14H8V7h9v12Z"
                     selectedSummary.phoneDial
                       ? `tel:${selectedSummary.phoneDial}`
                       : `tel:${selectedSummary.displayPhone.replace(
-                          /\s+/g,
-                          ""
-                        )}`
+                        /\s+/g,
+                        ""
+                      )}`
                   }
                   className="orders-modal__phone"
                 >
@@ -5554,6 +5366,8 @@ Zm0 14H8V7h9v12Z"
                 }
 
                 const displayValue = (value ?? "").toString().trim();
+                const isCommuneColumnModal = normalizedHeaderKeyForMatch === "commune";
+
                 if (
                   DELIVERY_MODE_HEADER_KEY_SET.has(normalizedHeaderKeyForMatch)
                 ) {
@@ -5590,7 +5404,9 @@ Zm0 14H8V7h9v12Z"
                     </span>
                     <span className="orders-modal__detail-value">
                       {displayValue ? (
-                        displayValue
+                        isCommuneColumnModal
+                          ? getFrenchForDisplay(displayValue, selectedOrder["Wilaya"] || selectedOrder["wilaya"])
+                          : (normalizedHeaderKeyForMatch === "wilaya" ? getFrenchWilaya(displayValue) : displayValue)
                       ) : (
                         <span className="orders-table__muted">—</span>
                       )}
@@ -5665,11 +5481,10 @@ Zm0 14H8V7h9v12Z"
                     <button
                       key={index}
                       type="button"
-                      className={`orders-modal__variant-item ${
-                        variant.name === variantModalOpen.currentVariant
-                          ? "is-current"
-                          : ""
-                      }`}
+                      className={`orders-modal__variant-item ${variant.name === variantModalOpen.currentVariant
+                        ? "is-current"
+                        : ""
+                        }`}
                       onClick={() => handleVariantSelect(variant.name)}
                       disabled={
                         variant.name === variantModalOpen.currentVariant
@@ -5680,9 +5495,8 @@ Zm0 14H8V7h9v12Z"
                           {variant.name}
                         </span>
                         <span
-                          className={`orders-modal__variant-stock ${
-                            variant.quantity === 0 ? "is-zero" : ""
-                          }`}
+                          className={`orders-modal__variant-stock ${variant.quantity === 0 ? "is-zero" : ""
+                            }`}
                         >
                           Stock: {variant.quantity}
                         </span>
@@ -5718,6 +5532,42 @@ Zm0 14H8V7h9v12Z"
           <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor" />
         </svg>
       </button>
+
+      {communeSelector.isOpen && (
+        <div className="orders-modal-overlay">
+          <div className="orders-modal">
+            <div className="orders-modal__header">
+              <h2 className="orders-modal__title">Sélectionner une commune</h2>
+              <p className="orders-modal__subtitle">
+                Wilaya : {communeSelector.wilayaName || communeSelector.wilayaCode}
+              </p>
+            </div>
+            <div className="orders-modal__body">
+              <div className="orders-modal__commune-grid">
+                {getCommunesByWilaya(communeSelector.wilayaCode).map(com => (
+                  <button
+                    key={com.fr}
+                    type="button"
+                    className="orders-modal__commune-btn"
+                    onClick={() => communeSelector.onSelect(com.fr)}
+                  >
+                    {com.fr}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="orders-modal__footer">
+              <button
+                type="button"
+                className="orders-button orders-button--secondary"
+                onClick={() => setCommuneSelector(prev => ({ ...prev, isOpen: false }))}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

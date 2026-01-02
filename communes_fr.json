@@ -1,0 +1,9248 @@
+[
+  {
+    "id": "1",
+    "codeC": "01001",
+    "fr": "Adrar",
+    "codeW": "1"
+  },
+  {
+    "id": "2",
+    "codeC": "01002",
+    "fr": "Tamest",
+    "codeW": "1"
+  },
+  {
+    "id": "3",
+    "codeC": "01003",
+    "fr": "Charouine",
+    "codeW": "1"
+  },
+  {
+    "id": "4",
+    "codeC": "01004",
+    "fr": "Reggane",
+    "codeW": "1"
+  },
+  {
+    "id": "5",
+    "codeC": "01005",
+    "fr": "Inozghmir",
+    "codeW": "1"
+  },
+  {
+    "id": "6",
+    "codeC": "01006",
+    "fr": "Tit",
+    "codeW": "1"
+  },
+  {
+    "id": "7",
+    "codeC": "01007",
+    "fr": "Ksar Kaddour",
+    "codeW": "1"
+  },
+  {
+    "id": "8",
+    "codeC": "01008",
+    "fr": "Tsabit",
+    "codeW": "1"
+  },
+  {
+    "id": "9",
+    "codeC": "01009",
+    "fr": "Timimoun",
+    "codeW": "1"
+  },
+  {
+    "id": "10",
+    "codeC": "01010",
+    "fr": "Ouled Said",
+    "codeW": "1"
+  },
+  {
+    "id": "11",
+    "codeC": "01011",
+    "fr": "Zaouiet Kounta",
+    "codeW": "1"
+  },
+  {
+    "id": "12",
+    "codeC": "01012",
+    "fr": "Aoulef",
+    "codeW": "1"
+  },
+  {
+    "id": "13",
+    "codeC": "01013",
+    "fr": "Timokten",
+    "codeW": "1"
+  },
+  {
+    "id": "14",
+    "codeC": "01014",
+    "fr": "Tamentit",
+    "codeW": "1"
+  },
+  {
+    "id": "15",
+    "codeC": "01015",
+    "fr": "Fenoughil",
+    "codeW": "1"
+  },
+  {
+    "id": "16",
+    "codeC": "01016",
+    "fr": "Tinerkouk",
+    "codeW": "1"
+  },
+  {
+    "id": "17",
+    "codeC": "01017",
+    "fr": "Deldoul",
+    "codeW": "1"
+  },
+  {
+    "id": "18",
+    "codeC": "01018",
+    "fr": "Sali",
+    "codeW": "1"
+  },
+  {
+    "id": "19",
+    "codeC": "01019",
+    "fr": "Akabli",
+    "codeW": "1"
+  },
+  {
+    "id": "20",
+    "codeC": "01020",
+    "fr": "Metarfa",
+    "codeW": "1"
+  },
+  {
+    "id": "21",
+    "codeC": "01021",
+    "fr": "O Ahmed Timmi",
+    "codeW": "1"
+  },
+  {
+    "id": "22",
+    "codeC": "01022",
+    "fr": "Bouda",
+    "codeW": "1"
+  },
+  {
+    "id": "23",
+    "codeC": "01023",
+    "fr": "Aougrout",
+    "codeW": "1"
+  },
+  {
+    "id": "24",
+    "codeC": "01024",
+    "fr": "Talmine",
+    "codeW": "1"
+  },
+  {
+    "id": "25",
+    "codeC": "01025",
+    "fr": "B Badji Mokhtar",
+    "codeW": "1"
+  },
+  {
+    "id": "26",
+    "codeC": "01026",
+    "fr": "Sbaa",
+    "codeW": "1"
+  },
+  {
+    "id": "27",
+    "codeC": "01027",
+    "fr": "Ouled Aissa",
+    "codeW": "1"
+  },
+  {
+    "id": "28",
+    "codeC": "01028",
+    "fr": "Timiaouine",
+    "codeW": "1"
+  },
+  {
+    "id": "29",
+    "codeC": "02001",
+    "fr": "Chlef",
+    "codeW": "2"
+  },
+  {
+    "id": "30",
+    "codeC": "02002",
+    "fr": "Tenes",
+    "codeW": "2"
+  },
+  {
+    "id": "31",
+    "codeC": "02003",
+    "fr": "Benairia",
+    "codeW": "2"
+  },
+  {
+    "id": "32",
+    "codeC": "02004",
+    "fr": "El Karimia",
+    "codeW": "2"
+  },
+  {
+    "id": "33",
+    "codeC": "02005",
+    "fr": "Tadjna",
+    "codeW": "2"
+  },
+  {
+    "id": "34",
+    "codeC": "02006",
+    "fr": "Taougrite",
+    "codeW": "2"
+  },
+  {
+    "id": "35",
+    "codeC": "02007",
+    "fr": "Beni Haoua",
+    "codeW": "2"
+  },
+  {
+    "id": "36",
+    "codeC": "02008",
+    "fr": "Sobha",
+    "codeW": "2"
+  },
+  {
+    "id": "37",
+    "codeC": "02009",
+    "fr": "Harchoun",
+    "codeW": "2"
+  },
+  {
+    "id": "38",
+    "codeC": "02010",
+    "fr": "Ouled Fares",
+    "codeW": "2"
+  },
+  {
+    "id": "39",
+    "codeC": "02011",
+    "fr": "Sidi Akacha",
+    "codeW": "2"
+  },
+  {
+    "id": "40",
+    "codeC": "02012",
+    "fr": "Boukadir",
+    "codeW": "2"
+  },
+  {
+    "id": "41",
+    "codeC": "02013",
+    "fr": "Beni Rached",
+    "codeW": "2"
+  },
+  {
+    "id": "42",
+    "codeC": "02014",
+    "fr": "Talassa",
+    "codeW": "2"
+  },
+  {
+    "id": "43",
+    "codeC": "02015",
+    "fr": "Herenfa",
+    "codeW": "2"
+  },
+  {
+    "id": "44",
+    "codeC": "02016",
+    "fr": "Oued Goussine",
+    "codeW": "2"
+  },
+  {
+    "id": "45",
+    "codeC": "02017",
+    "fr": "Dahra",
+    "codeW": "2"
+  },
+  {
+    "id": "46",
+    "codeC": "02018",
+    "fr": "Ouled Abbes",
+    "codeW": "2"
+  },
+  {
+    "id": "47",
+    "codeC": "02019",
+    "fr": "Sendjas",
+    "codeW": "2"
+  },
+  {
+    "id": "48",
+    "codeC": "02020",
+    "fr": "Zeboudja",
+    "codeW": "2"
+  },
+  {
+    "id": "49",
+    "codeC": "02021",
+    "fr": "Oued Sly",
+    "codeW": "2"
+  },
+  {
+    "id": "50",
+    "codeC": "02022",
+    "fr": "Abou El Hassen",
+    "codeW": "2"
+  },
+  {
+    "id": "51",
+    "codeC": "02023",
+    "fr": "El Marsa",
+    "codeW": "2"
+  },
+  {
+    "id": "52",
+    "codeC": "02024",
+    "fr": "Chettia",
+    "codeW": "2"
+  },
+  {
+    "id": "53",
+    "codeC": "02025",
+    "fr": "Sidi Abderrahmane",
+    "codeW": "2"
+  },
+  {
+    "id": "54",
+    "codeC": "02026",
+    "fr": "Moussadek",
+    "codeW": "2"
+  },
+  {
+    "id": "55",
+    "codeC": "02027",
+    "fr": "El Hadjadj",
+    "codeW": "2"
+  },
+  {
+    "id": "56",
+    "codeC": "02028",
+    "fr": "Labiod Medjadja",
+    "codeW": "2"
+  },
+  {
+    "id": "57",
+    "codeC": "02029",
+    "fr": "Oued Fodda",
+    "codeW": "2"
+  },
+  {
+    "id": "58",
+    "codeC": "02030",
+    "fr": "Ouled Ben Abdelkader",
+    "codeW": "2"
+  },
+  {
+    "id": "59",
+    "codeC": "02031",
+    "fr": "Bouzghaia",
+    "codeW": "2"
+  },
+  {
+    "id": "60",
+    "codeC": "02032",
+    "fr": "Ain Merane",
+    "codeW": "2"
+  },
+  {
+    "id": "61",
+    "codeC": "02033",
+    "fr": "Oum Drou",
+    "codeW": "2"
+  },
+  {
+    "id": "62",
+    "codeC": "02034",
+    "fr": "Breira",
+    "codeW": "2"
+  },
+  {
+    "id": "63",
+    "codeC": "02035",
+    "fr": "Ben Boutaleb",
+    "codeW": "2"
+  },
+  {
+    "id": "64",
+    "codeC": "03001",
+    "fr": "Laghouat",
+    "codeW": "3"
+  },
+  {
+    "id": "65",
+    "codeC": "03002",
+    "fr": "Ksar El Hirane",
+    "codeW": "3"
+  },
+  {
+    "id": "66",
+    "codeC": "03003",
+    "fr": "Benacer Ben Chohra",
+    "codeW": "3"
+  },
+  {
+    "id": "67",
+    "codeC": "03004",
+    "fr": "Sidi Makhlouf",
+    "codeW": "3"
+  },
+  {
+    "id": "68",
+    "codeC": "03005",
+    "fr": "Hassi Delaa",
+    "codeW": "3"
+  },
+  {
+    "id": "69",
+    "codeC": "03006",
+    "fr": "Hassi R Mel",
+    "codeW": "3"
+  },
+  {
+    "id": "70",
+    "codeC": "03007",
+    "fr": "Ain Mahdi",
+    "codeW": "3"
+  },
+  {
+    "id": "71",
+    "codeC": "03008",
+    "fr": "Tadjmout",
+    "codeW": "3"
+  },
+  {
+    "id": "72",
+    "codeC": "03009",
+    "fr": "Kheneg",
+    "codeW": "3"
+  },
+  {
+    "id": "73",
+    "codeC": "03010",
+    "fr": "Gueltat Sidi Saad",
+    "codeW": "3"
+  },
+  {
+    "id": "74",
+    "codeC": "03011",
+    "fr": "Ain Sidi Ali",
+    "codeW": "3"
+  },
+  {
+    "id": "75",
+    "codeC": "03012",
+    "fr": "Beidha",
+    "codeW": "3"
+  },
+  {
+    "id": "76",
+    "codeC": "03013",
+    "fr": "Brida",
+    "codeW": "3"
+  },
+  {
+    "id": "77",
+    "codeC": "03014",
+    "fr": "El Ghicha",
+    "codeW": "3"
+  },
+  {
+    "id": "78",
+    "codeC": "03015",
+    "fr": "Hadj Mechri",
+    "codeW": "3"
+  },
+  {
+    "id": "79",
+    "codeC": "03016",
+    "fr": "Sebgag",
+    "codeW": "3"
+  },
+  {
+    "id": "80",
+    "codeC": "03017",
+    "fr": "Taouiala",
+    "codeW": "3"
+  },
+  {
+    "id": "81",
+    "codeC": "03018",
+    "fr": "Tadjrouna",
+    "codeW": "3"
+  },
+  {
+    "id": "82",
+    "codeC": "03019",
+    "fr": "Aflou",
+    "codeW": "3"
+  },
+  {
+    "id": "83",
+    "codeC": "03020",
+    "fr": "El Assafia",
+    "codeW": "3"
+  },
+  {
+    "id": "84",
+    "codeC": "03021",
+    "fr": "Oued Morra",
+    "codeW": "3"
+  },
+  {
+    "id": "85",
+    "codeC": "03022",
+    "fr": "Oued M Zi",
+    "codeW": "3"
+  },
+  {
+    "id": "86",
+    "codeC": "03023",
+    "fr": "El Haouaita",
+    "codeW": "3"
+  },
+  {
+    "id": "87",
+    "codeC": "03024",
+    "fr": "Sidi Bouzid",
+    "codeW": "3"
+  },
+  {
+    "id": "88",
+    "codeC": "04001",
+    "fr": "Oum El Bouaghi",
+    "codeW": "4"
+  },
+  {
+    "id": "89",
+    "codeC": "04002",
+    "fr": "Ain Beida",
+    "codeW": "4"
+  },
+  {
+    "id": "90",
+    "codeC": "04003",
+    "fr": "Ainmlila",
+    "codeW": "4"
+  },
+  {
+    "id": "91",
+    "codeC": "04004",
+    "fr": "Behir Chergui",
+    "codeW": "4"
+  },
+  {
+    "id": "92",
+    "codeC": "04005",
+    "fr": "El Amiria",
+    "codeW": "4"
+  },
+  {
+    "id": "93",
+    "codeC": "04006",
+    "fr": "Sigus",
+    "codeW": "4"
+  },
+  {
+    "id": "94",
+    "codeC": "04007",
+    "fr": "El Belala",
+    "codeW": "4"
+  },
+  {
+    "id": "95",
+    "codeC": "04008",
+    "fr": "Ain Babouche",
+    "codeW": "4"
+  },
+  {
+    "id": "96",
+    "codeC": "04009",
+    "fr": "Berriche",
+    "codeW": "4"
+  },
+  {
+    "id": "97",
+    "codeC": "04010",
+    "fr": "Ouled Hamla",
+    "codeW": "4"
+  },
+  {
+    "id": "98",
+    "codeC": "04011",
+    "fr": "Dhala",
+    "codeW": "4"
+  },
+  {
+    "id": "99",
+    "codeC": "04012",
+    "fr": "Ain Kercha",
+    "codeW": "4"
+  },
+  {
+    "id": "100",
+    "codeC": "04013",
+    "fr": "Hanchir Toumghani",
+    "codeW": "4"
+  },
+  {
+    "id": "101",
+    "codeC": "04014",
+    "fr": "El Djazia",
+    "codeW": "4"
+  },
+  {
+    "id": "102",
+    "codeC": "04015",
+    "fr": "Ain Diss",
+    "codeW": "4"
+  },
+  {
+    "id": "103",
+    "codeC": "04016",
+    "fr": "Fkirina",
+    "codeW": "4"
+  },
+  {
+    "id": "104",
+    "codeC": "04017",
+    "fr": "Souk Naamane",
+    "codeW": "4"
+  },
+  {
+    "id": "105",
+    "codeC": "04018",
+    "fr": "Zorg",
+    "codeW": "4"
+  },
+  {
+    "id": "106",
+    "codeC": "04019",
+    "fr": "El Fedjoudj Boughrar",
+    "codeW": "4"
+  },
+  {
+    "id": "107",
+    "codeC": "04020",
+    "fr": "Ouled Zouai",
+    "codeW": "4"
+  },
+  {
+    "id": "108",
+    "codeC": "04021",
+    "fr": "Bir Chouhada",
+    "codeW": "4"
+  },
+  {
+    "id": "109",
+    "codeC": "04022",
+    "fr": "Ksar Sbahi",
+    "codeW": "4"
+  },
+  {
+    "id": "110",
+    "codeC": "04023",
+    "fr": "Oued Nini",
+    "codeW": "4"
+  },
+  {
+    "id": "111",
+    "codeC": "04024",
+    "fr": "Meskiana",
+    "codeW": "4"
+  },
+  {
+    "id": "112",
+    "codeC": "04025",
+    "fr": "Ain Fekroune",
+    "codeW": "4"
+  },
+  {
+    "id": "113",
+    "codeC": "04026",
+    "fr": "Rahia",
+    "codeW": "4"
+  },
+  {
+    "id": "114",
+    "codeC": "04027",
+    "fr": "Ain Zitoun",
+    "codeW": "4"
+  },
+  {
+    "id": "115",
+    "codeC": "04028",
+    "fr": "Ouled Gacem",
+    "codeW": "4"
+  },
+  {
+    "id": "116",
+    "codeC": "04029",
+    "fr": "El Harmilia",
+    "codeW": "4"
+  },
+  {
+    "id": "117",
+    "codeC": "05001",
+    "fr": "Batna",
+    "codeW": "5"
+  },
+  {
+    "id": "118",
+    "codeC": "05002",
+    "fr": "Ghassira",
+    "codeW": "5"
+  },
+  {
+    "id": "119",
+    "codeC": "05003",
+    "fr": "Maafa",
+    "codeW": "5"
+  },
+  {
+    "id": "120",
+    "codeC": "05004",
+    "fr": "Merouana",
+    "codeW": "5"
+  },
+  {
+    "id": "121",
+    "codeC": "05005",
+    "fr": "Seriana",
+    "codeW": "5"
+  },
+  {
+    "id": "122",
+    "codeC": "05006",
+    "fr": "Menaa",
+    "codeW": "5"
+  },
+  {
+    "id": "123",
+    "codeC": "05007",
+    "fr": "El Madher",
+    "codeW": "5"
+  },
+  {
+    "id": "124",
+    "codeC": "05008",
+    "fr": "Tazoult",
+    "codeW": "5"
+  },
+  {
+    "id": "125",
+    "codeC": "05009",
+    "fr": "Ngaous",
+    "codeW": "5"
+  },
+  {
+    "id": "126",
+    "codeC": "05010",
+    "fr": "Guigba",
+    "codeW": "5"
+  },
+  {
+    "id": "127",
+    "codeC": "05011",
+    "fr": "Inoughissen",
+    "codeW": "5"
+  },
+  {
+    "id": "128",
+    "codeC": "05012",
+    "fr": "Ouyoun El Assafir",
+    "codeW": "5"
+  },
+  {
+    "id": "129",
+    "codeC": "05013",
+    "fr": "Djerma",
+    "codeW": "5"
+  },
+  {
+    "id": "130",
+    "codeC": "05014",
+    "fr": "Bitam",
+    "codeW": "5"
+  },
+  {
+    "id": "131",
+    "codeC": "05015",
+    "fr": "Metkaouak",
+    "codeW": "5"
+  },
+  {
+    "id": "132",
+    "codeC": "05016",
+    "fr": "Arris",
+    "codeW": "5"
+  },
+  {
+    "id": "133",
+    "codeC": "05017",
+    "fr": "Kimmel",
+    "codeW": "5"
+  },
+  {
+    "id": "134",
+    "codeC": "05018",
+    "fr": "Tilatou",
+    "codeW": "5"
+  },
+  {
+    "id": "135",
+    "codeC": "05019",
+    "fr": "Ain Djasser",
+    "codeW": "5"
+  },
+  {
+    "id": "136",
+    "codeC": "05020",
+    "fr": "Ouled Selam",
+    "codeW": "5"
+  },
+  {
+    "id": "137",
+    "codeC": "05021",
+    "fr": "Tigherghar",
+    "codeW": "5"
+  },
+  {
+    "id": "138",
+    "codeC": "05022",
+    "fr": "Ain Yagout",
+    "codeW": "5"
+  },
+  {
+    "id": "139",
+    "codeC": "05023",
+    "fr": "Fesdis",
+    "codeW": "5"
+  },
+  {
+    "id": "140",
+    "codeC": "05024",
+    "fr": "Sefiane",
+    "codeW": "5"
+  },
+  {
+    "id": "141",
+    "codeC": "05025",
+    "fr": "Rahbat",
+    "codeW": "5"
+  },
+  {
+    "id": "142",
+    "codeC": "05026",
+    "fr": "Tighanimine",
+    "codeW": "5"
+  },
+  {
+    "id": "143",
+    "codeC": "05027",
+    "fr": "Lemsane",
+    "codeW": "5"
+  },
+  {
+    "id": "144",
+    "codeC": "05028",
+    "fr": "Ksar Belezma",
+    "codeW": "5"
+  },
+  {
+    "id": "145",
+    "codeC": "05029",
+    "fr": "Seggana",
+    "codeW": "5"
+  },
+  {
+    "id": "146",
+    "codeC": "05030",
+    "fr": "Ichmoul",
+    "codeW": "5"
+  },
+  {
+    "id": "147",
+    "codeC": "05031",
+    "fr": "Foum Toub",
+    "codeW": "5"
+  },
+  {
+    "id": "148",
+    "codeC": "05032",
+    "fr": "Beni Foudhala El Hakania",
+    "codeW": "5"
+  },
+  {
+    "id": "149",
+    "codeC": "05033",
+    "fr": "Oued El Ma",
+    "codeW": "5"
+  },
+  {
+    "id": "150",
+    "codeC": "05034",
+    "fr": "Talkhamt",
+    "codeW": "5"
+  },
+  {
+    "id": "151",
+    "codeC": "05035",
+    "fr": "Bouzina",
+    "codeW": "5"
+  },
+  {
+    "id": "152",
+    "codeC": "05036",
+    "fr": "Chemora",
+    "codeW": "5"
+  },
+  {
+    "id": "153",
+    "codeC": "05037",
+    "fr": "Oued Chaaba",
+    "codeW": "5"
+  },
+  {
+    "id": "154",
+    "codeC": "05038",
+    "fr": "Taxlent",
+    "codeW": "5"
+  },
+  {
+    "id": "155",
+    "codeC": "05039",
+    "fr": "Gosbat",
+    "codeW": "5"
+  },
+  {
+    "id": "156",
+    "codeC": "05040",
+    "fr": "Ouled Aouf",
+    "codeW": "5"
+  },
+  {
+    "id": "157",
+    "codeC": "05041",
+    "fr": "Boumagueur",
+    "codeW": "5"
+  },
+  {
+    "id": "158",
+    "codeC": "05042",
+    "fr": "Barika",
+    "codeW": "5"
+  },
+  {
+    "id": "159",
+    "codeC": "05043",
+    "fr": "Djezzar",
+    "codeW": "5"
+  },
+  {
+    "id": "160",
+    "codeC": "05044",
+    "fr": "Tkout",
+    "codeW": "5"
+  },
+  {
+    "id": "161",
+    "codeC": "05045",
+    "fr": "Ain Touta",
+    "codeW": "5"
+  },
+  {
+    "id": "162",
+    "codeC": "05046",
+    "fr": "Hidoussa",
+    "codeW": "5"
+  },
+  {
+    "id": "163",
+    "codeC": "05047",
+    "fr": "Teniet El Abed",
+    "codeW": "5"
+  },
+  {
+    "id": "164",
+    "codeC": "05048",
+    "fr": "Oued Taga",
+    "codeW": "5"
+  },
+  {
+    "id": "165",
+    "codeC": "05049",
+    "fr": "Ouled Fadel",
+    "codeW": "5"
+  },
+  {
+    "id": "166",
+    "codeC": "05050",
+    "fr": "Timgad",
+    "codeW": "5"
+  },
+  {
+    "id": "167",
+    "codeC": "05051",
+    "fr": "Ras El Aioun",
+    "codeW": "5"
+  },
+  {
+    "id": "168",
+    "codeC": "05052",
+    "fr": "Chir",
+    "codeW": "5"
+  },
+  {
+    "id": "169",
+    "codeC": "05053",
+    "fr": "Ouled Si Slimane",
+    "codeW": "5"
+  },
+  {
+    "id": "170",
+    "codeC": "05054",
+    "fr": "Zanat El Beida",
+    "codeW": "5"
+  },
+  {
+    "id": "171",
+    "codeC": "05055",
+    "fr": "Amdoukal",
+    "codeW": "5"
+  },
+  {
+    "id": "172",
+    "codeC": "05056",
+    "fr": "Ouled Ammar",
+    "codeW": "5"
+  },
+  {
+    "id": "173",
+    "codeC": "05057",
+    "fr": "El Hassi",
+    "codeW": "5"
+  },
+  {
+    "id": "174",
+    "codeC": "05058",
+    "fr": "Lazrou",
+    "codeW": "5"
+  },
+  {
+    "id": "175",
+    "codeC": "05059",
+    "fr": "Boumia",
+    "codeW": "5"
+  },
+  {
+    "id": "176",
+    "codeC": "05060",
+    "fr": "Boulhilat",
+    "codeW": "5"
+  },
+  {
+    "id": "177",
+    "codeC": "05061",
+    "fr": "Larbaa",
+    "codeW": "5"
+  },
+  {
+    "id": "178",
+    "codeC": "06001",
+    "fr": "Bejaia",
+    "codeW": "6"
+  },
+  {
+    "id": "179",
+    "codeC": "06002",
+    "fr": "Amizour",
+    "codeW": "6"
+  },
+  {
+    "id": "180",
+    "codeC": "06003",
+    "fr": "Ferraoun",
+    "codeW": "6"
+  },
+  {
+    "id": "181",
+    "codeC": "06004",
+    "fr": "Taourirt Ighil",
+    "codeW": "6"
+  },
+  {
+    "id": "182",
+    "codeC": "06005",
+    "fr": "Chelata",
+    "codeW": "6"
+  },
+  {
+    "id": "183",
+    "codeC": "06006",
+    "fr": "Tamokra",
+    "codeW": "6"
+  },
+  {
+    "id": "184",
+    "codeC": "06007",
+    "fr": "Timzrit",
+    "codeW": "6"
+  },
+  {
+    "id": "185",
+    "codeC": "06008",
+    "fr": "Souk El Thenine",
+    "codeW": "6"
+  },
+  {
+    "id": "186",
+    "codeC": "06009",
+    "fr": "Mcisna",
+    "codeW": "6"
+  },
+  {
+    "id": "187",
+    "codeC": "06010",
+    "fr": "Thinabdher",
+    "codeW": "6"
+  },
+  {
+    "id": "188",
+    "codeC": "06011",
+    "fr": "Tichi",
+    "codeW": "6"
+  },
+  {
+    "id": "189",
+    "codeC": "06012",
+    "fr": "Semaoun",
+    "codeW": "6"
+  },
+  {
+    "id": "190",
+    "codeC": "06013",
+    "fr": "Kendira",
+    "codeW": "6"
+  },
+  {
+    "id": "191",
+    "codeC": "06014",
+    "fr": "Tifra",
+    "codeW": "6"
+  },
+  {
+    "id": "192",
+    "codeC": "06015",
+    "fr": "Ighram",
+    "codeW": "6"
+  },
+  {
+    "id": "193",
+    "codeC": "06016",
+    "fr": "Amalou",
+    "codeW": "6"
+  },
+  {
+    "id": "194",
+    "codeC": "06017",
+    "fr": "Ighil Ali",
+    "codeW": "6"
+  },
+  {
+    "id": "195",
+    "codeC": "06018",
+    "fr": "Ifelain Ilmathen",
+    "codeW": "6"
+  },
+  {
+    "id": "196",
+    "codeC": "06019",
+    "fr": "Toudja",
+    "codeW": "6"
+  },
+  {
+    "id": "197",
+    "codeC": "06020",
+    "fr": "Darguina",
+    "codeW": "6"
+  },
+  {
+    "id": "198",
+    "codeC": "06021",
+    "fr": "Sidi Ayad",
+    "codeW": "6"
+  },
+  {
+    "id": "199",
+    "codeC": "06022",
+    "fr": "Aokas",
+    "codeW": "6"
+  },
+  {
+    "id": "200",
+    "codeC": "06023",
+    "fr": "Beni Djellil",
+    "codeW": "6"
+  },
+  {
+    "id": "201",
+    "codeC": "06024",
+    "fr": "Adekar",
+    "codeW": "6"
+  },
+  {
+    "id": "202",
+    "codeC": "06025",
+    "fr": "Akbou",
+    "codeW": "6"
+  },
+  {
+    "id": "203",
+    "codeC": "06026",
+    "fr": "Seddouk",
+    "codeW": "6"
+  },
+  {
+    "id": "204",
+    "codeC": "06027",
+    "fr": "Tazmalt",
+    "codeW": "6"
+  },
+  {
+    "id": "205",
+    "codeC": "06028",
+    "fr": "Ait Rizine",
+    "codeW": "6"
+  },
+  {
+    "id": "206",
+    "codeC": "06029",
+    "fr": "Chemini",
+    "codeW": "6"
+  },
+  {
+    "id": "207",
+    "codeC": "06030",
+    "fr": "Souk Oufella",
+    "codeW": "6"
+  },
+  {
+    "id": "208",
+    "codeC": "06031",
+    "fr": "Taskriout",
+    "codeW": "6"
+  },
+  {
+    "id": "209",
+    "codeC": "06032",
+    "fr": "Tibane",
+    "codeW": "6"
+  },
+  {
+    "id": "210",
+    "codeC": "06033",
+    "fr": "Tala Hamza",
+    "codeW": "6"
+  },
+  {
+    "id": "211",
+    "codeC": "06034",
+    "fr": "Barbacha",
+    "codeW": "6"
+  },
+  {
+    "id": "212",
+    "codeC": "06035",
+    "fr": "Beni Ksila",
+    "codeW": "6"
+  },
+  {
+    "id": "213",
+    "codeC": "06036",
+    "fr": "Ouzallaguen",
+    "codeW": "6"
+  },
+  {
+    "id": "214",
+    "codeC": "06037",
+    "fr": "Bouhamza",
+    "codeW": "6"
+  },
+  {
+    "id": "215",
+    "codeC": "06038",
+    "fr": "Beni Melikeche",
+    "codeW": "6"
+  },
+  {
+    "id": "216",
+    "codeC": "06039",
+    "fr": "Sidi Aich",
+    "codeW": "6"
+  },
+  {
+    "id": "217",
+    "codeC": "06040",
+    "fr": "El Kseur",
+    "codeW": "6"
+  },
+  {
+    "id": "218",
+    "codeC": "06041",
+    "fr": "Melbou",
+    "codeW": "6"
+  },
+  {
+    "id": "219",
+    "codeC": "06042",
+    "fr": "Akfadou",
+    "codeW": "6"
+  },
+  {
+    "id": "220",
+    "codeC": "06043",
+    "fr": "Leflaye",
+    "codeW": "6"
+  },
+  {
+    "id": "221",
+    "codeC": "06044",
+    "fr": "Kherrata",
+    "codeW": "6"
+  },
+  {
+    "id": "222",
+    "codeC": "06045",
+    "fr": "Draa Kaid",
+    "codeW": "6"
+  },
+  {
+    "id": "223",
+    "codeC": "06046",
+    "fr": "Tamridjet",
+    "codeW": "6"
+  },
+  {
+    "id": "224",
+    "codeC": "06047",
+    "fr": "Ait Smail",
+    "codeW": "6"
+  },
+  {
+    "id": "225",
+    "codeC": "06048",
+    "fr": "Boukhelifa",
+    "codeW": "6"
+  },
+  {
+    "id": "226",
+    "codeC": "06049",
+    "fr": "Tizi Nberber",
+    "codeW": "6"
+  },
+  {
+    "id": "227",
+    "codeC": "06050",
+    "fr": "Beni Maouch",
+    "codeW": "6"
+  },
+  {
+    "id": "228",
+    "codeC": "06051",
+    "fr": "Oued Ghir",
+    "codeW": "6"
+  },
+  {
+    "id": "229",
+    "codeC": "06052",
+    "fr": "Boudjellil",
+    "codeW": "6"
+  },
+  {
+    "id": "230",
+    "codeC": "07001",
+    "fr": "Biskra",
+    "codeW": "7"
+  },
+  {
+    "id": "231",
+    "codeC": "07002",
+    "fr": "Oumache",
+    "codeW": "7"
+  },
+  {
+    "id": "232",
+    "codeC": "07003",
+    "fr": "Branis",
+    "codeW": "7"
+  },
+  {
+    "id": "233",
+    "codeC": "07004",
+    "fr": "Chetma",
+    "codeW": "7"
+  },
+  {
+    "id": "234",
+    "codeC": "07005",
+    "fr": "Ouled Djellal",
+    "codeW": "7"
+  },
+  {
+    "id": "235",
+    "codeC": "07006",
+    "fr": "Ras El Miaad",
+    "codeW": "7"
+  },
+  {
+    "id": "236",
+    "codeC": "07007",
+    "fr": "Besbes",
+    "codeW": "7"
+  },
+  {
+    "id": "237",
+    "codeC": "07008",
+    "fr": "Sidi Khaled",
+    "codeW": "7"
+  },
+  {
+    "id": "238",
+    "codeC": "07009",
+    "fr": "Doucen",
+    "codeW": "7"
+  },
+  {
+    "id": "239",
+    "codeC": "07010",
+    "fr": "Ech Chaiba",
+    "codeW": "7"
+  },
+  {
+    "id": "240",
+    "codeC": "07011",
+    "fr": "Sidi Okba",
+    "codeW": "7"
+  },
+  {
+    "id": "241",
+    "codeC": "07012",
+    "fr": "Mchouneche",
+    "codeW": "7"
+  },
+  {
+    "id": "242",
+    "codeC": "07013",
+    "fr": "El Haouch",
+    "codeW": "7"
+  },
+  {
+    "id": "243",
+    "codeC": "07014",
+    "fr": "Ain Naga",
+    "codeW": "7"
+  },
+  {
+    "id": "244",
+    "codeC": "07015",
+    "fr": "Zeribet El Oued",
+    "codeW": "7"
+  },
+  {
+    "id": "245",
+    "codeC": "07016",
+    "fr": "El Feidh",
+    "codeW": "7"
+  },
+  {
+    "id": "246",
+    "codeC": "07017",
+    "fr": "El Kantara",
+    "codeW": "7"
+  },
+  {
+    "id": "247",
+    "codeC": "07018",
+    "fr": "Ain Zaatout",
+    "codeW": "7"
+  },
+  {
+    "id": "248",
+    "codeC": "07019",
+    "fr": "El Outaya",
+    "codeW": "7"
+  },
+  {
+    "id": "249",
+    "codeC": "07020",
+    "fr": "Djemorah",
+    "codeW": "7"
+  },
+  {
+    "id": "250",
+    "codeC": "07021",
+    "fr": "Tolga",
+    "codeW": "7"
+  },
+  {
+    "id": "251",
+    "codeC": "07022",
+    "fr": "Lioua",
+    "codeW": "7"
+  },
+  {
+    "id": "252",
+    "codeC": "07023",
+    "fr": "Lichana",
+    "codeW": "7"
+  },
+  {
+    "id": "253",
+    "codeC": "07024",
+    "fr": "Ourlal",
+    "codeW": "7"
+  },
+  {
+    "id": "254",
+    "codeC": "07025",
+    "fr": "Mlili",
+    "codeW": "7"
+  },
+  {
+    "id": "255",
+    "codeC": "07026",
+    "fr": "Foughala",
+    "codeW": "7"
+  },
+  {
+    "id": "256",
+    "codeC": "07027",
+    "fr": "Bordj Ben Azzouz",
+    "codeW": "7"
+  },
+  {
+    "id": "257",
+    "codeC": "07028",
+    "fr": "Meziraa",
+    "codeW": "7"
+  },
+  {
+    "id": "258",
+    "codeC": "07029",
+    "fr": "Bouchagroun",
+    "codeW": "7"
+  },
+  {
+    "id": "259",
+    "codeC": "07030",
+    "fr": "Mekhadma",
+    "codeW": "7"
+  },
+  {
+    "id": "260",
+    "codeC": "07031",
+    "fr": "El Ghrous",
+    "codeW": "7"
+  },
+  {
+    "id": "261",
+    "codeC": "07032",
+    "fr": "El Hadjab",
+    "codeW": "7"
+  },
+  {
+    "id": "262",
+    "codeC": "07033",
+    "fr": "Khanguet Sidinadji",
+    "codeW": "7"
+  },
+  {
+    "id": "263",
+    "codeC": "08001",
+    "fr": "Bechar",
+    "codeW": "8"
+  },
+  {
+    "id": "264",
+    "codeC": "08002",
+    "fr": "Erg Ferradj",
+    "codeW": "8"
+  },
+  {
+    "id": "265",
+    "codeC": "08003",
+    "fr": "Ouled Khoudir",
+    "codeW": "8"
+  },
+  {
+    "id": "266",
+    "codeC": "08004",
+    "fr": "Meridja",
+    "codeW": "8"
+  },
+  {
+    "id": "267",
+    "codeC": "08005",
+    "fr": "Timoudi",
+    "codeW": "8"
+  },
+  {
+    "id": "268",
+    "codeC": "08006",
+    "fr": "Lahmar",
+    "codeW": "8"
+  },
+  {
+    "id": "269",
+    "codeC": "08007",
+    "fr": "Beni Abbes",
+    "codeW": "8"
+  },
+  {
+    "id": "270",
+    "codeC": "08008",
+    "fr": "Beni Ikhlef",
+    "codeW": "8"
+  },
+  {
+    "id": "271",
+    "codeC": "08009",
+    "fr": "Mechraa Houari B",
+    "codeW": "8"
+  },
+  {
+    "id": "272",
+    "codeC": "08010",
+    "fr": "Kenedsa",
+    "codeW": "8"
+  },
+  {
+    "id": "273",
+    "codeC": "08011",
+    "fr": "Igli",
+    "codeW": "8"
+  },
+  {
+    "id": "274",
+    "codeC": "08012",
+    "fr": "Tabalbala",
+    "codeW": "8"
+  },
+  {
+    "id": "275",
+    "codeC": "08013",
+    "fr": "Taghit",
+    "codeW": "8"
+  },
+  {
+    "id": "276",
+    "codeC": "08014",
+    "fr": "El Ouata",
+    "codeW": "8"
+  },
+  {
+    "id": "277",
+    "codeC": "08015",
+    "fr": "Boukais",
+    "codeW": "8"
+  },
+  {
+    "id": "278",
+    "codeC": "08016",
+    "fr": "Mogheul",
+    "codeW": "8"
+  },
+  {
+    "id": "279",
+    "codeC": "08017",
+    "fr": "Abadla",
+    "codeW": "8"
+  },
+  {
+    "id": "280",
+    "codeC": "08018",
+    "fr": "Kerzaz",
+    "codeW": "8"
+  },
+  {
+    "id": "281",
+    "codeC": "08019",
+    "fr": "Ksabi",
+    "codeW": "8"
+  },
+  {
+    "id": "282",
+    "codeC": "08020",
+    "fr": "Tamtert",
+    "codeW": "8"
+  },
+  {
+    "id": "283",
+    "codeC": "08021",
+    "fr": "Beni Ounif",
+    "codeW": "8"
+  },
+  {
+    "id": "284",
+    "codeC": "09001",
+    "fr": "Blida",
+    "codeW": "9"
+  },
+  {
+    "id": "285",
+    "codeC": "09002",
+    "fr": "Chebli",
+    "codeW": "9"
+  },
+  {
+    "id": "286",
+    "codeC": "09003",
+    "fr": "Bouinan",
+    "codeW": "9"
+  },
+  {
+    "id": "287",
+    "codeC": "09004",
+    "fr": "Oued El Alleug",
+    "codeW": "9"
+  },
+  {
+    "id": "288",
+    "codeC": "09007",
+    "fr": "Ouled Yaich",
+    "codeW": "9"
+  },
+  {
+    "id": "289",
+    "codeC": "09008",
+    "fr": "Chrea",
+    "codeW": "9"
+  },
+  {
+    "id": "290",
+    "codeC": "09010",
+    "fr": "El Affroun",
+    "codeW": "9"
+  },
+  {
+    "id": "291",
+    "codeC": "09011",
+    "fr": "Chiffa",
+    "codeW": "9"
+  },
+  {
+    "id": "292",
+    "codeC": "09012",
+    "fr": "Hammam Melouane",
+    "codeW": "9"
+  },
+  {
+    "id": "293",
+    "codeC": "09013",
+    "fr": "Ben Khlil",
+    "codeW": "9"
+  },
+  {
+    "id": "294",
+    "codeC": "09014",
+    "fr": "Soumaa",
+    "codeW": "9"
+  },
+  {
+    "id": "295",
+    "codeC": "09016",
+    "fr": "Mouzaia",
+    "codeW": "9"
+  },
+  {
+    "id": "296",
+    "codeC": "09017",
+    "fr": "Souhane",
+    "codeW": "9"
+  },
+  {
+    "id": "297",
+    "codeC": "09018",
+    "fr": "Meftah",
+    "codeW": "9"
+  },
+  {
+    "id": "298",
+    "codeC": "09019",
+    "fr": "Ouled Selama",
+    "codeW": "9"
+  },
+  {
+    "id": "299",
+    "codeC": "09020",
+    "fr": "Boufarik",
+    "codeW": "9"
+  },
+  {
+    "id": "300",
+    "codeC": "09021",
+    "fr": "Larbaa",
+    "codeW": "9"
+  },
+  {
+    "id": "301",
+    "codeC": "09022",
+    "fr": "Oued Djer",
+    "codeW": "9"
+  },
+  {
+    "id": "302",
+    "codeC": "09023",
+    "fr": "Beni Tamou",
+    "codeW": "9"
+  },
+  {
+    "id": "303",
+    "codeC": "09024",
+    "fr": "Bouarfa",
+    "codeW": "9"
+  },
+  {
+    "id": "304",
+    "codeC": "09025",
+    "fr": "Beni Mered",
+    "codeW": "9"
+  },
+  {
+    "id": "305",
+    "codeC": "09026",
+    "fr": "Bougara",
+    "codeW": "9"
+  },
+  {
+    "id": "306",
+    "codeC": "09027",
+    "fr": "Guerrouaou",
+    "codeW": "9"
+  },
+  {
+    "id": "307",
+    "codeC": "09028",
+    "fr": "Ain Romana",
+    "codeW": "9"
+  },
+  {
+    "id": "308",
+    "codeC": "09029",
+    "fr": "Djebabra",
+    "codeW": "9"
+  },
+  {
+    "id": "309",
+    "codeC": "10001",
+    "fr": "Bouira",
+    "codeW": "10"
+  },
+  {
+    "id": "310",
+    "codeC": "10002",
+    "fr": "El Asnam",
+    "codeW": "10"
+  },
+  {
+    "id": "311",
+    "codeC": "10003",
+    "fr": "Guerrouma",
+    "codeW": "10"
+  },
+  {
+    "id": "312",
+    "codeC": "10004",
+    "fr": "Souk El Khemis",
+    "codeW": "10"
+  },
+  {
+    "id": "313",
+    "codeC": "10005",
+    "fr": "Kadiria",
+    "codeW": "10"
+  },
+  {
+    "id": "314",
+    "codeC": "10006",
+    "fr": "Hanif",
+    "codeW": "10"
+  },
+  {
+    "id": "315",
+    "codeC": "10007",
+    "fr": "Dirah",
+    "codeW": "10"
+  },
+  {
+    "id": "316",
+    "codeC": "10008",
+    "fr": "Ait Laaziz",
+    "codeW": "10"
+  },
+  {
+    "id": "317",
+    "codeC": "10009",
+    "fr": "Taghzout",
+    "codeW": "10"
+  },
+  {
+    "id": "318",
+    "codeC": "10010",
+    "fr": "Raouraoua",
+    "codeW": "10"
+  },
+  {
+    "id": "319",
+    "codeC": "10011",
+    "fr": "Mezdour",
+    "codeW": "10"
+  },
+  {
+    "id": "320",
+    "codeC": "10012",
+    "fr": "Haizer",
+    "codeW": "10"
+  },
+  {
+    "id": "321",
+    "codeC": "10013",
+    "fr": "Lakhdaria",
+    "codeW": "10"
+  },
+  {
+    "id": "322",
+    "codeC": "10014",
+    "fr": "Maala",
+    "codeW": "10"
+  },
+  {
+    "id": "323",
+    "codeC": "10015",
+    "fr": "El Hachimia",
+    "codeW": "10"
+  },
+  {
+    "id": "324",
+    "codeC": "10016",
+    "fr": "Aomar",
+    "codeW": "10"
+  },
+  {
+    "id": "325",
+    "codeC": "10017",
+    "fr": "Chorfa",
+    "codeW": "10"
+  },
+  {
+    "id": "326",
+    "codeC": "10018",
+    "fr": "Bordj Oukhriss",
+    "codeW": "10"
+  },
+  {
+    "id": "327",
+    "codeC": "10019",
+    "fr": "El Adjiba",
+    "codeW": "10"
+  },
+  {
+    "id": "328",
+    "codeC": "10020",
+    "fr": "El Hakimia",
+    "codeW": "10"
+  },
+  {
+    "id": "329",
+    "codeC": "10021",
+    "fr": "El Khebouzia",
+    "codeW": "10"
+  },
+  {
+    "id": "330",
+    "codeC": "10022",
+    "fr": "Ahl El Ksar",
+    "codeW": "10"
+  },
+  {
+    "id": "331",
+    "codeC": "10023",
+    "fr": "Bouderbala",
+    "codeW": "10"
+  },
+  {
+    "id": "332",
+    "codeC": "10024",
+    "fr": "Zbarbar",
+    "codeW": "10"
+  },
+  {
+    "id": "333",
+    "codeC": "10025",
+    "fr": "Ain El Hadjar",
+    "codeW": "10"
+  },
+  {
+    "id": "334",
+    "codeC": "10026",
+    "fr": "Djebahia",
+    "codeW": "10"
+  },
+  {
+    "id": "335",
+    "codeC": "10027",
+    "fr": "Aghbalou",
+    "codeW": "10"
+  },
+  {
+    "id": "336",
+    "codeC": "10028",
+    "fr": "Taguedit",
+    "codeW": "10"
+  },
+  {
+    "id": "337",
+    "codeC": "10029",
+    "fr": "Ain Turk",
+    "codeW": "10"
+  },
+  {
+    "id": "338",
+    "codeC": "10030",
+    "fr": "Saharidj",
+    "codeW": "10"
+  },
+  {
+    "id": "339",
+    "codeC": "10031",
+    "fr": "Dechmia",
+    "codeW": "10"
+  },
+  {
+    "id": "340",
+    "codeC": "10032",
+    "fr": "Ridane",
+    "codeW": "10"
+  },
+  {
+    "id": "341",
+    "codeC": "10033",
+    "fr": "Bechloul",
+    "codeW": "10"
+  },
+  {
+    "id": "342",
+    "codeC": "10034",
+    "fr": "Boukram",
+    "codeW": "10"
+  },
+  {
+    "id": "343",
+    "codeC": "10035",
+    "fr": "Ain Bessam",
+    "codeW": "10"
+  },
+  {
+    "id": "344",
+    "codeC": "10036",
+    "fr": "Bir Ghbalou",
+    "codeW": "10"
+  },
+  {
+    "id": "345",
+    "codeC": "10037",
+    "fr": "Mchedallah",
+    "codeW": "10"
+  },
+  {
+    "id": "346",
+    "codeC": "10038",
+    "fr": "Sour El Ghozlane",
+    "codeW": "10"
+  },
+  {
+    "id": "347",
+    "codeC": "10039",
+    "fr": "Maamora",
+    "codeW": "10"
+  },
+  {
+    "id": "348",
+    "codeC": "10040",
+    "fr": "Ouled Rached",
+    "codeW": "10"
+  },
+  {
+    "id": "349",
+    "codeC": "10041",
+    "fr": "Ain Laloui",
+    "codeW": "10"
+  },
+  {
+    "id": "350",
+    "codeC": "10042",
+    "fr": "Hadjera Zerga",
+    "codeW": "10"
+  },
+  {
+    "id": "351",
+    "codeC": "10043",
+    "fr": "Ath Mansour",
+    "codeW": "10"
+  },
+  {
+    "id": "352",
+    "codeC": "10044",
+    "fr": "El Mokrani",
+    "codeW": "10"
+  },
+  {
+    "id": "353",
+    "codeC": "10045",
+    "fr": "Oued El Berdi",
+    "codeW": "10"
+  },
+  {
+    "id": "354",
+    "codeC": "11001",
+    "fr": "Tamanghasset",
+    "codeW": "11"
+  },
+  {
+    "id": "355",
+    "codeC": "11002",
+    "fr": "Abalessa",
+    "codeW": "11"
+  },
+  {
+    "id": "356",
+    "codeC": "11003",
+    "fr": "In Ghar",
+    "codeW": "11"
+  },
+  {
+    "id": "357",
+    "codeC": "11004",
+    "fr": "In Guezzam",
+    "codeW": "11"
+  },
+  {
+    "id": "358",
+    "codeC": "11005",
+    "fr": "Idles",
+    "codeW": "11"
+  },
+  {
+    "id": "359",
+    "codeC": "11006",
+    "fr": "Tazouk",
+    "codeW": "11"
+  },
+  {
+    "id": "360",
+    "codeC": "11007",
+    "fr": "Tinzaouatine",
+    "codeW": "11"
+  },
+  {
+    "id": "361",
+    "codeC": "11008",
+    "fr": "In Salah",
+    "codeW": "11"
+  },
+  {
+    "id": "362",
+    "codeC": "11009",
+    "fr": "In Amguel",
+    "codeW": "11"
+  },
+  {
+    "id": "363",
+    "codeC": "11010",
+    "fr": "Foggaret Ezzaouia",
+    "codeW": "11"
+  },
+  {
+    "id": "364",
+    "codeC": "12001",
+    "fr": "Tebessa",
+    "codeW": "12"
+  },
+  {
+    "id": "365",
+    "codeC": "12002",
+    "fr": "Bir El Ater",
+    "codeW": "12"
+  },
+  {
+    "id": "366",
+    "codeC": "12003",
+    "fr": "Cheria",
+    "codeW": "12"
+  },
+  {
+    "id": "367",
+    "codeC": "12004",
+    "fr": "Stah Guentis",
+    "codeW": "12"
+  },
+  {
+    "id": "368",
+    "codeC": "12005",
+    "fr": "El Aouinet",
+    "codeW": "12"
+  },
+  {
+    "id": "369",
+    "codeC": "12006",
+    "fr": "Lahouidjbet",
+    "codeW": "12"
+  },
+  {
+    "id": "370",
+    "codeC": "12007",
+    "fr": "Safsaf El Ouesra",
+    "codeW": "12"
+  },
+  {
+    "id": "371",
+    "codeC": "12008",
+    "fr": "Hammamet",
+    "codeW": "12"
+  },
+  {
+    "id": "372",
+    "codeC": "12009",
+    "fr": "Negrine",
+    "codeW": "12"
+  },
+  {
+    "id": "373",
+    "codeC": "12010",
+    "fr": "Bir El Mokadem",
+    "codeW": "12"
+  },
+  {
+    "id": "374",
+    "codeC": "12011",
+    "fr": "El Kouif",
+    "codeW": "12"
+  },
+  {
+    "id": "375",
+    "codeC": "12012",
+    "fr": "Morsott",
+    "codeW": "12"
+  },
+  {
+    "id": "376",
+    "codeC": "12013",
+    "fr": "El Ogla",
+    "codeW": "12"
+  },
+  {
+    "id": "377",
+    "codeC": "12014",
+    "fr": "Bir Dheheb",
+    "codeW": "12"
+  },
+  {
+    "id": "378",
+    "codeC": "12015",
+    "fr": "El Ogla El Malha",
+    "codeW": "12"
+  },
+  {
+    "id": "379",
+    "codeC": "12016",
+    "fr": "Gorriguer",
+    "codeW": "12"
+  },
+  {
+    "id": "380",
+    "codeC": "12017",
+    "fr": "Bekkaria",
+    "codeW": "12"
+  },
+  {
+    "id": "381",
+    "codeC": "12018",
+    "fr": "Boukhadra",
+    "codeW": "12"
+  },
+  {
+    "id": "382",
+    "codeC": "12019",
+    "fr": "Ouenza",
+    "codeW": "12"
+  },
+  {
+    "id": "383",
+    "codeC": "12020",
+    "fr": "El Ma El Biodh",
+    "codeW": "12"
+  },
+  {
+    "id": "384",
+    "codeC": "12021",
+    "fr": "Oum Ali",
+    "codeW": "12"
+  },
+  {
+    "id": "385",
+    "codeC": "12022",
+    "fr": "Thlidjene",
+    "codeW": "12"
+  },
+  {
+    "id": "386",
+    "codeC": "12023",
+    "fr": "Ain Zerga",
+    "codeW": "12"
+  },
+  {
+    "id": "387",
+    "codeC": "12024",
+    "fr": "El Meridj",
+    "codeW": "12"
+  },
+  {
+    "id": "388",
+    "codeC": "12025",
+    "fr": "Boulhaf Dyr",
+    "codeW": "12"
+  },
+  {
+    "id": "389",
+    "codeC": "12026",
+    "fr": "Bedjene",
+    "codeW": "12"
+  },
+  {
+    "id": "390",
+    "codeC": "12027",
+    "fr": "El Mazeraa",
+    "codeW": "12"
+  },
+  {
+    "id": "391",
+    "codeC": "12028",
+    "fr": "Ferkane",
+    "codeW": "12"
+  },
+  {
+    "id": "392",
+    "codeC": "13001",
+    "fr": "Tlemcen",
+    "codeW": "13"
+  },
+  {
+    "id": "393",
+    "codeC": "13002",
+    "fr": "Beni Mester",
+    "codeW": "13"
+  },
+  {
+    "id": "394",
+    "codeC": "13003",
+    "fr": "Ain Tallout",
+    "codeW": "13"
+  },
+  {
+    "id": "395",
+    "codeC": "13004",
+    "fr": "Remchi",
+    "codeW": "13"
+  },
+  {
+    "id": "396",
+    "codeC": "13005",
+    "fr": "El Fehoul",
+    "codeW": "13"
+  },
+  {
+    "id": "397",
+    "codeC": "13006",
+    "fr": "Sabra",
+    "codeW": "13"
+  },
+  {
+    "id": "398",
+    "codeC": "13007",
+    "fr": "Ghazaouet",
+    "codeW": "13"
+  },
+  {
+    "id": "399",
+    "codeC": "13008",
+    "fr": "Souani",
+    "codeW": "13"
+  },
+  {
+    "id": "400",
+    "codeC": "13009",
+    "fr": "Djebala",
+    "codeW": "13"
+  },
+  {
+    "id": "401",
+    "codeC": "13010",
+    "fr": "El Gor",
+    "codeW": "13"
+  },
+  {
+    "id": "402",
+    "codeC": "13011",
+    "fr": "Oued Chouly",
+    "codeW": "13"
+  },
+  {
+    "id": "403",
+    "codeC": "13012",
+    "fr": "Ain Fezza",
+    "codeW": "13"
+  },
+  {
+    "id": "404",
+    "codeC": "13013",
+    "fr": "Ouled Mimoun",
+    "codeW": "13"
+  },
+  {
+    "id": "405",
+    "codeC": "13014",
+    "fr": "Amieur",
+    "codeW": "13"
+  },
+  {
+    "id": "406",
+    "codeC": "13015",
+    "fr": "Ain Youcef",
+    "codeW": "13"
+  },
+  {
+    "id": "407",
+    "codeC": "13016",
+    "fr": "Zenata",
+    "codeW": "13"
+  },
+  {
+    "id": "408",
+    "codeC": "13017",
+    "fr": "Beni Snous",
+    "codeW": "13"
+  },
+  {
+    "id": "409",
+    "codeC": "13018",
+    "fr": "Bab El Assa",
+    "codeW": "13"
+  },
+  {
+    "id": "410",
+    "codeC": "13019",
+    "fr": "Dar Yaghmouracene",
+    "codeW": "13"
+  },
+  {
+    "id": "411",
+    "codeC": "13020",
+    "fr": "Fellaoucene",
+    "codeW": "13"
+  },
+  {
+    "id": "412",
+    "codeC": "13021",
+    "fr": "Azails",
+    "codeW": "13"
+  },
+  {
+    "id": "413",
+    "codeC": "13022",
+    "fr": "Sebbaa Chioukh",
+    "codeW": "13"
+  },
+  {
+    "id": "414",
+    "codeC": "13023",
+    "fr": "Terni Beni Hediel",
+    "codeW": "13"
+  },
+  {
+    "id": "415",
+    "codeC": "13024",
+    "fr": "Bensekrane",
+    "codeW": "13"
+  },
+  {
+    "id": "416",
+    "codeC": "13025",
+    "fr": "Ain Nehala",
+    "codeW": "13"
+  },
+  {
+    "id": "417",
+    "codeC": "13026",
+    "fr": "Hennaya",
+    "codeW": "13"
+  },
+  {
+    "id": "418",
+    "codeC": "13027",
+    "fr": "Maghnia",
+    "codeW": "13"
+  },
+  {
+    "id": "419",
+    "codeC": "13028",
+    "fr": "Hammam Boughrara",
+    "codeW": "13"
+  },
+  {
+    "id": "420",
+    "codeC": "13029",
+    "fr": "Souahlia",
+    "codeW": "13"
+  },
+  {
+    "id": "421",
+    "codeC": "13030",
+    "fr": "Msirda Fouaga",
+    "codeW": "13"
+  },
+  {
+    "id": "422",
+    "codeC": "13031",
+    "fr": "Ain Fetah",
+    "codeW": "13"
+  },
+  {
+    "id": "423",
+    "codeC": "13032",
+    "fr": "El Aricha",
+    "codeW": "13"
+  },
+  {
+    "id": "424",
+    "codeC": "13033",
+    "fr": "Souk Thlata",
+    "codeW": "13"
+  },
+  {
+    "id": "425",
+    "codeC": "13034",
+    "fr": "Sidi Abdelli",
+    "codeW": "13"
+  },
+  {
+    "id": "426",
+    "codeC": "13035",
+    "fr": "Sebdou",
+    "codeW": "13"
+  },
+  {
+    "id": "427",
+    "codeC": "13036",
+    "fr": "Beni Ouarsous",
+    "codeW": "13"
+  },
+  {
+    "id": "428",
+    "codeC": "13037",
+    "fr": "Sidi Medjahed",
+    "codeW": "13"
+  },
+  {
+    "id": "429",
+    "codeC": "13038",
+    "fr": "Beni Boussaid",
+    "codeW": "13"
+  },
+  {
+    "id": "430",
+    "codeC": "13039",
+    "fr": "Marsa Ben Mhidi",
+    "codeW": "13"
+  },
+  {
+    "id": "431",
+    "codeC": "13040",
+    "fr": "Nedroma",
+    "codeW": "13"
+  },
+  {
+    "id": "432",
+    "codeC": "13041",
+    "fr": "Sidi Djillali",
+    "codeW": "13"
+  },
+  {
+    "id": "433",
+    "codeC": "13042",
+    "fr": "Beni Bahdel",
+    "codeW": "13"
+  },
+  {
+    "id": "434",
+    "codeC": "13043",
+    "fr": "El Bouihi",
+    "codeW": "13"
+  },
+  {
+    "id": "435",
+    "codeC": "13044",
+    "fr": "Honaine",
+    "codeW": "13"
+  },
+  {
+    "id": "436",
+    "codeC": "13045",
+    "fr": "Tianet",
+    "codeW": "13"
+  },
+  {
+    "id": "437",
+    "codeC": "13046",
+    "fr": "Ouled Riyah",
+    "codeW": "13"
+  },
+  {
+    "id": "438",
+    "codeC": "13047",
+    "fr": "Bouhlou",
+    "codeW": "13"
+  },
+  {
+    "id": "439",
+    "codeC": "13048",
+    "fr": "Souk El Khemis",
+    "codeW": "13"
+  },
+  {
+    "id": "440",
+    "codeC": "13049",
+    "fr": "Ain Ghoraba",
+    "codeW": "13"
+  },
+  {
+    "id": "441",
+    "codeC": "13050",
+    "fr": "Chetouane",
+    "codeW": "13"
+  },
+  {
+    "id": "442",
+    "codeC": "13051",
+    "fr": "Mansourah",
+    "codeW": "13"
+  },
+  {
+    "id": "443",
+    "codeC": "13052",
+    "fr": "Beni Semiel",
+    "codeW": "13"
+  },
+  {
+    "id": "444",
+    "codeC": "13053",
+    "fr": "Ain Kebira",
+    "codeW": "13"
+  },
+  {
+    "id": "445",
+    "codeC": "14001",
+    "fr": "Tiaret",
+    "codeW": "14"
+  },
+  {
+    "id": "446",
+    "codeC": "14002",
+    "fr": "Medroussa",
+    "codeW": "14"
+  },
+  {
+    "id": "447",
+    "codeC": "14003",
+    "fr": "Ain Bouchekif",
+    "codeW": "14"
+  },
+  {
+    "id": "448",
+    "codeC": "14004",
+    "fr": "Sidi Ali Mellal",
+    "codeW": "14"
+  },
+  {
+    "id": "449",
+    "codeC": "14005",
+    "fr": "Ain Zarit",
+    "codeW": "14"
+  },
+  {
+    "id": "450",
+    "codeC": "14006",
+    "fr": "Ain Deheb",
+    "codeW": "14"
+  },
+  {
+    "id": "451",
+    "codeC": "14007",
+    "fr": "Sidi Bakhti",
+    "codeW": "14"
+  },
+  {
+    "id": "452",
+    "codeC": "14008",
+    "fr": "Medrissa",
+    "codeW": "14"
+  },
+  {
+    "id": "453",
+    "codeC": "14009",
+    "fr": "Zmalet El Emir Aek",
+    "codeW": "14"
+  },
+  {
+    "id": "454",
+    "codeC": "14010",
+    "fr": "Madna",
+    "codeW": "14"
+  },
+  {
+    "id": "455",
+    "codeC": "14011",
+    "fr": "Sebt",
+    "codeW": "14"
+  },
+  {
+    "id": "456",
+    "codeC": "14012",
+    "fr": "Mellakou",
+    "codeW": "14"
+  },
+  {
+    "id": "457",
+    "codeC": "14013",
+    "fr": "Dahmouni",
+    "codeW": "14"
+  },
+  {
+    "id": "458",
+    "codeC": "14014",
+    "fr": "Rahouia",
+    "codeW": "14"
+  },
+  {
+    "id": "459",
+    "codeC": "14015",
+    "fr": "Mahdia",
+    "codeW": "14"
+  },
+  {
+    "id": "460",
+    "codeC": "14016",
+    "fr": "Sougueur",
+    "codeW": "14"
+  },
+  {
+    "id": "461",
+    "codeC": "14017",
+    "fr": "Sidi Abdelghani",
+    "codeW": "14"
+  },
+  {
+    "id": "462",
+    "codeC": "14018",
+    "fr": "Ain El Hadid",
+    "codeW": "14"
+  },
+  {
+    "id": "463",
+    "codeC": "14019",
+    "fr": "Ouled Djerad",
+    "codeW": "14"
+  },
+  {
+    "id": "464",
+    "codeC": "14020",
+    "fr": "Naima",
+    "codeW": "14"
+  },
+  {
+    "id": "465",
+    "codeC": "14021",
+    "fr": "Meghila",
+    "codeW": "14"
+  },
+  {
+    "id": "466",
+    "codeC": "14022",
+    "fr": "Guertoufa",
+    "codeW": "14"
+  },
+  {
+    "id": "467",
+    "codeC": "14023",
+    "fr": "Sidi Hosni",
+    "codeW": "14"
+  },
+  {
+    "id": "468",
+    "codeC": "14024",
+    "fr": "Djillali Ben Amar",
+    "codeW": "14"
+  },
+  {
+    "id": "469",
+    "codeC": "14025",
+    "fr": "Sebaine",
+    "codeW": "14"
+  },
+  {
+    "id": "470",
+    "codeC": "14026",
+    "fr": "Tousnina",
+    "codeW": "14"
+  },
+  {
+    "id": "471",
+    "codeC": "14027",
+    "fr": "Frenda",
+    "codeW": "14"
+  },
+  {
+    "id": "472",
+    "codeC": "14028",
+    "fr": "Ain Kermes",
+    "codeW": "14"
+  },
+  {
+    "id": "473",
+    "codeC": "14029",
+    "fr": "Ksar Chellala",
+    "codeW": "14"
+  },
+  {
+    "id": "474",
+    "codeC": "14030",
+    "fr": "Rechaiga",
+    "codeW": "14"
+  },
+  {
+    "id": "475",
+    "codeC": "14031",
+    "fr": "Nadorah",
+    "codeW": "14"
+  },
+  {
+    "id": "476",
+    "codeC": "14032",
+    "fr": "Tagdemt",
+    "codeW": "14"
+  },
+  {
+    "id": "477",
+    "codeC": "14033",
+    "fr": "Oued Lilli",
+    "codeW": "14"
+  },
+  {
+    "id": "478",
+    "codeC": "14034",
+    "fr": "Mechraa Safa",
+    "codeW": "14"
+  },
+  {
+    "id": "479",
+    "codeC": "14035",
+    "fr": "Hamadia",
+    "codeW": "14"
+  },
+  {
+    "id": "480",
+    "codeC": "14036",
+    "fr": "Chehaima",
+    "codeW": "14"
+  },
+  {
+    "id": "481",
+    "codeC": "14037",
+    "fr": "Takhemaret",
+    "codeW": "14"
+  },
+  {
+    "id": "482",
+    "codeC": "14038",
+    "fr": "Sidi Abderrahmane",
+    "codeW": "14"
+  },
+  {
+    "id": "483",
+    "codeC": "14039",
+    "fr": "Serghine",
+    "codeW": "14"
+  },
+  {
+    "id": "484",
+    "codeC": "14040",
+    "fr": "Bougara",
+    "codeW": "14"
+  },
+  {
+    "id": "485",
+    "codeC": "14041",
+    "fr": "Faidja",
+    "codeW": "14"
+  },
+  {
+    "id": "486",
+    "codeC": "14042",
+    "fr": "Tidda",
+    "codeW": "14"
+  },
+  {
+    "id": "487",
+    "codeC": "15001",
+    "fr": "Tizi Ouzou",
+    "codeW": "15"
+  },
+  {
+    "id": "488",
+    "codeC": "15002",
+    "fr": "Ain El Hammam",
+    "codeW": "15"
+  },
+  {
+    "id": "489",
+    "codeC": "15003",
+    "fr": "Akbil",
+    "codeW": "15"
+  },
+  {
+    "id": "490",
+    "codeC": "15004",
+    "fr": "Freha",
+    "codeW": "15"
+  },
+  {
+    "id": "491",
+    "codeC": "15005",
+    "fr": "Souamaa",
+    "codeW": "15"
+  },
+  {
+    "id": "492",
+    "codeC": "15006",
+    "fr": "Mechtrass",
+    "codeW": "15"
+  },
+  {
+    "id": "493",
+    "codeC": "15007",
+    "fr": "Irdjen",
+    "codeW": "15"
+  },
+  {
+    "id": "494",
+    "codeC": "15008",
+    "fr": "Timizart",
+    "codeW": "15"
+  },
+  {
+    "id": "495",
+    "codeC": "15009",
+    "fr": "Makouda",
+    "codeW": "15"
+  },
+  {
+    "id": "496",
+    "codeC": "15010",
+    "fr": "Draa El Mizan",
+    "codeW": "15"
+  },
+  {
+    "id": "497",
+    "codeC": "15011",
+    "fr": "Tizi Ghenif",
+    "codeW": "15"
+  },
+  {
+    "id": "498",
+    "codeC": "15012",
+    "fr": "Bounouh",
+    "codeW": "15"
+  },
+  {
+    "id": "499",
+    "codeC": "15013",
+    "fr": "Ait Chaffaa",
+    "codeW": "15"
+  },
+  {
+    "id": "500",
+    "codeC": "15014",
+    "fr": "Frikat",
+    "codeW": "15"
+  },
+  {
+    "id": "501",
+    "codeC": "15015",
+    "fr": "Beni Aissi",
+    "codeW": "15"
+  },
+  {
+    "id": "502",
+    "codeC": "15016",
+    "fr": "Beni Zmenzer",
+    "codeW": "15"
+  },
+  {
+    "id": "503",
+    "codeC": "15017",
+    "fr": "Iferhounene",
+    "codeW": "15"
+  },
+  {
+    "id": "504",
+    "codeC": "15018",
+    "fr": "Azazga",
+    "codeW": "15"
+  },
+  {
+    "id": "505",
+    "codeC": "15019",
+    "fr": "Iloula Oumalou",
+    "codeW": "15"
+  },
+  {
+    "id": "506",
+    "codeC": "15020",
+    "fr": "Yakouren",
+    "codeW": "15"
+  },
+  {
+    "id": "507",
+    "codeC": "15021",
+    "fr": "Larba Nait Irathen",
+    "codeW": "15"
+  },
+  {
+    "id": "508",
+    "codeC": "15022",
+    "fr": "Tizi Rached",
+    "codeW": "15"
+  },
+  {
+    "id": "509",
+    "codeC": "15023",
+    "fr": "Zekri",
+    "codeW": "15"
+  },
+  {
+    "id": "510",
+    "codeC": "15024",
+    "fr": "Ouaguenoun",
+    "codeW": "15"
+  },
+  {
+    "id": "511",
+    "codeC": "15025",
+    "fr": "Ain Zaouia",
+    "codeW": "15"
+  },
+  {
+    "id": "512",
+    "codeC": "15026",
+    "fr": "Mkira",
+    "codeW": "15"
+  },
+  {
+    "id": "513",
+    "codeC": "15027",
+    "fr": "Ait Yahia",
+    "codeW": "15"
+  },
+  {
+    "id": "514",
+    "codeC": "15028",
+    "fr": "Ait Mahmoud",
+    "codeW": "15"
+  },
+  {
+    "id": "515",
+    "codeC": "15029",
+    "fr": "Maatka",
+    "codeW": "15"
+  },
+  {
+    "id": "516",
+    "codeC": "15030",
+    "fr": "Ait Boumehdi",
+    "codeW": "15"
+  },
+  {
+    "id": "517",
+    "codeC": "15031",
+    "fr": "Abi Youcef",
+    "codeW": "15"
+  },
+  {
+    "id": "518",
+    "codeC": "15032",
+    "fr": "Beni Douala",
+    "codeW": "15"
+  },
+  {
+    "id": "519",
+    "codeC": "15033",
+    "fr": "Illilten",
+    "codeW": "15"
+  },
+  {
+    "id": "520",
+    "codeC": "15034",
+    "fr": "Bouzguen",
+    "codeW": "15"
+  },
+  {
+    "id": "521",
+    "codeC": "15035",
+    "fr": "Ait Aggouacha",
+    "codeW": "15"
+  },
+  {
+    "id": "522",
+    "codeC": "15036",
+    "fr": "Ouadhia",
+    "codeW": "15"
+  },
+  {
+    "id": "523",
+    "codeC": "15037",
+    "fr": "Azzefoun",
+    "codeW": "15"
+  },
+  {
+    "id": "524",
+    "codeC": "15038",
+    "fr": "Tigzirt",
+    "codeW": "15"
+  },
+  {
+    "id": "525",
+    "codeC": "15039",
+    "fr": "Ait Aissa Mimoun",
+    "codeW": "15"
+  },
+  {
+    "id": "526",
+    "codeC": "15040",
+    "fr": "Boghni",
+    "codeW": "15"
+  },
+  {
+    "id": "527",
+    "codeC": "15041",
+    "fr": "Ifigha",
+    "codeW": "15"
+  },
+  {
+    "id": "528",
+    "codeC": "15042",
+    "fr": "Ait Oumalou",
+    "codeW": "15"
+  },
+  {
+    "id": "529",
+    "codeC": "15043",
+    "fr": "Tirmitine",
+    "codeW": "15"
+  },
+  {
+    "id": "530",
+    "codeC": "15044",
+    "fr": "Akerrou",
+    "codeW": "15"
+  },
+  {
+    "id": "531",
+    "codeC": "15045",
+    "fr": "Yatafen",
+    "codeW": "15"
+  },
+  {
+    "id": "532",
+    "codeC": "15046",
+    "fr": "Beni Ziki",
+    "codeW": "15"
+  },
+  {
+    "id": "533",
+    "codeC": "15047",
+    "fr": "Draa Ben Khedda",
+    "codeW": "15"
+  },
+  {
+    "id": "534",
+    "codeC": "15048",
+    "fr": "Ouacif",
+    "codeW": "15"
+  },
+  {
+    "id": "535",
+    "codeC": "15049",
+    "fr": "Idjeur",
+    "codeW": "15"
+  },
+  {
+    "id": "536",
+    "codeC": "15050",
+    "fr": "Mekla",
+    "codeW": "15"
+  },
+  {
+    "id": "537",
+    "codeC": "15051",
+    "fr": "Tizi Nthlata",
+    "codeW": "15"
+  },
+  {
+    "id": "538",
+    "codeC": "15052",
+    "fr": "Beni Yenni",
+    "codeW": "15"
+  },
+  {
+    "id": "539",
+    "codeC": "15053",
+    "fr": "Aghrib",
+    "codeW": "15"
+  },
+  {
+    "id": "540",
+    "codeC": "15054",
+    "fr": "Iflissen",
+    "codeW": "15"
+  },
+  {
+    "id": "541",
+    "codeC": "15055",
+    "fr": "Boudjima",
+    "codeW": "15"
+  },
+  {
+    "id": "542",
+    "codeC": "15056",
+    "fr": "Ait Yahia Moussa",
+    "codeW": "15"
+  },
+  {
+    "id": "543",
+    "codeC": "15057",
+    "fr": "Souk El Thenine",
+    "codeW": "15"
+  },
+  {
+    "id": "544",
+    "codeC": "15058",
+    "fr": "Ait Khelil",
+    "codeW": "15"
+  },
+  {
+    "id": "545",
+    "codeC": "15059",
+    "fr": "Sidi Naamane",
+    "codeW": "15"
+  },
+  {
+    "id": "546",
+    "codeC": "15060",
+    "fr": "Iboudraren",
+    "codeW": "15"
+  },
+  {
+    "id": "547",
+    "codeC": "15061",
+    "fr": "Aghni Goughran",
+    "codeW": "15"
+  },
+  {
+    "id": "548",
+    "codeC": "15062",
+    "fr": "Mizrana",
+    "codeW": "15"
+  },
+  {
+    "id": "549",
+    "codeC": "15063",
+    "fr": "Imsouhal",
+    "codeW": "15"
+  },
+  {
+    "id": "550",
+    "codeC": "15064",
+    "fr": "Tadmait",
+    "codeW": "15"
+  },
+  {
+    "id": "551",
+    "codeC": "15065",
+    "fr": "Ait Bouadou",
+    "codeW": "15"
+  },
+  {
+    "id": "552",
+    "codeC": "15066",
+    "fr": "Assi Youcef",
+    "codeW": "15"
+  },
+  {
+    "id": "553",
+    "codeC": "15067",
+    "fr": "Ait Toudert",
+    "codeW": "15"
+  },
+  {
+    "id": "554",
+    "codeC": "16001",
+    "fr": "Alger Centre",
+    "codeW": "16"
+  },
+  {
+    "id": "555",
+    "codeC": "16002",
+    "fr": "Sidi Mhamed",
+    "codeW": "16"
+  },
+  {
+    "id": "556",
+    "codeC": "16003",
+    "fr": "El Madania",
+    "codeW": "16"
+  },
+  {
+    "id": "557",
+    "codeC": "16004",
+    "fr": "Hamma Anassers",
+    "codeW": "16"
+  },
+  {
+    "id": "558",
+    "codeC": "16005",
+    "fr": "Bab El Oued",
+    "codeW": "16"
+  },
+  {
+    "id": "559",
+    "codeC": "16006",
+    "fr": "Bologhine Ibn Ziri",
+    "codeW": "16"
+  },
+  {
+    "id": "560",
+    "codeC": "16007",
+    "fr": "Casbah",
+    "codeW": "16"
+  },
+  {
+    "id": "561",
+    "codeC": "16008",
+    "fr": "Oued Koriche",
+    "codeW": "16"
+  },
+  {
+    "id": "562",
+    "codeC": "16009",
+    "fr": "Bir Mourad Rais",
+    "codeW": "16"
+  },
+  {
+    "id": "563",
+    "codeC": "16010",
+    "fr": "El Biar",
+    "codeW": "16"
+  },
+  {
+    "id": "564",
+    "codeC": "16011",
+    "fr": "Bouzareah",
+    "codeW": "16"
+  },
+  {
+    "id": "565",
+    "codeC": "16012",
+    "fr": "Birkhadem",
+    "codeW": "16"
+  },
+  {
+    "id": "566",
+    "codeC": "16013",
+    "fr": "El Harrach",
+    "codeW": "16"
+  },
+  {
+    "id": "567",
+    "codeC": "16014",
+    "fr": "Baraki",
+    "codeW": "16"
+  },
+  {
+    "id": "568",
+    "codeC": "16015",
+    "fr": "Oued Smar",
+    "codeW": "16"
+  },
+  {
+    "id": "569",
+    "codeC": "16016",
+    "fr": "Bourouba",
+    "codeW": "16"
+  },
+  {
+    "id": "570",
+    "codeC": "16017",
+    "fr": "Hussein Dey",
+    "codeW": "16"
+  },
+  {
+    "id": "571",
+    "codeC": "16018",
+    "fr": "Kouba",
+    "codeW": "16"
+  },
+  {
+    "id": "572",
+    "codeC": "16019",
+    "fr": "Bachedjerah",
+    "codeW": "16"
+  },
+  {
+    "id": "573",
+    "codeC": "16020",
+    "fr": "Dar El Beida",
+    "codeW": "16"
+  },
+  {
+    "id": "574",
+    "codeC": "16021",
+    "fr": "Bab Azzouar",
+    "codeW": "16"
+  },
+  {
+    "id": "575",
+    "codeC": "16022",
+    "fr": "Ben Aknoun",
+    "codeW": "16"
+  },
+  {
+    "id": "576",
+    "codeC": "16023",
+    "fr": "Dely Ibrahim",
+    "codeW": "16"
+  },
+  {
+    "id": "577",
+    "codeC": "16024",
+    "fr": "Bains Romains",
+    "codeW": "16"
+  },
+  {
+    "id": "578",
+    "codeC": "16025",
+    "fr": "Rais Hamidou",
+    "codeW": "16"
+  },
+  {
+    "id": "579",
+    "codeC": "16026",
+    "fr": "Djasr Kasentina",
+    "codeW": "16"
+  },
+  {
+    "id": "580",
+    "codeC": "16027",
+    "fr": "El Mouradia",
+    "codeW": "16"
+  },
+  {
+    "id": "581",
+    "codeC": "16028",
+    "fr": "Hydra",
+    "codeW": "16"
+  },
+  {
+    "id": "582",
+    "codeC": "16029",
+    "fr": "Mohammadia",
+    "codeW": "16"
+  },
+  {
+    "id": "583",
+    "codeC": "16030",
+    "fr": "Bordj El Kiffan",
+    "codeW": "16"
+  },
+  {
+    "id": "584",
+    "codeC": "16031",
+    "fr": "El Magharia",
+    "codeW": "16"
+  },
+  {
+    "id": "585",
+    "codeC": "16032",
+    "fr": "Beni Messous",
+    "codeW": "16"
+  },
+  {
+    "id": "586",
+    "codeC": "16033",
+    "fr": "Les Eucalyptus",
+    "codeW": "16"
+  },
+  {
+    "id": "587",
+    "codeC": "16034",
+    "fr": "Birtouta",
+    "codeW": "16"
+  },
+  {
+    "id": "588",
+    "codeC": "16035",
+    "fr": "Tassala El Merdja",
+    "codeW": "16"
+  },
+  {
+    "id": "589",
+    "codeC": "16036",
+    "fr": "Ouled Chebel",
+    "codeW": "16"
+  },
+  {
+    "id": "590",
+    "codeC": "16037",
+    "fr": "Sidi Moussa",
+    "codeW": "16"
+  },
+  {
+    "id": "591",
+    "codeC": "16038",
+    "fr": "Ain Taya",
+    "codeW": "16"
+  },
+  {
+    "id": "592",
+    "codeC": "16039",
+    "fr": "Bordj El Bahri",
+    "codeW": "16"
+  },
+  {
+    "id": "593",
+    "codeC": "16040",
+    "fr": "Marsa",
+    "codeW": "16"
+  },
+  {
+    "id": "594",
+    "codeC": "16041",
+    "fr": "Haraoua",
+    "codeW": "16"
+  },
+  {
+    "id": "595",
+    "codeC": "16042",
+    "fr": "Rouiba",
+    "codeW": "16"
+  },
+  {
+    "id": "596",
+    "codeC": "16043",
+    "fr": "Reghaia",
+    "codeW": "16"
+  },
+  {
+    "id": "597",
+    "codeC": "16044",
+    "fr": "Ain Benian",
+    "codeW": "16"
+  },
+  {
+    "id": "598",
+    "codeC": "16045",
+    "fr": "Staoueli",
+    "codeW": "16"
+  },
+  {
+    "id": "599",
+    "codeC": "16046",
+    "fr": "Zeralda",
+    "codeW": "16"
+  },
+  {
+    "id": "600",
+    "codeC": "16047",
+    "fr": "Mahelma",
+    "codeW": "16"
+  },
+  {
+    "id": "601",
+    "codeC": "16048",
+    "fr": "Rahmania",
+    "codeW": "16"
+  },
+  {
+    "id": "602",
+    "codeC": "16049",
+    "fr": "Souidania",
+    "codeW": "16"
+  },
+  {
+    "id": "603",
+    "codeC": "16050",
+    "fr": "Cheraga",
+    "codeW": "16"
+  },
+  {
+    "id": "604",
+    "codeC": "16051",
+    "fr": "Ouled Fayet",
+    "codeW": "16"
+  },
+  {
+    "id": "605",
+    "codeC": "16052",
+    "fr": "El Achour",
+    "codeW": "16"
+  },
+  {
+    "id": "606",
+    "codeC": "16053",
+    "fr": "Draria",
+    "codeW": "16"
+  },
+  {
+    "id": "607",
+    "codeC": "16054",
+    "fr": "Douera",
+    "codeW": "16"
+  },
+  {
+    "id": "608",
+    "codeC": "16055",
+    "fr": "Baba Hassen",
+    "codeW": "16"
+  },
+  {
+    "id": "609",
+    "codeC": "16056",
+    "fr": "Khracia",
+    "codeW": "16"
+  },
+  {
+    "id": "610",
+    "codeC": "16057",
+    "fr": "Saoula",
+    "codeW": "16"
+  },
+  {
+    "id": "611",
+    "codeC": "17001",
+    "fr": "Djelfa",
+    "codeW": "17"
+  },
+  {
+    "id": "612",
+    "codeC": "17002",
+    "fr": "Moudjebara",
+    "codeW": "17"
+  },
+  {
+    "id": "613",
+    "codeC": "17003",
+    "fr": "El Guedid",
+    "codeW": "17"
+  },
+  {
+    "id": "614",
+    "codeC": "17004",
+    "fr": "Hassi Bahbah",
+    "codeW": "17"
+  },
+  {
+    "id": "615",
+    "codeC": "17005",
+    "fr": "Ain Maabed",
+    "codeW": "17"
+  },
+  {
+    "id": "616",
+    "codeC": "17006",
+    "fr": "Sed Rahal",
+    "codeW": "17"
+  },
+  {
+    "id": "617",
+    "codeC": "17007",
+    "fr": "Feidh El Botma",
+    "codeW": "17"
+  },
+  {
+    "id": "618",
+    "codeC": "17008",
+    "fr": "Birine",
+    "codeW": "17"
+  },
+  {
+    "id": "619",
+    "codeC": "17009",
+    "fr": "Bouira Lahdeb",
+    "codeW": "17"
+  },
+  {
+    "id": "620",
+    "codeC": "17010",
+    "fr": "Zaccar",
+    "codeW": "17"
+  },
+  {
+    "id": "621",
+    "codeC": "17011",
+    "fr": "El Khemis",
+    "codeW": "17"
+  },
+  {
+    "id": "622",
+    "codeC": "17012",
+    "fr": "Sidi Baizid",
+    "codeW": "17"
+  },
+  {
+    "id": "623",
+    "codeC": "17013",
+    "fr": "Mliliha",
+    "codeW": "17"
+  },
+  {
+    "id": "624",
+    "codeC": "17014",
+    "fr": "El Idrissia",
+    "codeW": "17"
+  },
+  {
+    "id": "625",
+    "codeC": "17015",
+    "fr": "Douis",
+    "codeW": "17"
+  },
+  {
+    "id": "626",
+    "codeC": "17016",
+    "fr": "Hassi El Euch",
+    "codeW": "17"
+  },
+  {
+    "id": "627",
+    "codeC": "17017",
+    "fr": "Messaad",
+    "codeW": "17"
+  },
+  {
+    "id": "628",
+    "codeC": "17018",
+    "fr": "Guettara",
+    "codeW": "17"
+  },
+  {
+    "id": "629",
+    "codeC": "17019",
+    "fr": "Sidi Ladjel",
+    "codeW": "17"
+  },
+  {
+    "id": "630",
+    "codeC": "17020",
+    "fr": "Had Sahary",
+    "codeW": "17"
+  },
+  {
+    "id": "631",
+    "codeC": "17021",
+    "fr": "Guernini",
+    "codeW": "17"
+  },
+  {
+    "id": "632",
+    "codeC": "17022",
+    "fr": "Selmana",
+    "codeW": "17"
+  },
+  {
+    "id": "633",
+    "codeC": "17023",
+    "fr": "Ain Chouhada",
+    "codeW": "17"
+  },
+  {
+    "id": "634",
+    "codeC": "17024",
+    "fr": "Oum Laadham",
+    "codeW": "17"
+  },
+  {
+    "id": "635",
+    "codeC": "17025",
+    "fr": "Dar Chouikh",
+    "codeW": "17"
+  },
+  {
+    "id": "636",
+    "codeC": "17026",
+    "fr": "Charef",
+    "codeW": "17"
+  },
+  {
+    "id": "637",
+    "codeC": "17027",
+    "fr": "Beni Yacoub",
+    "codeW": "17"
+  },
+  {
+    "id": "638",
+    "codeC": "17028",
+    "fr": "Zaafrane",
+    "codeW": "17"
+  },
+  {
+    "id": "639",
+    "codeC": "17029",
+    "fr": "Deldoul",
+    "codeW": "17"
+  },
+  {
+    "id": "640",
+    "codeC": "17030",
+    "fr": "Ain El Ibel",
+    "codeW": "17"
+  },
+  {
+    "id": "641",
+    "codeC": "17031",
+    "fr": "Ain Oussera",
+    "codeW": "17"
+  },
+  {
+    "id": "642",
+    "codeC": "17032",
+    "fr": "Benhar",
+    "codeW": "17"
+  },
+  {
+    "id": "643",
+    "codeC": "17033",
+    "fr": "Hassi Fedoul",
+    "codeW": "17"
+  },
+  {
+    "id": "644",
+    "codeC": "17034",
+    "fr": "Amourah",
+    "codeW": "17"
+  },
+  {
+    "id": "645",
+    "codeC": "17035",
+    "fr": "Ain Fekka",
+    "codeW": "17"
+  },
+  {
+    "id": "646",
+    "codeC": "17036",
+    "fr": "Tadmit",
+    "codeW": "17"
+  },
+  {
+    "id": "647",
+    "codeC": "18001",
+    "fr": "Jijel",
+    "codeW": "18"
+  },
+  {
+    "id": "648",
+    "codeC": "18002",
+    "fr": "Erraguene",
+    "codeW": "18"
+  },
+  {
+    "id": "649",
+    "codeC": "18003",
+    "fr": "El Aouana",
+    "codeW": "18"
+  },
+  {
+    "id": "650",
+    "codeC": "18004",
+    "fr": "Ziamma Mansouriah",
+    "codeW": "18"
+  },
+  {
+    "id": "651",
+    "codeC": "18005",
+    "fr": "Taher",
+    "codeW": "18"
+  },
+  {
+    "id": "652",
+    "codeC": "18006",
+    "fr": "Emir Abdelkader",
+    "codeW": "18"
+  },
+  {
+    "id": "653",
+    "codeC": "18007",
+    "fr": "Chekfa",
+    "codeW": "18"
+  },
+  {
+    "id": "654",
+    "codeC": "18008",
+    "fr": "Chahna",
+    "codeW": "18"
+  },
+  {
+    "id": "655",
+    "codeC": "18009",
+    "fr": "El Milia",
+    "codeW": "18"
+  },
+  {
+    "id": "656",
+    "codeC": "18010",
+    "fr": "Sidi Maarouf",
+    "codeW": "18"
+  },
+  {
+    "id": "657",
+    "codeC": "18011",
+    "fr": "Settara",
+    "codeW": "18"
+  },
+  {
+    "id": "658",
+    "codeC": "18012",
+    "fr": "El Ancer",
+    "codeW": "18"
+  },
+  {
+    "id": "659",
+    "codeC": "18013",
+    "fr": "Sidi Abdelaziz",
+    "codeW": "18"
+  },
+  {
+    "id": "660",
+    "codeC": "18014",
+    "fr": "Kaous",
+    "codeW": "18"
+  },
+  {
+    "id": "661",
+    "codeC": "18015",
+    "fr": "Ghebala",
+    "codeW": "18"
+  },
+  {
+    "id": "662",
+    "codeC": "18016",
+    "fr": "Bouraoui Belhadef",
+    "codeW": "18"
+  },
+  {
+    "id": "663",
+    "codeC": "18017",
+    "fr": "Djmila",
+    "codeW": "18"
+  },
+  {
+    "id": "664",
+    "codeC": "18018",
+    "fr": "Selma Benziada",
+    "codeW": "18"
+  },
+  {
+    "id": "665",
+    "codeC": "18019",
+    "fr": "Boussif Ouled Askeur",
+    "codeW": "18"
+  },
+  {
+    "id": "666",
+    "codeC": "18020",
+    "fr": "El Kennar Nouchfi",
+    "codeW": "18"
+  },
+  {
+    "id": "667",
+    "codeC": "18021",
+    "fr": "Ouled Yahia Khadrouch",
+    "codeW": "18"
+  },
+  {
+    "id": "668",
+    "codeC": "18022",
+    "fr": "Boudria Beni Yadjis",
+    "codeW": "18"
+  },
+  {
+    "id": "669",
+    "codeC": "18023",
+    "fr": "Kemir Oued Adjoul",
+    "codeW": "18"
+  },
+  {
+    "id": "670",
+    "codeC": "18024",
+    "fr": "Texena",
+    "codeW": "18"
+  },
+  {
+    "id": "671",
+    "codeC": "18025",
+    "fr": "Djemaa Beni Habibi",
+    "codeW": "18"
+  },
+  {
+    "id": "672",
+    "codeC": "18026",
+    "fr": "Bordj Taher",
+    "codeW": "18"
+  },
+  {
+    "id": "673",
+    "codeC": "18027",
+    "fr": "Ouled Rabah",
+    "codeW": "18"
+  },
+  {
+    "id": "674",
+    "codeC": "18028",
+    "fr": "Ouadjana",
+    "codeW": "18"
+  },
+  {
+    "id": "675",
+    "codeC": "19001",
+    "fr": "Setif",
+    "codeW": "19"
+  },
+  {
+    "id": "676",
+    "codeC": "19002",
+    "fr": "Ain El Kebira",
+    "codeW": "19"
+  },
+  {
+    "id": "677",
+    "codeC": "19003",
+    "fr": "Beni Aziz",
+    "codeW": "19"
+  },
+  {
+    "id": "678",
+    "codeC": "19004",
+    "fr": "Ouled Sidi Ahmed",
+    "codeW": "19"
+  },
+  {
+    "id": "679",
+    "codeC": "19005",
+    "fr": "Boutaleb",
+    "codeW": "19"
+  },
+  {
+    "id": "680",
+    "codeC": "19006",
+    "fr": "Ain Roua",
+    "codeW": "19"
+  },
+  {
+    "id": "681",
+    "codeC": "19007",
+    "fr": "Draa Kebila",
+    "codeW": "19"
+  },
+  {
+    "id": "682",
+    "codeC": "19008",
+    "fr": "Bir El Arch",
+    "codeW": "19"
+  },
+  {
+    "id": "683",
+    "codeC": "19009",
+    "fr": "Beni Chebana",
+    "codeW": "19"
+  },
+  {
+    "id": "684",
+    "codeC": "19010",
+    "fr": "Ouled Tebben",
+    "codeW": "19"
+  },
+  {
+    "id": "685",
+    "codeC": "19011",
+    "fr": "Hamma",
+    "codeW": "19"
+  },
+  {
+    "id": "686",
+    "codeC": "19012",
+    "fr": "Maaouia",
+    "codeW": "19"
+  },
+  {
+    "id": "687",
+    "codeC": "19013",
+    "fr": "Ain Legraj",
+    "codeW": "19"
+  },
+  {
+    "id": "688",
+    "codeC": "19014",
+    "fr": "Ain Abessa",
+    "codeW": "19"
+  },
+  {
+    "id": "689",
+    "codeC": "19015",
+    "fr": "Dehamcha",
+    "codeW": "19"
+  },
+  {
+    "id": "690",
+    "codeC": "19016",
+    "fr": "Babor",
+    "codeW": "19"
+  },
+  {
+    "id": "691",
+    "codeC": "19017",
+    "fr": "Guidjel",
+    "codeW": "19"
+  },
+  {
+    "id": "692",
+    "codeC": "19018",
+    "fr": "Ain Lahdjar",
+    "codeW": "19"
+  },
+  {
+    "id": "693",
+    "codeC": "19019",
+    "fr": "Bousselam",
+    "codeW": "19"
+  },
+  {
+    "id": "694",
+    "codeC": "19020",
+    "fr": "El Eulma",
+    "codeW": "19"
+  },
+  {
+    "id": "695",
+    "codeC": "19021",
+    "fr": "Djemila",
+    "codeW": "19"
+  },
+  {
+    "id": "696",
+    "codeC": "19022",
+    "fr": "Beni Ouartilane",
+    "codeW": "19"
+  },
+  {
+    "id": "697",
+    "codeC": "19023",
+    "fr": "Rosfa",
+    "codeW": "19"
+  },
+  {
+    "id": "698",
+    "codeC": "19024",
+    "fr": "Ouled Addouane",
+    "codeW": "19"
+  },
+  {
+    "id": "699",
+    "codeC": "19025",
+    "fr": "Belaa",
+    "codeW": "19"
+  },
+  {
+    "id": "700",
+    "codeC": "19026",
+    "fr": "Ain Arnat",
+    "codeW": "19"
+  },
+  {
+    "id": "701",
+    "codeC": "19027",
+    "fr": "Amoucha",
+    "codeW": "19"
+  },
+  {
+    "id": "702",
+    "codeC": "19028",
+    "fr": "Ain Oulmane",
+    "codeW": "19"
+  },
+  {
+    "id": "703",
+    "codeC": "19029",
+    "fr": "Beidha Bordj",
+    "codeW": "19"
+  },
+  {
+    "id": "704",
+    "codeC": "19030",
+    "fr": "Bouandas",
+    "codeW": "19"
+  },
+  {
+    "id": "705",
+    "codeC": "19031",
+    "fr": "Bazer Sakhra",
+    "codeW": "19"
+  },
+  {
+    "id": "706",
+    "codeC": "19032",
+    "fr": "Hammam Essokhna",
+    "codeW": "19"
+  },
+  {
+    "id": "707",
+    "codeC": "19033",
+    "fr": "Mezloug",
+    "codeW": "19"
+  },
+  {
+    "id": "708",
+    "codeC": "19034",
+    "fr": "Bir Haddada",
+    "codeW": "19"
+  },
+  {
+    "id": "709",
+    "codeC": "19035",
+    "fr": "Serdj El Ghoul",
+    "codeW": "19"
+  },
+  {
+    "id": "710",
+    "codeC": "19036",
+    "fr": "Harbil",
+    "codeW": "19"
+  },
+  {
+    "id": "711",
+    "codeC": "19037",
+    "fr": "El Ouricia",
+    "codeW": "19"
+  },
+  {
+    "id": "712",
+    "codeC": "19038",
+    "fr": "Tizi Nbechar",
+    "codeW": "19"
+  },
+  {
+    "id": "713",
+    "codeC": "19039",
+    "fr": "Salah Bey",
+    "codeW": "19"
+  },
+  {
+    "id": "714",
+    "codeC": "19040",
+    "fr": "Ain Azal",
+    "codeW": "19"
+  },
+  {
+    "id": "715",
+    "codeC": "19041",
+    "fr": "Guenzet",
+    "codeW": "19"
+  },
+  {
+    "id": "716",
+    "codeC": "19042",
+    "fr": "Talaifacene",
+    "codeW": "19"
+  },
+  {
+    "id": "717",
+    "codeC": "19043",
+    "fr": "Bougaa",
+    "codeW": "19"
+  },
+  {
+    "id": "718",
+    "codeC": "19044",
+    "fr": "Beni Fouda",
+    "codeW": "19"
+  },
+  {
+    "id": "719",
+    "codeC": "19045",
+    "fr": "Tachouda",
+    "codeW": "19"
+  },
+  {
+    "id": "720",
+    "codeC": "19046",
+    "fr": "Beni Mouhli",
+    "codeW": "19"
+  },
+  {
+    "id": "721",
+    "codeC": "19047",
+    "fr": "Ouled Sabor",
+    "codeW": "19"
+  },
+  {
+    "id": "722",
+    "codeC": "19048",
+    "fr": "Guellal",
+    "codeW": "19"
+  },
+  {
+    "id": "723",
+    "codeC": "19049",
+    "fr": "Ain Sebt",
+    "codeW": "19"
+  },
+  {
+    "id": "724",
+    "codeC": "19050",
+    "fr": "Hammam Guergour",
+    "codeW": "19"
+  },
+  {
+    "id": "725",
+    "codeC": "19051",
+    "fr": "Ait Naoual Mezada",
+    "codeW": "19"
+  },
+  {
+    "id": "726",
+    "codeC": "19052",
+    "fr": "Ksar El Abtal",
+    "codeW": "19"
+  },
+  {
+    "id": "727",
+    "codeC": "19053",
+    "fr": "Beni Hocine",
+    "codeW": "19"
+  },
+  {
+    "id": "728",
+    "codeC": "19054",
+    "fr": "Ait Tizi",
+    "codeW": "19"
+  },
+  {
+    "id": "729",
+    "codeC": "19055",
+    "fr": "Maouklane",
+    "codeW": "19"
+  },
+  {
+    "id": "730",
+    "codeC": "19056",
+    "fr": "Guelta Zerka",
+    "codeW": "19"
+  },
+  {
+    "id": "731",
+    "codeC": "19057",
+    "fr": "Oued El Barad",
+    "codeW": "19"
+  },
+  {
+    "id": "732",
+    "codeC": "19058",
+    "fr": "Taya",
+    "codeW": "19"
+  },
+  {
+    "id": "733",
+    "codeC": "19059",
+    "fr": "El Ouldja",
+    "codeW": "19"
+  },
+  {
+    "id": "734",
+    "codeC": "19060",
+    "fr": "Tella",
+    "codeW": "19"
+  },
+  {
+    "id": "735",
+    "codeC": "20001",
+    "fr": "Saida",
+    "codeW": "20"
+  },
+  {
+    "id": "736",
+    "codeC": "20002",
+    "fr": "Doui Thabet",
+    "codeW": "20"
+  },
+  {
+    "id": "737",
+    "codeC": "20003",
+    "fr": "Ain El Hadjar",
+    "codeW": "20"
+  },
+  {
+    "id": "738",
+    "codeC": "20004",
+    "fr": "Ouled Khaled",
+    "codeW": "20"
+  },
+  {
+    "id": "739",
+    "codeC": "20005",
+    "fr": "Moulay Larbi",
+    "codeW": "20"
+  },
+  {
+    "id": "740",
+    "codeC": "20006",
+    "fr": "Youb",
+    "codeW": "20"
+  },
+  {
+    "id": "741",
+    "codeC": "20007",
+    "fr": "Hounet",
+    "codeW": "20"
+  },
+  {
+    "id": "742",
+    "codeC": "20008",
+    "fr": "Sidi Amar",
+    "codeW": "20"
+  },
+  {
+    "id": "743",
+    "codeC": "20009",
+    "fr": "Sidi Boubekeur",
+    "codeW": "20"
+  },
+  {
+    "id": "744",
+    "codeC": "20010",
+    "fr": "El Hassasna",
+    "codeW": "20"
+  },
+  {
+    "id": "745",
+    "codeC": "20011",
+    "fr": "Maamora",
+    "codeW": "20"
+  },
+  {
+    "id": "746",
+    "codeC": "20012",
+    "fr": "Sidi Ahmed",
+    "codeW": "20"
+  },
+  {
+    "id": "747",
+    "codeC": "20013",
+    "fr": "Ain Sekhouna",
+    "codeW": "20"
+  },
+  {
+    "id": "748",
+    "codeC": "20014",
+    "fr": "Ouled Brahim",
+    "codeW": "20"
+  },
+  {
+    "id": "749",
+    "codeC": "20015",
+    "fr": "Tircine",
+    "codeW": "20"
+  },
+  {
+    "id": "750",
+    "codeC": "20016",
+    "fr": "Ain Soltane",
+    "codeW": "20"
+  },
+  {
+    "id": "751",
+    "codeC": "21001",
+    "fr": "Skikda",
+    "codeW": "21"
+  },
+  {
+    "id": "752",
+    "codeC": "21002",
+    "fr": "Ain Zouit",
+    "codeW": "21"
+  },
+  {
+    "id": "753",
+    "codeC": "21003",
+    "fr": "El Hadaik",
+    "codeW": "21"
+  },
+  {
+    "id": "754",
+    "codeC": "21004",
+    "fr": "Azzaba",
+    "codeW": "21"
+  },
+  {
+    "id": "755",
+    "codeC": "21005",
+    "fr": "Djendel Saadi Mohamed",
+    "codeW": "21"
+  },
+  {
+    "id": "756",
+    "codeC": "21006",
+    "fr": "Ain Cherchar",
+    "codeW": "21"
+  },
+  {
+    "id": "757",
+    "codeC": "21007",
+    "fr": "Bekkouche Lakhdar",
+    "codeW": "21"
+  },
+  {
+    "id": "758",
+    "codeC": "21008",
+    "fr": "Benazouz",
+    "codeW": "21"
+  },
+  {
+    "id": "759",
+    "codeC": "21009",
+    "fr": "Es Sebt",
+    "codeW": "21"
+  },
+  {
+    "id": "760",
+    "codeC": "21010",
+    "fr": "Collo",
+    "codeW": "21"
+  },
+  {
+    "id": "761",
+    "codeC": "21011",
+    "fr": "Beni Zid",
+    "codeW": "21"
+  },
+  {
+    "id": "762",
+    "codeC": "21012",
+    "fr": "Kerkera",
+    "codeW": "21"
+  },
+  {
+    "id": "763",
+    "codeC": "21013",
+    "fr": "Ouled Attia",
+    "codeW": "21"
+  },
+  {
+    "id": "764",
+    "codeC": "21014",
+    "fr": "Oued Zehour",
+    "codeW": "21"
+  },
+  {
+    "id": "765",
+    "codeC": "21015",
+    "fr": "Zitouna",
+    "codeW": "21"
+  },
+  {
+    "id": "766",
+    "codeC": "21016",
+    "fr": "El Harrouch",
+    "codeW": "21"
+  },
+  {
+    "id": "767",
+    "codeC": "21017",
+    "fr": "Zerdazas",
+    "codeW": "21"
+  },
+  {
+    "id": "768",
+    "codeC": "21018",
+    "fr": "Ouled Hebaba",
+    "codeW": "21"
+  },
+  {
+    "id": "769",
+    "codeC": "21019",
+    "fr": "Sidi Mezghiche",
+    "codeW": "21"
+  },
+  {
+    "id": "770",
+    "codeC": "21020",
+    "fr": "Emdjez Edchich",
+    "codeW": "21"
+  },
+  {
+    "id": "771",
+    "codeC": "21021",
+    "fr": "Beni Oulbane",
+    "codeW": "21"
+  },
+  {
+    "id": "772",
+    "codeC": "21022",
+    "fr": "Ain Bouziane",
+    "codeW": "21"
+  },
+  {
+    "id": "773",
+    "codeC": "21023",
+    "fr": "Ramdane Djamel",
+    "codeW": "21"
+  },
+  {
+    "id": "774",
+    "codeC": "21024",
+    "fr": "Beni Bachir",
+    "codeW": "21"
+  },
+  {
+    "id": "775",
+    "codeC": "21025",
+    "fr": "Salah Bouchaour",
+    "codeW": "21"
+  },
+  {
+    "id": "776",
+    "codeC": "21026",
+    "fr": "Tamalous",
+    "codeW": "21"
+  },
+  {
+    "id": "777",
+    "codeC": "21027",
+    "fr": "Ain Kechra",
+    "codeW": "21"
+  },
+  {
+    "id": "778",
+    "codeC": "21028",
+    "fr": "Oum Toub",
+    "codeW": "21"
+  },
+  {
+    "id": "779",
+    "codeC": "21029",
+    "fr": "Bein El Ouiden",
+    "codeW": "21"
+  },
+  {
+    "id": "780",
+    "codeC": "21030",
+    "fr": "Fil Fila",
+    "codeW": "21"
+  },
+  {
+    "id": "781",
+    "codeC": "21031",
+    "fr": "Cheraia",
+    "codeW": "21"
+  },
+  {
+    "id": "782",
+    "codeC": "21032",
+    "fr": "Kanoua",
+    "codeW": "21"
+  },
+  {
+    "id": "783",
+    "codeC": "21033",
+    "fr": "El Ghedir",
+    "codeW": "21"
+  },
+  {
+    "id": "784",
+    "codeC": "21034",
+    "fr": "Bouchtata",
+    "codeW": "21"
+  },
+  {
+    "id": "785",
+    "codeC": "21035",
+    "fr": "Ouldja Boulbalout",
+    "codeW": "21"
+  },
+  {
+    "id": "786",
+    "codeC": "21036",
+    "fr": "Kheneg Mayoum",
+    "codeW": "21"
+  },
+  {
+    "id": "787",
+    "codeC": "21037",
+    "fr": "Hamadi Krouma",
+    "codeW": "21"
+  },
+  {
+    "id": "788",
+    "codeC": "21038",
+    "fr": "El Marsa",
+    "codeW": "21"
+  },
+  {
+    "id": "789",
+    "codeC": "22001",
+    "fr": "Sidi Bel Abbes",
+    "codeW": "22"
+  },
+  {
+    "id": "790",
+    "codeC": "22002",
+    "fr": "Tessala",
+    "codeW": "22"
+  },
+  {
+    "id": "791",
+    "codeC": "22003",
+    "fr": "Sidi Brahim",
+    "codeW": "22"
+  },
+  {
+    "id": "792",
+    "codeC": "22004",
+    "fr": "Mostefa Ben Brahim",
+    "codeW": "22"
+  },
+  {
+    "id": "793",
+    "codeC": "22005",
+    "fr": "Telagh",
+    "codeW": "22"
+  },
+  {
+    "id": "794",
+    "codeC": "22006",
+    "fr": "Mezaourou",
+    "codeW": "22"
+  },
+  {
+    "id": "795",
+    "codeC": "22007",
+    "fr": "Boukhanafis",
+    "codeW": "22"
+  },
+  {
+    "id": "796",
+    "codeC": "22008",
+    "fr": "Sidi Ali Boussidi",
+    "codeW": "22"
+  },
+  {
+    "id": "797",
+    "codeC": "22009",
+    "fr": "Badredine El Mokrani",
+    "codeW": "22"
+  },
+  {
+    "id": "798",
+    "codeC": "22010",
+    "fr": "Marhoum",
+    "codeW": "22"
+  },
+  {
+    "id": "799",
+    "codeC": "22011",
+    "fr": "Tafissour",
+    "codeW": "22"
+  },
+  {
+    "id": "800",
+    "codeC": "22012",
+    "fr": "Amarnas",
+    "codeW": "22"
+  },
+  {
+    "id": "801",
+    "codeC": "22013",
+    "fr": "Tilmouni",
+    "codeW": "22"
+  },
+  {
+    "id": "802",
+    "codeC": "22014",
+    "fr": "Sidi Lahcene",
+    "codeW": "22"
+  },
+  {
+    "id": "803",
+    "codeC": "22015",
+    "fr": "Ain Thrid",
+    "codeW": "22"
+  },
+  {
+    "id": "804",
+    "codeC": "22016",
+    "fr": "Makedra",
+    "codeW": "22"
+  },
+  {
+    "id": "805",
+    "codeC": "22017",
+    "fr": "Tenira",
+    "codeW": "22"
+  },
+  {
+    "id": "806",
+    "codeC": "22018",
+    "fr": "Moulay Slissen",
+    "codeW": "22"
+  },
+  {
+    "id": "807",
+    "codeC": "22019",
+    "fr": "El Hacaiba",
+    "codeW": "22"
+  },
+  {
+    "id": "808",
+    "codeC": "22020",
+    "fr": "Hassi Zehana",
+    "codeW": "22"
+  },
+  {
+    "id": "809",
+    "codeC": "22021",
+    "fr": "Tabia",
+    "codeW": "22"
+  },
+  {
+    "id": "810",
+    "codeC": "22022",
+    "fr": "Merine",
+    "codeW": "22"
+  },
+  {
+    "id": "811",
+    "codeC": "22023",
+    "fr": "Ras El Ma",
+    "codeW": "22"
+  },
+  {
+    "id": "812",
+    "codeC": "22024",
+    "fr": "Ain Tindamine",
+    "codeW": "22"
+  },
+  {
+    "id": "813",
+    "codeC": "22025",
+    "fr": "Ain Kada",
+    "codeW": "22"
+  },
+  {
+    "id": "814",
+    "codeC": "22026",
+    "fr": "Mcid",
+    "codeW": "22"
+  },
+  {
+    "id": "815",
+    "codeC": "22027",
+    "fr": "Sidi Khaled",
+    "codeW": "22"
+  },
+  {
+    "id": "816",
+    "codeC": "22028",
+    "fr": "Ain El Berd",
+    "codeW": "22"
+  },
+  {
+    "id": "817",
+    "codeC": "22029",
+    "fr": "Sfissef",
+    "codeW": "22"
+  },
+  {
+    "id": "818",
+    "codeC": "22030",
+    "fr": "Ain Adden",
+    "codeW": "22"
+  },
+  {
+    "id": "819",
+    "codeC": "22031",
+    "fr": "Oued Taourira",
+    "codeW": "22"
+  },
+  {
+    "id": "820",
+    "codeC": "22032",
+    "fr": "Dhaya",
+    "codeW": "22"
+  },
+  {
+    "id": "821",
+    "codeC": "22033",
+    "fr": "Zerouala",
+    "codeW": "22"
+  },
+  {
+    "id": "822",
+    "codeC": "22034",
+    "fr": "Lamtar",
+    "codeW": "22"
+  },
+  {
+    "id": "823",
+    "codeC": "22035",
+    "fr": "Sidi Chaib",
+    "codeW": "22"
+  },
+  {
+    "id": "824",
+    "codeC": "22036",
+    "fr": "Sidi Dahou Dezairs",
+    "codeW": "22"
+  },
+  {
+    "id": "825",
+    "codeC": "22037",
+    "fr": "Oued Sbaa",
+    "codeW": "22"
+  },
+  {
+    "id": "826",
+    "codeC": "22038",
+    "fr": "Boudjebaa El Bordj",
+    "codeW": "22"
+  },
+  {
+    "id": "827",
+    "codeC": "22039",
+    "fr": "Sehala Thaoura",
+    "codeW": "22"
+  },
+  {
+    "id": "828",
+    "codeC": "22040",
+    "fr": "Sidi Yacoub",
+    "codeW": "22"
+  },
+  {
+    "id": "829",
+    "codeC": "22041",
+    "fr": "Sidi Hamadouche",
+    "codeW": "22"
+  },
+  {
+    "id": "830",
+    "codeC": "22042",
+    "fr": "Belarbi",
+    "codeW": "22"
+  },
+  {
+    "id": "831",
+    "codeC": "22043",
+    "fr": "Oued Sefioun",
+    "codeW": "22"
+  },
+  {
+    "id": "832",
+    "codeC": "22044",
+    "fr": "Teghalimet",
+    "codeW": "22"
+  },
+  {
+    "id": "833",
+    "codeC": "22045",
+    "fr": "Ben Badis",
+    "codeW": "22"
+  },
+  {
+    "id": "834",
+    "codeC": "22046",
+    "fr": "Sidi Ali Benyoub",
+    "codeW": "22"
+  },
+  {
+    "id": "835",
+    "codeC": "22047",
+    "fr": "Chetouane Belaila",
+    "codeW": "22"
+  },
+  {
+    "id": "836",
+    "codeC": "22048",
+    "fr": "Bir El Hammam",
+    "codeW": "22"
+  },
+  {
+    "id": "837",
+    "codeC": "22049",
+    "fr": "Taoudmout",
+    "codeW": "22"
+  },
+  {
+    "id": "838",
+    "codeC": "22050",
+    "fr": "Redjem Demouche",
+    "codeW": "22"
+  },
+  {
+    "id": "839",
+    "codeC": "22051",
+    "fr": "Benachiba Chelia",
+    "codeW": "22"
+  },
+  {
+    "id": "840",
+    "codeC": "22052",
+    "fr": "Hassi Dahou",
+    "codeW": "22"
+  },
+  {
+    "id": "841",
+    "codeC": "23001",
+    "fr": "Annaba",
+    "codeW": "23"
+  },
+  {
+    "id": "842",
+    "codeC": "23002",
+    "fr": "Berrahel",
+    "codeW": "23"
+  },
+  {
+    "id": "843",
+    "codeC": "23003",
+    "fr": "El Hadjar",
+    "codeW": "23"
+  },
+  {
+    "id": "844",
+    "codeC": "23004",
+    "fr": "Eulma",
+    "codeW": "23"
+  },
+  {
+    "id": "845",
+    "codeC": "23005",
+    "fr": "El Bouni",
+    "codeW": "23"
+  },
+  {
+    "id": "846",
+    "codeC": "23006",
+    "fr": "Oued El Aneb",
+    "codeW": "23"
+  },
+  {
+    "id": "847",
+    "codeC": "23007",
+    "fr": "Cheurfa",
+    "codeW": "23"
+  },
+  {
+    "id": "848",
+    "codeC": "23008",
+    "fr": "Seraidi",
+    "codeW": "23"
+  },
+  {
+    "id": "849",
+    "codeC": "23009",
+    "fr": "Ain Berda",
+    "codeW": "23"
+  },
+  {
+    "id": "850",
+    "codeC": "23010",
+    "fr": "Chetaibi",
+    "codeW": "23"
+  },
+  {
+    "id": "851",
+    "codeC": "23011",
+    "fr": "Sidi Amer",
+    "codeW": "23"
+  },
+  {
+    "id": "852",
+    "codeC": "23012",
+    "fr": "Treat",
+    "codeW": "23"
+  },
+  {
+    "id": "853",
+    "codeC": "24001",
+    "fr": "Guelma",
+    "codeW": "24"
+  },
+  {
+    "id": "854",
+    "codeC": "24002",
+    "fr": "Nechmaya",
+    "codeW": "24"
+  },
+  {
+    "id": "855",
+    "codeC": "24003",
+    "fr": "Bouati Mahmoud",
+    "codeW": "24"
+  },
+  {
+    "id": "856",
+    "codeC": "24004",
+    "fr": "Oued Zenati",
+    "codeW": "24"
+  },
+  {
+    "id": "857",
+    "codeC": "24005",
+    "fr": "Tamlouka",
+    "codeW": "24"
+  },
+  {
+    "id": "858",
+    "codeC": "24006",
+    "fr": "Oued Fragha",
+    "codeW": "24"
+  },
+  {
+    "id": "859",
+    "codeC": "24007",
+    "fr": "Ain Sandel",
+    "codeW": "24"
+  },
+  {
+    "id": "860",
+    "codeC": "24008",
+    "fr": "Ras El Agba",
+    "codeW": "24"
+  },
+  {
+    "id": "861",
+    "codeC": "24009",
+    "fr": "Dahouara",
+    "codeW": "24"
+  },
+  {
+    "id": "862",
+    "codeC": "24010",
+    "fr": "Belkhir",
+    "codeW": "24"
+  },
+  {
+    "id": "863",
+    "codeC": "24011",
+    "fr": "Ben Djarah",
+    "codeW": "24"
+  },
+  {
+    "id": "864",
+    "codeC": "24012",
+    "fr": "Bou Hamdane",
+    "codeW": "24"
+  },
+  {
+    "id": "865",
+    "codeC": "24013",
+    "fr": "Ain Makhlouf",
+    "codeW": "24"
+  },
+  {
+    "id": "866",
+    "codeC": "24014",
+    "fr": "Ain Ben Beida",
+    "codeW": "24"
+  },
+  {
+    "id": "867",
+    "codeC": "24015",
+    "fr": "Khezara",
+    "codeW": "24"
+  },
+  {
+    "id": "868",
+    "codeC": "24016",
+    "fr": "Beni Mezline",
+    "codeW": "24"
+  },
+  {
+    "id": "869",
+    "codeC": "24017",
+    "fr": "Bou Hachana",
+    "codeW": "24"
+  },
+  {
+    "id": "870",
+    "codeC": "24018",
+    "fr": "Guelaat Bou Sbaa",
+    "codeW": "24"
+  },
+  {
+    "id": "871",
+    "codeC": "24019",
+    "fr": "Hammam Maskhoutine",
+    "codeW": "24"
+  },
+  {
+    "id": "872",
+    "codeC": "24020",
+    "fr": "El Fedjoudj",
+    "codeW": "24"
+  },
+  {
+    "id": "873",
+    "codeC": "24021",
+    "fr": "Bordj Sabat",
+    "codeW": "24"
+  },
+  {
+    "id": "874",
+    "codeC": "24022",
+    "fr": "Hamman Nbail",
+    "codeW": "24"
+  },
+  {
+    "id": "875",
+    "codeC": "24023",
+    "fr": "Ain Larbi",
+    "codeW": "24"
+  },
+  {
+    "id": "876",
+    "codeC": "24024",
+    "fr": "Medjez Amar",
+    "codeW": "24"
+  },
+  {
+    "id": "877",
+    "codeC": "24025",
+    "fr": "Bouchegouf",
+    "codeW": "24"
+  },
+  {
+    "id": "878",
+    "codeC": "24026",
+    "fr": "Heliopolis",
+    "codeW": "24"
+  },
+  {
+    "id": "879",
+    "codeC": "24027",
+    "fr": "Ain Hessania",
+    "codeW": "24"
+  },
+  {
+    "id": "880",
+    "codeC": "24028",
+    "fr": "Roknia",
+    "codeW": "24"
+  },
+  {
+    "id": "881",
+    "codeC": "24029",
+    "fr": "Salaoua Announa",
+    "codeW": "24"
+  },
+  {
+    "id": "882",
+    "codeC": "24030",
+    "fr": "Medjez Sfa",
+    "codeW": "24"
+  },
+  {
+    "id": "883",
+    "codeC": "24031",
+    "fr": "Boumahra Ahmed",
+    "codeW": "24"
+  },
+  {
+    "id": "884",
+    "codeC": "24032",
+    "fr": "Ain Reggada",
+    "codeW": "24"
+  },
+  {
+    "id": "885",
+    "codeC": "24033",
+    "fr": "Oued Cheham",
+    "codeW": "24"
+  },
+  {
+    "id": "886",
+    "codeC": "24034",
+    "fr": "Djeballah Khemissi",
+    "codeW": "24"
+  },
+  {
+    "id": "887",
+    "codeC": "25001",
+    "fr": "Constantine",
+    "codeW": "25"
+  },
+  {
+    "id": "888",
+    "codeC": "25002",
+    "fr": "Hamma Bouziane",
+    "codeW": "25"
+  },
+  {
+    "id": "889",
+    "codeC": "25003",
+    "fr": "El Haria",
+    "codeW": "25"
+  },
+  {
+    "id": "890",
+    "codeC": "25004",
+    "fr": "Zighoud Youcef",
+    "codeW": "25"
+  },
+  {
+    "id": "891",
+    "codeC": "25005",
+    "fr": "Didouche Mourad",
+    "codeW": "25"
+  },
+  {
+    "id": "892",
+    "codeC": "25006",
+    "fr": "El Khroub",
+    "codeW": "25"
+  },
+  {
+    "id": "893",
+    "codeC": "25007",
+    "fr": "Ain Abid",
+    "codeW": "25"
+  },
+  {
+    "id": "894",
+    "codeC": "25008",
+    "fr": "Beni Hamiden",
+    "codeW": "25"
+  },
+  {
+    "id": "895",
+    "codeC": "25009",
+    "fr": "Ouled Rahmoune",
+    "codeW": "25"
+  },
+  {
+    "id": "896",
+    "codeC": "25010",
+    "fr": "Ain Smara",
+    "codeW": "25"
+  },
+  {
+    "id": "897",
+    "codeC": "25011",
+    "fr": "Mesaoud Boudjeriou",
+    "codeW": "25"
+  },
+  {
+    "id": "898",
+    "codeC": "25012",
+    "fr": "Ibn Ziad",
+    "codeW": "25"
+  },
+  {
+    "id": "899",
+    "codeC": "26001",
+    "fr": "Medea",
+    "codeW": "26"
+  },
+  {
+    "id": "900",
+    "codeC": "26002",
+    "fr": "Ouzera",
+    "codeW": "26"
+  },
+  {
+    "id": "901",
+    "codeC": "26003",
+    "fr": "Ouled Maaref",
+    "codeW": "26"
+  },
+  {
+    "id": "902",
+    "codeC": "26004",
+    "fr": "Ain Boucif",
+    "codeW": "26"
+  },
+  {
+    "id": "903",
+    "codeC": "26005",
+    "fr": "Aissaouia",
+    "codeW": "26"
+  },
+  {
+    "id": "904",
+    "codeC": "26006",
+    "fr": "Ouled Deide",
+    "codeW": "26"
+  },
+  {
+    "id": "905",
+    "codeC": "26007",
+    "fr": "El Omaria",
+    "codeW": "26"
+  },
+  {
+    "id": "906",
+    "codeC": "26008",
+    "fr": "Derrag",
+    "codeW": "26"
+  },
+  {
+    "id": "907",
+    "codeC": "26009",
+    "fr": "El Guelbelkebir",
+    "codeW": "26"
+  },
+  {
+    "id": "908",
+    "codeC": "26010",
+    "fr": "Bouaiche",
+    "codeW": "26"
+  },
+  {
+    "id": "909",
+    "codeC": "26011",
+    "fr": "Mezerena",
+    "codeW": "26"
+  },
+  {
+    "id": "910",
+    "codeC": "26012",
+    "fr": "Ouled Brahim",
+    "codeW": "26"
+  },
+  {
+    "id": "911",
+    "codeC": "26013",
+    "fr": "Damiat",
+    "codeW": "26"
+  },
+  {
+    "id": "912",
+    "codeC": "26014",
+    "fr": "Sidi Ziane",
+    "codeW": "26"
+  },
+  {
+    "id": "913",
+    "codeC": "26015",
+    "fr": "Tamesguida",
+    "codeW": "26"
+  },
+  {
+    "id": "914",
+    "codeC": "26016",
+    "fr": "El Hamdania",
+    "codeW": "26"
+  },
+  {
+    "id": "915",
+    "codeC": "26017",
+    "fr": "Kef Lakhdar",
+    "codeW": "26"
+  },
+  {
+    "id": "916",
+    "codeC": "26018",
+    "fr": "Chelalet El Adhaoura",
+    "codeW": "26"
+  },
+  {
+    "id": "917",
+    "codeC": "26019",
+    "fr": "Bouskene",
+    "codeW": "26"
+  },
+  {
+    "id": "918",
+    "codeC": "26020",
+    "fr": "Rebaia",
+    "codeW": "26"
+  },
+  {
+    "id": "919",
+    "codeC": "26021",
+    "fr": "Bouchrahil",
+    "codeW": "26"
+  },
+  {
+    "id": "920",
+    "codeC": "26022",
+    "fr": "Ouled Hellal",
+    "codeW": "26"
+  },
+  {
+    "id": "921",
+    "codeC": "26023",
+    "fr": "Tafraout",
+    "codeW": "26"
+  },
+  {
+    "id": "922",
+    "codeC": "26024",
+    "fr": "Baata",
+    "codeW": "26"
+  },
+  {
+    "id": "923",
+    "codeC": "26025",
+    "fr": "Boghar",
+    "codeW": "26"
+  },
+  {
+    "id": "924",
+    "codeC": "26026",
+    "fr": "Sidi Naamane",
+    "codeW": "26"
+  },
+  {
+    "id": "925",
+    "codeC": "26027",
+    "fr": "Ouled Bouachra",
+    "codeW": "26"
+  },
+  {
+    "id": "926",
+    "codeC": "26028",
+    "fr": "Sidi Zahar",
+    "codeW": "26"
+  },
+  {
+    "id": "927",
+    "codeC": "26029",
+    "fr": "Oued Harbil",
+    "codeW": "26"
+  },
+  {
+    "id": "928",
+    "codeC": "26030",
+    "fr": "Benchicao",
+    "codeW": "26"
+  },
+  {
+    "id": "929",
+    "codeC": "26031",
+    "fr": "Sidi Damed",
+    "codeW": "26"
+  },
+  {
+    "id": "930",
+    "codeC": "26032",
+    "fr": "Aziz",
+    "codeW": "26"
+  },
+  {
+    "id": "931",
+    "codeC": "26033",
+    "fr": "Souagui",
+    "codeW": "26"
+  },
+  {
+    "id": "932",
+    "codeC": "26034",
+    "fr": "Zoubiria",
+    "codeW": "26"
+  },
+  {
+    "id": "933",
+    "codeC": "26035",
+    "fr": "Ksar El Boukhari",
+    "codeW": "26"
+  },
+  {
+    "id": "934",
+    "codeC": "26036",
+    "fr": "El Azizia",
+    "codeW": "26"
+  },
+  {
+    "id": "935",
+    "codeC": "26037",
+    "fr": "Djouab",
+    "codeW": "26"
+  },
+  {
+    "id": "936",
+    "codeC": "26038",
+    "fr": "Chahbounia",
+    "codeW": "26"
+  },
+  {
+    "id": "937",
+    "codeC": "26039",
+    "fr": "Meghraoua",
+    "codeW": "26"
+  },
+  {
+    "id": "938",
+    "codeC": "26040",
+    "fr": "Cheniguel",
+    "codeW": "26"
+  },
+  {
+    "id": "939",
+    "codeC": "26041",
+    "fr": "Ain Ouksir",
+    "codeW": "26"
+  },
+  {
+    "id": "940",
+    "codeC": "26042",
+    "fr": "Oum El Djalil",
+    "codeW": "26"
+  },
+  {
+    "id": "941",
+    "codeC": "26043",
+    "fr": "Ouamri",
+    "codeW": "26"
+  },
+  {
+    "id": "942",
+    "codeC": "26044",
+    "fr": "Si Mahdjoub",
+    "codeW": "26"
+  },
+  {
+    "id": "943",
+    "codeC": "26045",
+    "fr": "Tlatet Eddoair",
+    "codeW": "26"
+  },
+  {
+    "id": "944",
+    "codeC": "26046",
+    "fr": "Beni Slimane",
+    "codeW": "26"
+  },
+  {
+    "id": "945",
+    "codeC": "26047",
+    "fr": "Berrouaghia",
+    "codeW": "26"
+  },
+  {
+    "id": "946",
+    "codeC": "26048",
+    "fr": "Seghouane",
+    "codeW": "26"
+  },
+  {
+    "id": "947",
+    "codeC": "26049",
+    "fr": "Meftaha",
+    "codeW": "26"
+  },
+  {
+    "id": "948",
+    "codeC": "26050",
+    "fr": "Mihoub",
+    "codeW": "26"
+  },
+  {
+    "id": "949",
+    "codeC": "26051",
+    "fr": "Boughezoul",
+    "codeW": "26"
+  },
+  {
+    "id": "950",
+    "codeC": "26052",
+    "fr": "Tablat",
+    "codeW": "26"
+  },
+  {
+    "id": "951",
+    "codeC": "26053",
+    "fr": "Deux Bassins",
+    "codeW": "26"
+  },
+  {
+    "id": "952",
+    "codeC": "26054",
+    "fr": "Draa Essamar",
+    "codeW": "26"
+  },
+  {
+    "id": "953",
+    "codeC": "26055",
+    "fr": "Sidi Errabia",
+    "codeW": "26"
+  },
+  {
+    "id": "954",
+    "codeC": "26056",
+    "fr": "Bir Ben Laabed",
+    "codeW": "26"
+  },
+  {
+    "id": "955",
+    "codeC": "26057",
+    "fr": "El Ouinet",
+    "codeW": "26"
+  },
+  {
+    "id": "956",
+    "codeC": "26058",
+    "fr": "Ouled Antar",
+    "codeW": "26"
+  },
+  {
+    "id": "957",
+    "codeC": "26059",
+    "fr": "Bouaichoune",
+    "codeW": "26"
+  },
+  {
+    "id": "958",
+    "codeC": "26060",
+    "fr": "Hannacha",
+    "codeW": "26"
+  },
+  {
+    "id": "959",
+    "codeC": "26061",
+    "fr": "Sedraia",
+    "codeW": "26"
+  },
+  {
+    "id": "960",
+    "codeC": "26062",
+    "fr": "Medjebar",
+    "codeW": "26"
+  },
+  {
+    "id": "961",
+    "codeC": "26063",
+    "fr": "Khams Djouamaa",
+    "codeW": "26"
+  },
+  {
+    "id": "962",
+    "codeC": "26064",
+    "fr": "Saneg",
+    "codeW": "26"
+  },
+  {
+    "id": "963",
+    "codeC": "27001",
+    "fr": "Mostaganem",
+    "codeW": "27"
+  },
+  {
+    "id": "964",
+    "codeC": "27002",
+    "fr": "Sayada",
+    "codeW": "27"
+  },
+  {
+    "id": "965",
+    "codeC": "27003",
+    "fr": "Fornaka",
+    "codeW": "27"
+  },
+  {
+    "id": "966",
+    "codeC": "27004",
+    "fr": "Stidia",
+    "codeW": "27"
+  },
+  {
+    "id": "967",
+    "codeC": "27005",
+    "fr": "Ain Nouissy",
+    "codeW": "27"
+  },
+  {
+    "id": "968",
+    "codeC": "27006",
+    "fr": "Hassi Maameche",
+    "codeW": "27"
+  },
+  {
+    "id": "969",
+    "codeC": "27007",
+    "fr": "Ain Tadles",
+    "codeW": "27"
+  },
+  {
+    "id": "970",
+    "codeC": "27008",
+    "fr": "Sour",
+    "codeW": "27"
+  },
+  {
+    "id": "971",
+    "codeC": "27009",
+    "fr": "Oued El Kheir",
+    "codeW": "27"
+  },
+  {
+    "id": "972",
+    "codeC": "27010",
+    "fr": "Sidi Bellater",
+    "codeW": "27"
+  },
+  {
+    "id": "973",
+    "codeC": "27011",
+    "fr": "Kheiredine ",
+    "codeW": "27"
+  },
+  {
+    "id": "974",
+    "codeC": "27012",
+    "fr": "Sidi Ali",
+    "codeW": "27"
+  },
+  {
+    "id": "975",
+    "codeC": "27013",
+    "fr": "Abdelmalek Ramdane",
+    "codeW": "27"
+  },
+  {
+    "id": "976",
+    "codeC": "27014",
+    "fr": "Hadjadj",
+    "codeW": "27"
+  },
+  {
+    "id": "977",
+    "codeC": "27015",
+    "fr": "Nekmaria",
+    "codeW": "27"
+  },
+  {
+    "id": "978",
+    "codeC": "27016",
+    "fr": "Sidi Lakhdar",
+    "codeW": "27"
+  },
+  {
+    "id": "979",
+    "codeC": "27017",
+    "fr": "Achaacha",
+    "codeW": "27"
+  },
+  {
+    "id": "980",
+    "codeC": "27018",
+    "fr": "Khadra",
+    "codeW": "27"
+  },
+  {
+    "id": "981",
+    "codeC": "27019",
+    "fr": "Bouguirat",
+    "codeW": "27"
+  },
+  {
+    "id": "982",
+    "codeC": "27020",
+    "fr": "Sirat",
+    "codeW": "27"
+  },
+  {
+    "id": "983",
+    "codeC": "27021",
+    "fr": "Ain Sidi Cherif",
+    "codeW": "27"
+  },
+  {
+    "id": "984",
+    "codeC": "27022",
+    "fr": "Mesra",
+    "codeW": "27"
+  },
+  {
+    "id": "985",
+    "codeC": "27023",
+    "fr": "Mansourah",
+    "codeW": "27"
+  },
+  {
+    "id": "986",
+    "codeC": "27024",
+    "fr": "Souaflia",
+    "codeW": "27"
+  },
+  {
+    "id": "987",
+    "codeC": "27025",
+    "fr": "Ouled Boughalem",
+    "codeW": "27"
+  },
+  {
+    "id": "988",
+    "codeC": "27026",
+    "fr": "Ouled Maallah",
+    "codeW": "27"
+  },
+  {
+    "id": "989",
+    "codeC": "27027",
+    "fr": "Mezghrane",
+    "codeW": "27"
+  },
+  {
+    "id": "990",
+    "codeC": "27028",
+    "fr": "Ain Boudinar",
+    "codeW": "27"
+  },
+  {
+    "id": "991",
+    "codeC": "27029",
+    "fr": "Tazgait",
+    "codeW": "27"
+  },
+  {
+    "id": "992",
+    "codeC": "27030",
+    "fr": "Safsaf",
+    "codeW": "27"
+  },
+  {
+    "id": "993",
+    "codeC": "27031",
+    "fr": "Touahria",
+    "codeW": "27"
+  },
+  {
+    "id": "994",
+    "codeC": "27032",
+    "fr": "El Hassiane",
+    "codeW": "27"
+  },
+  {
+    "id": "995",
+    "codeC": "28001",
+    "fr": "Msila",
+    "codeW": "28"
+  },
+  {
+    "id": "996",
+    "codeC": "28002",
+    "fr": "Maadid",
+    "codeW": "28"
+  },
+  {
+    "id": "997",
+    "codeC": "28003",
+    "fr": "Hammam Dhalaa",
+    "codeW": "28"
+  },
+  {
+    "id": "998",
+    "codeC": "28004",
+    "fr": "Ouled Derradj",
+    "codeW": "28"
+  },
+  {
+    "id": "999",
+    "codeC": "28005",
+    "fr": "Tarmount",
+    "codeW": "28"
+  },
+  {
+    "id": "1000",
+    "codeC": "28006",
+    "fr": "Mtarfa",
+    "codeW": "28"
+  },
+  {
+    "id": "1001",
+    "codeC": "28007",
+    "fr": "Khoubana",
+    "codeW": "28"
+  },
+  {
+    "id": "1002",
+    "codeC": "28008",
+    "fr": "Mcif",
+    "codeW": "28"
+  },
+  {
+    "id": "1003",
+    "codeC": "28009",
+    "fr": "Chellal",
+    "codeW": "28"
+  },
+  {
+    "id": "1004",
+    "codeC": "28010",
+    "fr": "Ouled Madhi",
+    "codeW": "28"
+  },
+  {
+    "id": "1005",
+    "codeC": "28011",
+    "fr": "Magra",
+    "codeW": "28"
+  },
+  {
+    "id": "1006",
+    "codeC": "28012",
+    "fr": "Berhoum",
+    "codeW": "28"
+  },
+  {
+    "id": "1007",
+    "codeC": "28013",
+    "fr": "Ain Khadra",
+    "codeW": "28"
+  },
+  {
+    "id": "1008",
+    "codeC": "28014",
+    "fr": "Ouled Addi Guebala",
+    "codeW": "28"
+  },
+  {
+    "id": "1009",
+    "codeC": "28015",
+    "fr": "Belaiba",
+    "codeW": "28"
+  },
+  {
+    "id": "1010",
+    "codeC": "28016",
+    "fr": "Sidi Aissa",
+    "codeW": "28"
+  },
+  {
+    "id": "1011",
+    "codeC": "28017",
+    "fr": "Ain El Hadjel",
+    "codeW": "28"
+  },
+  {
+    "id": "1012",
+    "codeC": "28018",
+    "fr": "Sidi Hadjeres",
+    "codeW": "28"
+  },
+  {
+    "id": "1013",
+    "codeC": "28019",
+    "fr": "Ouanougha",
+    "codeW": "28"
+  },
+  {
+    "id": "1014",
+    "codeC": "28020",
+    "fr": "Bou Saada",
+    "codeW": "28"
+  },
+  {
+    "id": "1015",
+    "codeC": "28021",
+    "fr": "Ouled Sidi Brahim",
+    "codeW": "28"
+  },
+  {
+    "id": "1016",
+    "codeC": "28022",
+    "fr": "Sidi Ameur",
+    "codeW": "28"
+  },
+  {
+    "id": "1017",
+    "codeC": "28023",
+    "fr": "Tamsa",
+    "codeW": "28"
+  },
+  {
+    "id": "1018",
+    "codeC": "28024",
+    "fr": "Ben Srour",
+    "codeW": "28"
+  },
+  {
+    "id": "1019",
+    "codeC": "28025",
+    "fr": "Ouled Slimane",
+    "codeW": "28"
+  },
+  {
+    "id": "1020",
+    "codeC": "28026",
+    "fr": "El Houamed",
+    "codeW": "28"
+  },
+  {
+    "id": "1021",
+    "codeC": "28027",
+    "fr": "El Hamel",
+    "codeW": "28"
+  },
+  {
+    "id": "1022",
+    "codeC": "28028",
+    "fr": "Ouled Mansour",
+    "codeW": "28"
+  },
+  {
+    "id": "1023",
+    "codeC": "28029",
+    "fr": "Maarif",
+    "codeW": "28"
+  },
+  {
+    "id": "1024",
+    "codeC": "28030",
+    "fr": "Dehahna",
+    "codeW": "28"
+  },
+  {
+    "id": "1025",
+    "codeC": "28031",
+    "fr": "Bouti Sayah",
+    "codeW": "28"
+  },
+  {
+    "id": "1026",
+    "codeC": "28032",
+    "fr": "Khettouti Sed Djir",
+    "codeW": "28"
+  },
+  {
+    "id": "1027",
+    "codeC": "28033",
+    "fr": "Zarzour",
+    "codeW": "28"
+  },
+  {
+    "id": "1028",
+    "codeC": "28034",
+    "fr": "Oued Chair",
+    "codeW": "28"
+  },
+  {
+    "id": "1029",
+    "codeC": "28035",
+    "fr": "Benzouh",
+    "codeW": "28"
+  },
+  {
+    "id": "1030",
+    "codeC": "28036",
+    "fr": "Bir Foda",
+    "codeW": "28"
+  },
+  {
+    "id": "1031",
+    "codeC": "28037",
+    "fr": "Ain Fares",
+    "codeW": "28"
+  },
+  {
+    "id": "1032",
+    "codeC": "28038",
+    "fr": "Sidi Mhamed",
+    "codeW": "28"
+  },
+  {
+    "id": "1033",
+    "codeC": "28039",
+    "fr": "Ouled Atia",
+    "codeW": "28"
+  },
+  {
+    "id": "1034",
+    "codeC": "28040",
+    "fr": "Souamaa",
+    "codeW": "28"
+  },
+  {
+    "id": "1035",
+    "codeC": "28041",
+    "fr": "Ain El Melh",
+    "codeW": "28"
+  },
+  {
+    "id": "1036",
+    "codeC": "28042",
+    "fr": "Medjedel",
+    "codeW": "28"
+  },
+  {
+    "id": "1037",
+    "codeC": "28043",
+    "fr": "Slim",
+    "codeW": "28"
+  },
+  {
+    "id": "1038",
+    "codeC": "28044",
+    "fr": "Ain Errich",
+    "codeW": "28"
+  },
+  {
+    "id": "1039",
+    "codeC": "28045",
+    "fr": "Beni Ilmane",
+    "codeW": "28"
+  },
+  {
+    "id": "1040",
+    "codeC": "28046",
+    "fr": "Oultene",
+    "codeW": "28"
+  },
+  {
+    "id": "1041",
+    "codeC": "28047",
+    "fr": "Djebel Messaad",
+    "codeW": "28"
+  },
+  {
+    "id": "1042",
+    "codeC": "29001",
+    "fr": "Mascara",
+    "codeW": "29"
+  },
+  {
+    "id": "1043",
+    "codeC": "29002",
+    "fr": "Bou Hanifia",
+    "codeW": "29"
+  },
+  {
+    "id": "1044",
+    "codeC": "29003",
+    "fr": "Tizi",
+    "codeW": "29"
+  },
+  {
+    "id": "1045",
+    "codeC": "29004",
+    "fr": "Hacine",
+    "codeW": "29"
+  },
+  {
+    "id": "1046",
+    "codeC": "29005",
+    "fr": "Maoussa",
+    "codeW": "29"
+  },
+  {
+    "id": "1047",
+    "codeC": "29006",
+    "fr": "Teghennif",
+    "codeW": "29"
+  },
+  {
+    "id": "1048",
+    "codeC": "29007",
+    "fr": "El Hachem",
+    "codeW": "29"
+  },
+  {
+    "id": "1049",
+    "codeC": "29008",
+    "fr": "Sidi Kada",
+    "codeW": "29"
+  },
+  {
+    "id": "1050",
+    "codeC": "29009",
+    "fr": "Zelmata",
+    "codeW": "29"
+  },
+  {
+    "id": "1051",
+    "codeC": "29010",
+    "fr": "Oued El Abtal",
+    "codeW": "29"
+  },
+  {
+    "id": "1052",
+    "codeC": "29011",
+    "fr": "Ain Ferah",
+    "codeW": "29"
+  },
+  {
+    "id": "1053",
+    "codeC": "29012",
+    "fr": "Ghriss",
+    "codeW": "29"
+  },
+  {
+    "id": "1054",
+    "codeC": "29013",
+    "fr": "Froha",
+    "codeW": "29"
+  },
+  {
+    "id": "1055",
+    "codeC": "29014",
+    "fr": "Matemore",
+    "codeW": "29"
+  },
+  {
+    "id": "1056",
+    "codeC": "29015",
+    "fr": "Makdha",
+    "codeW": "29"
+  },
+  {
+    "id": "1057",
+    "codeC": "29016",
+    "fr": "Sidi Boussaid",
+    "codeW": "29"
+  },
+  {
+    "id": "1058",
+    "codeC": "29017",
+    "fr": "El Bordj",
+    "codeW": "29"
+  },
+  {
+    "id": "1059",
+    "codeC": "29018",
+    "fr": "Ain Fekan",
+    "codeW": "29"
+  },
+  {
+    "id": "1060",
+    "codeC": "29019",
+    "fr": "Benian",
+    "codeW": "29"
+  },
+  {
+    "id": "1061",
+    "codeC": "29020",
+    "fr": "Khalouia",
+    "codeW": "29"
+  },
+  {
+    "id": "1062",
+    "codeC": "29021",
+    "fr": "El Menaouer",
+    "codeW": "29"
+  },
+  {
+    "id": "1063",
+    "codeC": "29022",
+    "fr": "Oued Taria",
+    "codeW": "29"
+  },
+  {
+    "id": "1064",
+    "codeC": "29023",
+    "fr": "Aouf",
+    "codeW": "29"
+  },
+  {
+    "id": "1065",
+    "codeC": "29024",
+    "fr": "Ain Fares",
+    "codeW": "29"
+  },
+  {
+    "id": "1066",
+    "codeC": "29025",
+    "fr": "Ain Frass",
+    "codeW": "29"
+  },
+  {
+    "id": "1067",
+    "codeC": "29026",
+    "fr": "Sig",
+    "codeW": "29"
+  },
+  {
+    "id": "1068",
+    "codeC": "29027",
+    "fr": "Oggaz",
+    "codeW": "29"
+  },
+  {
+    "id": "1069",
+    "codeC": "29028",
+    "fr": "Alaimia",
+    "codeW": "29"
+  },
+  {
+    "id": "1070",
+    "codeC": "29029",
+    "fr": "El Gaada",
+    "codeW": "29"
+  },
+  {
+    "id": "1071",
+    "codeC": "29030",
+    "fr": "Zahana",
+    "codeW": "29"
+  },
+  {
+    "id": "1072",
+    "codeC": "29031",
+    "fr": "Mohammadia",
+    "codeW": "29"
+  },
+  {
+    "id": "1073",
+    "codeC": "29032",
+    "fr": "Sidi Abdelmoumene",
+    "codeW": "29"
+  },
+  {
+    "id": "1074",
+    "codeC": "29033",
+    "fr": "Ferraguig",
+    "codeW": "29"
+  },
+  {
+    "id": "1075",
+    "codeC": "29034",
+    "fr": "El Ghomri",
+    "codeW": "29"
+  },
+  {
+    "id": "1076",
+    "codeC": "29035",
+    "fr": "Sedjerara",
+    "codeW": "29"
+  },
+  {
+    "id": "1077",
+    "codeC": "29036",
+    "fr": "Moctadouz",
+    "codeW": "29"
+  },
+  {
+    "id": "1078",
+    "codeC": "29037",
+    "fr": "Bou Henni",
+    "codeW": "29"
+  },
+  {
+    "id": "1079",
+    "codeC": "29038",
+    "fr": "Guettena",
+    "codeW": "29"
+  },
+  {
+    "id": "1080",
+    "codeC": "29039",
+    "fr": "El Mamounia",
+    "codeW": "29"
+  },
+  {
+    "id": "1081",
+    "codeC": "29040",
+    "fr": "El Keurt",
+    "codeW": "29"
+  },
+  {
+    "id": "1082",
+    "codeC": "29041",
+    "fr": "Gharrous",
+    "codeW": "29"
+  },
+  {
+    "id": "1083",
+    "codeC": "29042",
+    "fr": "Gherdjoum",
+    "codeW": "29"
+  },
+  {
+    "id": "1084",
+    "codeC": "29043",
+    "fr": "Chorfa",
+    "codeW": "29"
+  },
+  {
+    "id": "1085",
+    "codeC": "29044",
+    "fr": "Ras Ain Amirouche",
+    "codeW": "29"
+  },
+  {
+    "id": "1086",
+    "codeC": "29045",
+    "fr": "Nesmot",
+    "codeW": "29"
+  },
+  {
+    "id": "1087",
+    "codeC": "29046",
+    "fr": "Sidi Abdeldjebar",
+    "codeW": "29"
+  },
+  {
+    "id": "1088",
+    "codeC": "29047",
+    "fr": "Sehailia",
+    "codeW": "29"
+  },
+  {
+    "id": "1089",
+    "codeC": "30001",
+    "fr": "Ouargla",
+    "codeW": "30"
+  },
+  {
+    "id": "1090",
+    "codeC": "30002",
+    "fr": "Ain Beida",
+    "codeW": "30"
+  },
+  {
+    "id": "1091",
+    "codeC": "30003",
+    "fr": "Ngoussa",
+    "codeW": "30"
+  },
+  {
+    "id": "1092",
+    "codeC": "30004",
+    "fr": "Hassi Messaoud",
+    "codeW": "30"
+  },
+  {
+    "id": "1093",
+    "codeC": "30005",
+    "fr": "Rouissat",
+    "codeW": "30"
+  },
+  {
+    "id": "1094",
+    "codeC": "30006",
+    "fr": "Balidat Ameur",
+    "codeW": "30"
+  },
+  {
+    "id": "1095",
+    "codeC": "30007",
+    "fr": "Tebesbest",
+    "codeW": "30"
+  },
+  {
+    "id": "1096",
+    "codeC": "30008",
+    "fr": "Nezla",
+    "codeW": "30"
+  },
+  {
+    "id": "1097",
+    "codeC": "30009",
+    "fr": "Zaouia El Abidia",
+    "codeW": "30"
+  },
+  {
+    "id": "1098",
+    "codeC": "30010",
+    "fr": "Sidi Slimane",
+    "codeW": "30"
+  },
+  {
+    "id": "1099",
+    "codeC": "30011",
+    "fr": "Sidi Khouiled",
+    "codeW": "30"
+  },
+  {
+    "id": "1100",
+    "codeC": "30012",
+    "fr": "Hassi Ben Abdellah",
+    "codeW": "30"
+  },
+  {
+    "id": "1101",
+    "codeC": "30013",
+    "fr": "Touggourt",
+    "codeW": "30"
+  },
+  {
+    "id": "1102",
+    "codeC": "30014",
+    "fr": "El Hadjira",
+    "codeW": "30"
+  },
+  {
+    "id": "1103",
+    "codeC": "30015",
+    "fr": "Taibet",
+    "codeW": "30"
+  },
+  {
+    "id": "1104",
+    "codeC": "30016",
+    "fr": "Tamacine",
+    "codeW": "30"
+  },
+  {
+    "id": "1105",
+    "codeC": "30017",
+    "fr": "Benaceur",
+    "codeW": "30"
+  },
+  {
+    "id": "1106",
+    "codeC": "30018",
+    "fr": "Mnaguer",
+    "codeW": "30"
+  },
+  {
+    "id": "1107",
+    "codeC": "30019",
+    "fr": "Megarine",
+    "codeW": "30"
+  },
+  {
+    "id": "1108",
+    "codeC": "30020",
+    "fr": "El Allia",
+    "codeW": "30"
+  },
+  {
+    "id": "1109",
+    "codeC": "30021",
+    "fr": "El Borma",
+    "codeW": "30"
+  },
+  {
+    "id": "1110",
+    "codeC": "31001",
+    "fr": "Oran",
+    "codeW": "31"
+  },
+  {
+    "id": "1111",
+    "codeC": "31002",
+    "fr": "Gdyel",
+    "codeW": "31"
+  },
+  {
+    "id": "1112",
+    "codeC": "31003",
+    "fr": "Bir El Djir",
+    "codeW": "31"
+  },
+  {
+    "id": "1113",
+    "codeC": "31004",
+    "fr": "Hassi Bounif",
+    "codeW": "31"
+  },
+  {
+    "id": "1114",
+    "codeC": "31005",
+    "fr": "Es Senia",
+    "codeW": "31"
+  },
+  {
+    "id": "1115",
+    "codeC": "31006",
+    "fr": "Arzew",
+    "codeW": "31"
+  },
+  {
+    "id": "1116",
+    "codeC": "31007",
+    "fr": "Bethioua",
+    "codeW": "31"
+  },
+  {
+    "id": "1117",
+    "codeC": "31008",
+    "fr": "Marsat El Hadjadj",
+    "codeW": "31"
+  },
+  {
+    "id": "1118",
+    "codeC": "31009",
+    "fr": "Ain Turk",
+    "codeW": "31"
+  },
+  {
+    "id": "1119",
+    "codeC": "31010",
+    "fr": "El Ancar",
+    "codeW": "31"
+  },
+  {
+    "id": "1120",
+    "codeC": "31011",
+    "fr": "Oued Tlelat",
+    "codeW": "31"
+  },
+  {
+    "id": "1121",
+    "codeC": "31012",
+    "fr": "Tafraoui",
+    "codeW": "31"
+  },
+  {
+    "id": "1122",
+    "codeC": "31013",
+    "fr": "Sidi Chami",
+    "codeW": "31"
+  },
+  {
+    "id": "1123",
+    "codeC": "31014",
+    "fr": "Boufatis",
+    "codeW": "31"
+  },
+  {
+    "id": "1124",
+    "codeC": "31015",
+    "fr": "Mers El Kebir",
+    "codeW": "31"
+  },
+  {
+    "id": "1125",
+    "codeC": "31016",
+    "fr": "Bousfer",
+    "codeW": "31"
+  },
+  {
+    "id": "1126",
+    "codeC": "31017",
+    "fr": "El Karma",
+    "codeW": "31"
+  },
+  {
+    "id": "1127",
+    "codeC": "31018",
+    "fr": "El Braya",
+    "codeW": "31"
+  },
+  {
+    "id": "1128",
+    "codeC": "31019",
+    "fr": "Hassi Ben Okba",
+    "codeW": "31"
+  },
+  {
+    "id": "1129",
+    "codeC": "31020",
+    "fr": "Ben Freha",
+    "codeW": "31"
+  },
+  {
+    "id": "1130",
+    "codeC": "31021",
+    "fr": "Hassi Mefsoukh",
+    "codeW": "31"
+  },
+  {
+    "id": "1131",
+    "codeC": "31022",
+    "fr": "Sidi Ben Yabka",
+    "codeW": "31"
+  },
+  {
+    "id": "1132",
+    "codeC": "31023",
+    "fr": "Messerghin",
+    "codeW": "31"
+  },
+  {
+    "id": "1133",
+    "codeC": "31024",
+    "fr": "Boutlelis",
+    "codeW": "31"
+  },
+  {
+    "id": "1134",
+    "codeC": "31025",
+    "fr": "Ain Kerma",
+    "codeW": "31"
+  },
+  {
+    "id": "1135",
+    "codeC": "31026",
+    "fr": "Ain Biya",
+    "codeW": "31"
+  },
+  {
+    "id": "1136",
+    "codeC": "32001",
+    "fr": "El Bayadh",
+    "codeW": "32"
+  },
+  {
+    "id": "1137",
+    "codeC": "32002",
+    "fr": "Rogassa",
+    "codeW": "32"
+  },
+  {
+    "id": "1138",
+    "codeC": "32003",
+    "fr": "Stitten",
+    "codeW": "32"
+  },
+  {
+    "id": "1139",
+    "codeC": "32004",
+    "fr": "Brezina",
+    "codeW": "32"
+  },
+  {
+    "id": "1140",
+    "codeC": "32005",
+    "fr": "Ghassoul",
+    "codeW": "32"
+  },
+  {
+    "id": "1141",
+    "codeC": "32006",
+    "fr": "Boualem",
+    "codeW": "32"
+  },
+  {
+    "id": "1142",
+    "codeC": "32007",
+    "fr": "El Abiodh Sidi Cheikh",
+    "codeW": "32"
+  },
+  {
+    "id": "1143",
+    "codeC": "32008",
+    "fr": "Ain El Orak",
+    "codeW": "32"
+  },
+  {
+    "id": "1144",
+    "codeC": "32009",
+    "fr": "Arbaouat",
+    "codeW": "32"
+  },
+  {
+    "id": "1145",
+    "codeC": "32010",
+    "fr": "Bougtoub",
+    "codeW": "32"
+  },
+  {
+    "id": "1146",
+    "codeC": "32011",
+    "fr": "El Kheither",
+    "codeW": "32"
+  },
+  {
+    "id": "1147",
+    "codeC": "32012",
+    "fr": "Kef El Ahmar",
+    "codeW": "32"
+  },
+  {
+    "id": "1148",
+    "codeC": "32013",
+    "fr": "Boussemghoun",
+    "codeW": "32"
+  },
+  {
+    "id": "1149",
+    "codeC": "32014",
+    "fr": "Chellala",
+    "codeW": "32"
+  },
+  {
+    "id": "1150",
+    "codeC": "32015",
+    "fr": "Krakda",
+    "codeW": "32"
+  },
+  {
+    "id": "1151",
+    "codeC": "32016",
+    "fr": "El Bnoud",
+    "codeW": "32"
+  },
+  {
+    "id": "1152",
+    "codeC": "32017",
+    "fr": "Cheguig",
+    "codeW": "32"
+  },
+  {
+    "id": "1153",
+    "codeC": "32018",
+    "fr": "Sidi Ameur",
+    "codeW": "32"
+  },
+  {
+    "id": "1154",
+    "codeC": "32019",
+    "fr": "El Mehara",
+    "codeW": "32"
+  },
+  {
+    "id": "1155",
+    "codeC": "32020",
+    "fr": "Tousmouline",
+    "codeW": "32"
+  },
+  {
+    "id": "1156",
+    "codeC": "32021",
+    "fr": "Sidi Slimane",
+    "codeW": "32"
+  },
+  {
+    "id": "1157",
+    "codeC": "32022",
+    "fr": "Sidi Tifour",
+    "codeW": "32"
+  },
+  {
+    "id": "1158",
+    "codeC": "33001",
+    "fr": "Illizi",
+    "codeW": "33"
+  },
+  {
+    "id": "1159",
+    "codeC": "33002",
+    "fr": "Djanet",
+    "codeW": "33"
+  },
+  {
+    "id": "1160",
+    "codeC": "33003",
+    "fr": "Debdeb",
+    "codeW": "33"
+  },
+  {
+    "id": "1161",
+    "codeC": "33004",
+    "fr": "Bordj Omar Driss",
+    "codeW": "33"
+  },
+  {
+    "id": "1162",
+    "codeC": "33005",
+    "fr": "Bordj El Haouasse",
+    "codeW": "33"
+  },
+  {
+    "id": "1163",
+    "codeC": "33006",
+    "fr": "In Amenas",
+    "codeW": "33"
+  },
+  {
+    "id": "1164",
+    "codeC": "34001",
+    "fr": "Bordj Bou Arreridj",
+    "codeW": "34"
+  },
+  {
+    "id": "1165",
+    "codeC": "34002",
+    "fr": "Ras El Oued",
+    "codeW": "34"
+  },
+  {
+    "id": "1166",
+    "codeC": "34003",
+    "fr": "Bordj Zemoura",
+    "codeW": "34"
+  },
+  {
+    "id": "1167",
+    "codeC": "34004",
+    "fr": "Mansoura",
+    "codeW": "34"
+  },
+  {
+    "id": "1168",
+    "codeC": "34005",
+    "fr": "El Mhir",
+    "codeW": "34"
+  },
+  {
+    "id": "1169",
+    "codeC": "34006",
+    "fr": "Ben Daoud",
+    "codeW": "34"
+  },
+  {
+    "id": "1170",
+    "codeC": "34007",
+    "fr": "El Achir",
+    "codeW": "34"
+  },
+  {
+    "id": "1171",
+    "codeC": "34008",
+    "fr": "Ain Taghrout",
+    "codeW": "34"
+  },
+  {
+    "id": "1172",
+    "codeC": "34009",
+    "fr": "Bordj Ghdir",
+    "codeW": "34"
+  },
+  {
+    "id": "1173",
+    "codeC": "34010",
+    "fr": "Sidi Embarek",
+    "codeW": "34"
+  },
+  {
+    "id": "1174",
+    "codeC": "34011",
+    "fr": "El Hamadia",
+    "codeW": "34"
+  },
+  {
+    "id": "1175",
+    "codeC": "34012",
+    "fr": "Belimour",
+    "codeW": "34"
+  },
+  {
+    "id": "1176",
+    "codeC": "34013",
+    "fr": "Medjana",
+    "codeW": "34"
+  },
+  {
+    "id": "1177",
+    "codeC": "34014",
+    "fr": "Teniet En Nasr",
+    "codeW": "34"
+  },
+  {
+    "id": "1178",
+    "codeC": "34015",
+    "fr": "Djaafra",
+    "codeW": "34"
+  },
+  {
+    "id": "1179",
+    "codeC": "34016",
+    "fr": "El Main",
+    "codeW": "34"
+  },
+  {
+    "id": "1180",
+    "codeC": "34017",
+    "fr": "Ouled Brahem",
+    "codeW": "34"
+  },
+  {
+    "id": "1181",
+    "codeC": "34018",
+    "fr": "Ouled Dahmane",
+    "codeW": "34"
+  },
+  {
+    "id": "1182",
+    "codeC": "34019",
+    "fr": "Hasnaoua",
+    "codeW": "34"
+  },
+  {
+    "id": "1183",
+    "codeC": "34020",
+    "fr": "Khelil",
+    "codeW": "34"
+  },
+  {
+    "id": "1184",
+    "codeC": "34021",
+    "fr": "Taglait",
+    "codeW": "34"
+  },
+  {
+    "id": "1185",
+    "codeC": "34022",
+    "fr": "Ksour",
+    "codeW": "34"
+  },
+  {
+    "id": "1186",
+    "codeC": "34023",
+    "fr": "Ouled Sidi Brahim",
+    "codeW": "34"
+  },
+  {
+    "id": "1187",
+    "codeC": "34024",
+    "fr": "Tafreg",
+    "codeW": "34"
+  },
+  {
+    "id": "1188",
+    "codeC": "34025",
+    "fr": "Colla",
+    "codeW": "34"
+  },
+  {
+    "id": "1189",
+    "codeC": "34026",
+    "fr": "Tixter",
+    "codeW": "34"
+  },
+  {
+    "id": "1190",
+    "codeC": "34027",
+    "fr": "El Ach",
+    "codeW": "34"
+  },
+  {
+    "id": "1191",
+    "codeC": "34028",
+    "fr": "El Anseur",
+    "codeW": "34"
+  },
+  {
+    "id": "1192",
+    "codeC": "34029",
+    "fr": "Tesmart",
+    "codeW": "34"
+  },
+  {
+    "id": "1193",
+    "codeC": "34030",
+    "fr": "Ain Tesra",
+    "codeW": "34"
+  },
+  {
+    "id": "1194",
+    "codeC": "34031",
+    "fr": "Bir Kasdali",
+    "codeW": "34"
+  },
+  {
+    "id": "1195",
+    "codeC": "34032",
+    "fr": "Ghilassa",
+    "codeW": "34"
+  },
+  {
+    "id": "1196",
+    "codeC": "34033",
+    "fr": "Rabta",
+    "codeW": "34"
+  },
+  {
+    "id": "1197",
+    "codeC": "34034",
+    "fr": "Haraza",
+    "codeW": "34"
+  },
+  {
+    "id": "1198",
+    "codeC": "35001",
+    "fr": "Boumerdes",
+    "codeW": "35"
+  },
+  {
+    "id": "1199",
+    "codeC": "35002",
+    "fr": "Boudouaou",
+    "codeW": "35"
+  },
+  {
+    "id": "1200",
+    "codeC": "35004",
+    "fr": "Afir",
+    "codeW": "35"
+  },
+  {
+    "id": "1201",
+    "codeC": "35005",
+    "fr": "Bordj Menaiel",
+    "codeW": "35"
+  },
+  {
+    "id": "1202",
+    "codeC": "35006",
+    "fr": "Baghlia",
+    "codeW": "35"
+  },
+  {
+    "id": "1203",
+    "codeC": "35007",
+    "fr": "Sidi Daoud",
+    "codeW": "35"
+  },
+  {
+    "id": "1204",
+    "codeC": "35008",
+    "fr": "Naciria",
+    "codeW": "35"
+  },
+  {
+    "id": "1205",
+    "codeC": "35009",
+    "fr": "Djinet",
+    "codeW": "35"
+  },
+  {
+    "id": "1206",
+    "codeC": "35010",
+    "fr": "Isser",
+    "codeW": "35"
+  },
+  {
+    "id": "1207",
+    "codeC": "35011",
+    "fr": "Zemmouri",
+    "codeW": "35"
+  },
+  {
+    "id": "1208",
+    "codeC": "35012",
+    "fr": "Si Mustapha",
+    "codeW": "35"
+  },
+  {
+    "id": "1209",
+    "codeC": "35013",
+    "fr": "Tidjelabine",
+    "codeW": "35"
+  },
+  {
+    "id": "1210",
+    "codeC": "35014",
+    "fr": "Chabet El Ameur",
+    "codeW": "35"
+  },
+  {
+    "id": "1211",
+    "codeC": "35015",
+    "fr": "Thenia",
+    "codeW": "35"
+  },
+  {
+    "id": "1212",
+    "codeC": "35018",
+    "fr": "Timezrit",
+    "codeW": "35"
+  },
+  {
+    "id": "1213",
+    "codeC": "35019",
+    "fr": "Corso",
+    "codeW": "35"
+  },
+  {
+    "id": "1214",
+    "codeC": "35020",
+    "fr": "Ouled Moussa",
+    "codeW": "35"
+  },
+  {
+    "id": "1215",
+    "codeC": "35021",
+    "fr": "Larbatache",
+    "codeW": "35"
+  },
+  {
+    "id": "1216",
+    "codeC": "35022",
+    "fr": "Bouzegza Keddara",
+    "codeW": "35"
+  },
+  {
+    "id": "1217",
+    "codeC": "35025",
+    "fr": "Taourga",
+    "codeW": "35"
+  },
+  {
+    "id": "1218",
+    "codeC": "35026",
+    "fr": "Ouled Aissa",
+    "codeW": "35"
+  },
+  {
+    "id": "1219",
+    "codeC": "35027",
+    "fr": "Ben Choud",
+    "codeW": "35"
+  },
+  {
+    "id": "1220",
+    "codeC": "35028",
+    "fr": "Dellys",
+    "codeW": "35"
+  },
+  {
+    "id": "1221",
+    "codeC": "35029",
+    "fr": "Ammal",
+    "codeW": "35"
+  },
+  {
+    "id": "1222",
+    "codeC": "35030",
+    "fr": "Beni Amrane",
+    "codeW": "35"
+  },
+  {
+    "id": "1223",
+    "codeC": "35031",
+    "fr": "Souk El Had",
+    "codeW": "35"
+  },
+  {
+    "id": "1224",
+    "codeC": "35032",
+    "fr": "Boudouaou El Bahri",
+    "codeW": "35"
+  },
+  {
+    "id": "1225",
+    "codeC": "35033",
+    "fr": "Ouled Hedadj",
+    "codeW": "35"
+  },
+  {
+    "id": "1226",
+    "codeC": "35035",
+    "fr": "Laghata",
+    "codeW": "35"
+  },
+  {
+    "id": "1227",
+    "codeC": "35036",
+    "fr": "Hammedi",
+    "codeW": "35"
+  },
+  {
+    "id": "1228",
+    "codeC": "35037",
+    "fr": "Khemis El Khechna",
+    "codeW": "35"
+  },
+  {
+    "id": "1229",
+    "codeC": "35038",
+    "fr": "El Kharrouba",
+    "codeW": "35"
+  },
+  {
+    "id": "1230",
+    "codeC": "36001",
+    "fr": "El Tarf",
+    "codeW": "36"
+  },
+  {
+    "id": "1231",
+    "codeC": "36002",
+    "fr": "Bouhadjar",
+    "codeW": "36"
+  },
+  {
+    "id": "1232",
+    "codeC": "36003",
+    "fr": "Ben Mhidi",
+    "codeW": "36"
+  },
+  {
+    "id": "1233",
+    "codeC": "36004",
+    "fr": "Bougous",
+    "codeW": "36"
+  },
+  {
+    "id": "1234",
+    "codeC": "36005",
+    "fr": "El Kala",
+    "codeW": "36"
+  },
+  {
+    "id": "1235",
+    "codeC": "36006",
+    "fr": "Ain El Assel",
+    "codeW": "36"
+  },
+  {
+    "id": "1236",
+    "codeC": "36007",
+    "fr": "El Aioun",
+    "codeW": "36"
+  },
+  {
+    "id": "1237",
+    "codeC": "36008",
+    "fr": "Bouteldja",
+    "codeW": "36"
+  },
+  {
+    "id": "1238",
+    "codeC": "36009",
+    "fr": "Souarekh",
+    "codeW": "36"
+  },
+  {
+    "id": "1239",
+    "codeC": "36010",
+    "fr": "Berrihane",
+    "codeW": "36"
+  },
+  {
+    "id": "1240",
+    "codeC": "36011",
+    "fr": "Lac Des Oiseaux",
+    "codeW": "36"
+  },
+  {
+    "id": "1241",
+    "codeC": "36012",
+    "fr": "Chefia",
+    "codeW": "36"
+  },
+  {
+    "id": "1242",
+    "codeC": "36013",
+    "fr": "Drean",
+    "codeW": "36"
+  },
+  {
+    "id": "1243",
+    "codeC": "36014",
+    "fr": "Chihani",
+    "codeW": "36"
+  },
+  {
+    "id": "1244",
+    "codeC": "36015",
+    "fr": "Chebaita Mokhtar",
+    "codeW": "36"
+  },
+  {
+    "id": "1245",
+    "codeC": "36016",
+    "fr": "Besbes",
+    "codeW": "36"
+  },
+  {
+    "id": "1246",
+    "codeC": "36017",
+    "fr": "Asfour",
+    "codeW": "36"
+  },
+  {
+    "id": "1247",
+    "codeC": "36018",
+    "fr": "Echatt",
+    "codeW": "36"
+  },
+  {
+    "id": "1248",
+    "codeC": "36019",
+    "fr": "Zerizer",
+    "codeW": "36"
+  },
+  {
+    "id": "1249",
+    "codeC": "36020",
+    "fr": "Zitouna",
+    "codeW": "36"
+  },
+  {
+    "id": "1250",
+    "codeC": "36021",
+    "fr": "Ain Kerma",
+    "codeW": "36"
+  },
+  {
+    "id": "1251",
+    "codeC": "36022",
+    "fr": "Oued Zitoun",
+    "codeW": "36"
+  },
+  {
+    "id": "1252",
+    "codeC": "36023",
+    "fr": "Hammam Beni Salah",
+    "codeW": "36"
+  },
+  {
+    "id": "1253",
+    "codeC": "36024",
+    "fr": "Raml Souk",
+    "codeW": "36"
+  },
+  {
+    "id": "1254",
+    "codeC": "37001",
+    "fr": "Tindouf",
+    "codeW": "37"
+  },
+  {
+    "id": "1255",
+    "codeC": "37002",
+    "fr": "Oum El Assel",
+    "codeW": "37"
+  },
+  {
+    "id": "1256",
+    "codeC": "38001",
+    "fr": "Tissemsilt",
+    "codeW": "38"
+  },
+  {
+    "id": "1257",
+    "codeC": "38002",
+    "fr": "Bordj Bou Naama",
+    "codeW": "38"
+  },
+  {
+    "id": "1258",
+    "codeC": "38003",
+    "fr": "Theniet El Had",
+    "codeW": "38"
+  },
+  {
+    "id": "1259",
+    "codeC": "38004",
+    "fr": "Lazharia",
+    "codeW": "38"
+  },
+  {
+    "id": "1260",
+    "codeC": "38005",
+    "fr": "Beni Chaib",
+    "codeW": "38"
+  },
+  {
+    "id": "1261",
+    "codeC": "38006",
+    "fr": "Lardjem",
+    "codeW": "38"
+  },
+  {
+    "id": "1262",
+    "codeC": "38007",
+    "fr": "Melaab",
+    "codeW": "38"
+  },
+  {
+    "id": "1263",
+    "codeC": "38008",
+    "fr": "Sidi Lantri",
+    "codeW": "38"
+  },
+  {
+    "id": "1264",
+    "codeC": "38009",
+    "fr": "Bordj El Emir Abdelkader",
+    "codeW": "38"
+  },
+  {
+    "id": "1265",
+    "codeC": "38010",
+    "fr": "Layoune",
+    "codeW": "38"
+  },
+  {
+    "id": "1266",
+    "codeC": "38011",
+    "fr": "Khemisti",
+    "codeW": "38"
+  },
+  {
+    "id": "1267",
+    "codeC": "38012",
+    "fr": "Ouled Bessem",
+    "codeW": "38"
+  },
+  {
+    "id": "1268",
+    "codeC": "38013",
+    "fr": "Ammari",
+    "codeW": "38"
+  },
+  {
+    "id": "1269",
+    "codeC": "38014",
+    "fr": "Youssoufia",
+    "codeW": "38"
+  },
+  {
+    "id": "1270",
+    "codeC": "38015",
+    "fr": "Sidi Boutouchent",
+    "codeW": "38"
+  },
+  {
+    "id": "1271",
+    "codeC": "38016",
+    "fr": "Larbaa",
+    "codeW": "38"
+  },
+  {
+    "id": "1272",
+    "codeC": "38017",
+    "fr": "Maasem",
+    "codeW": "38"
+  },
+  {
+    "id": "1273",
+    "codeC": "38018",
+    "fr": "Sidi Abed",
+    "codeW": "38"
+  },
+  {
+    "id": "1274",
+    "codeC": "38019",
+    "fr": "Tamalaht",
+    "codeW": "38"
+  },
+  {
+    "id": "1275",
+    "codeC": "38020",
+    "fr": "Sidi Slimane",
+    "codeW": "38"
+  },
+  {
+    "id": "1276",
+    "codeC": "38021",
+    "fr": "Boucaid",
+    "codeW": "38"
+  },
+  {
+    "id": "1277",
+    "codeC": "38022",
+    "fr": "Beni Lahcene",
+    "codeW": "38"
+  },
+  {
+    "id": "1278",
+    "codeC": "39001",
+    "fr": "El Oued",
+    "codeW": "39"
+  },
+  {
+    "id": "1279",
+    "codeC": "39002",
+    "fr": "Robbah",
+    "codeW": "39"
+  },
+  {
+    "id": "1280",
+    "codeC": "39003",
+    "fr": "Oued El Alenda",
+    "codeW": "39"
+  },
+  {
+    "id": "1281",
+    "codeC": "39004",
+    "fr": "Bayadha",
+    "codeW": "39"
+  },
+  {
+    "id": "1282",
+    "codeC": "39005",
+    "fr": "Nakhla",
+    "codeW": "39"
+  },
+  {
+    "id": "1283",
+    "codeC": "39006",
+    "fr": "Guemar",
+    "codeW": "39"
+  },
+  {
+    "id": "1284",
+    "codeC": "39007",
+    "fr": "Kouinine",
+    "codeW": "39"
+  },
+  {
+    "id": "1285",
+    "codeC": "39008",
+    "fr": "Reguiba",
+    "codeW": "39"
+  },
+  {
+    "id": "1286",
+    "codeC": "39009",
+    "fr": "Hamraia",
+    "codeW": "39"
+  },
+  {
+    "id": "1287",
+    "codeC": "39010",
+    "fr": "Taghzout",
+    "codeW": "39"
+  },
+  {
+    "id": "1288",
+    "codeC": "39011",
+    "fr": "Debila",
+    "codeW": "39"
+  },
+  {
+    "id": "1289",
+    "codeC": "39012",
+    "fr": "Hassani Abdelkrim",
+    "codeW": "39"
+  },
+  {
+    "id": "1290",
+    "codeC": "39013",
+    "fr": "Hassi Khelifa",
+    "codeW": "39"
+  },
+  {
+    "id": "1291",
+    "codeC": "39014",
+    "fr": "Taleb Larbi",
+    "codeW": "39"
+  },
+  {
+    "id": "1292",
+    "codeC": "39015",
+    "fr": "Douar El Ma",
+    "codeW": "39"
+  },
+  {
+    "id": "1293",
+    "codeC": "39016",
+    "fr": "Sidi Aoun",
+    "codeW": "39"
+  },
+  {
+    "id": "1294",
+    "codeC": "39017",
+    "fr": "Trifaoui",
+    "codeW": "39"
+  },
+  {
+    "id": "1295",
+    "codeC": "39018",
+    "fr": "Magrane",
+    "codeW": "39"
+  },
+  {
+    "id": "1296",
+    "codeC": "39019",
+    "fr": "Beni Guecha",
+    "codeW": "39"
+  },
+  {
+    "id": "1297",
+    "codeC": "39020",
+    "fr": "Ourmas",
+    "codeW": "39"
+  },
+  {
+    "id": "1298",
+    "codeC": "39021",
+    "fr": "Still",
+    "codeW": "39"
+  },
+  {
+    "id": "1299",
+    "codeC": "39022",
+    "fr": "Mrara",
+    "codeW": "39"
+  },
+  {
+    "id": "1300",
+    "codeC": "39023",
+    "fr": "Sidi Khellil",
+    "codeW": "39"
+  },
+  {
+    "id": "1301",
+    "codeC": "39024",
+    "fr": "Tendla",
+    "codeW": "39"
+  },
+  {
+    "id": "1302",
+    "codeC": "39025",
+    "fr": "El Ogla",
+    "codeW": "39"
+  },
+  {
+    "id": "1303",
+    "codeC": "39026",
+    "fr": "Mih Ouansa",
+    "codeW": "39"
+  },
+  {
+    "id": "1304",
+    "codeC": "39027",
+    "fr": "El Mghair",
+    "codeW": "39"
+  },
+  {
+    "id": "1305",
+    "codeC": "39028",
+    "fr": "Djamaa",
+    "codeW": "39"
+  },
+  {
+    "id": "1306",
+    "codeC": "39029",
+    "fr": "Oum Touyour",
+    "codeW": "39"
+  },
+  {
+    "id": "1307",
+    "codeC": "39030",
+    "fr": "Sidi Amrane",
+    "codeW": "39"
+  },
+  {
+    "id": "1308",
+    "codeC": "40001",
+    "fr": "Khenchela",
+    "codeW": "40"
+  },
+  {
+    "id": "1309",
+    "codeC": "40002",
+    "fr": "Mtoussa",
+    "codeW": "40"
+  },
+  {
+    "id": "1310",
+    "codeC": "40003",
+    "fr": "Kais",
+    "codeW": "40"
+  },
+  {
+    "id": "1311",
+    "codeC": "40004",
+    "fr": "Baghai",
+    "codeW": "40"
+  },
+  {
+    "id": "1312",
+    "codeC": "40005",
+    "fr": "El Hamma",
+    "codeW": "40"
+  },
+  {
+    "id": "1313",
+    "codeC": "40006",
+    "fr": "Ain Touila",
+    "codeW": "40"
+  },
+  {
+    "id": "1314",
+    "codeC": "40007",
+    "fr": "Taouzianat",
+    "codeW": "40"
+  },
+  {
+    "id": "1315",
+    "codeC": "40008",
+    "fr": "Bouhmama",
+    "codeW": "40"
+  },
+  {
+    "id": "1316",
+    "codeC": "40009",
+    "fr": "El Oueldja",
+    "codeW": "40"
+  },
+  {
+    "id": "1317",
+    "codeC": "40010",
+    "fr": "Remila",
+    "codeW": "40"
+  },
+  {
+    "id": "1318",
+    "codeC": "40011",
+    "fr": "Cherchar",
+    "codeW": "40"
+  },
+  {
+    "id": "1319",
+    "codeC": "40012",
+    "fr": "Djellal",
+    "codeW": "40"
+  },
+  {
+    "id": "1320",
+    "codeC": "40013",
+    "fr": "Babar",
+    "codeW": "40"
+  },
+  {
+    "id": "1321",
+    "codeC": "40014",
+    "fr": "Tamza",
+    "codeW": "40"
+  },
+  {
+    "id": "1322",
+    "codeC": "40015",
+    "fr": "Ensigha",
+    "codeW": "40"
+  },
+  {
+    "id": "1323",
+    "codeC": "40016",
+    "fr": "Ouled Rechache",
+    "codeW": "40"
+  },
+  {
+    "id": "1324",
+    "codeC": "40017",
+    "fr": "El Mahmal",
+    "codeW": "40"
+  },
+  {
+    "id": "1325",
+    "codeC": "40018",
+    "fr": "Msara",
+    "codeW": "40"
+  },
+  {
+    "id": "1326",
+    "codeC": "40019",
+    "fr": "Yabous",
+    "codeW": "40"
+  },
+  {
+    "id": "1327",
+    "codeC": "40020",
+    "fr": "Khirane",
+    "codeW": "40"
+  },
+  {
+    "id": "1328",
+    "codeC": "40021",
+    "fr": "Chelia",
+    "codeW": "40"
+  },
+  {
+    "id": "1329",
+    "codeC": "41001",
+    "fr": "Souk Ahras",
+    "codeW": "41"
+  },
+  {
+    "id": "1330",
+    "codeC": "41002",
+    "fr": "Sedrata",
+    "codeW": "41"
+  },
+  {
+    "id": "1331",
+    "codeC": "41003",
+    "fr": "Hanancha",
+    "codeW": "41"
+  },
+  {
+    "id": "1332",
+    "codeC": "41004",
+    "fr": "Mechroha",
+    "codeW": "41"
+  },
+  {
+    "id": "1333",
+    "codeC": "41005",
+    "fr": "Ouled Driss",
+    "codeW": "41"
+  },
+  {
+    "id": "1334",
+    "codeC": "41006",
+    "fr": "Tiffech",
+    "codeW": "41"
+  },
+  {
+    "id": "1335",
+    "codeC": "41007",
+    "fr": "Zaarouria",
+    "codeW": "41"
+  },
+  {
+    "id": "1336",
+    "codeC": "41008",
+    "fr": "Taoura",
+    "codeW": "41"
+  },
+  {
+    "id": "1337",
+    "codeC": "41009",
+    "fr": "Drea",
+    "codeW": "41"
+  },
+  {
+    "id": "1338",
+    "codeC": "41010",
+    "fr": "Haddada",
+    "codeW": "41"
+  },
+  {
+    "id": "1339",
+    "codeC": "41011",
+    "fr": "Khedara",
+    "codeW": "41"
+  },
+  {
+    "id": "1340",
+    "codeC": "41012",
+    "fr": "Merahna",
+    "codeW": "41"
+  },
+  {
+    "id": "1341",
+    "codeC": "41013",
+    "fr": "Ouled Moumen",
+    "codeW": "41"
+  },
+  {
+    "id": "1342",
+    "codeC": "41014",
+    "fr": "Bir Bouhouche",
+    "codeW": "41"
+  },
+  {
+    "id": "1343",
+    "codeC": "41015",
+    "fr": "Mdaourouche",
+    "codeW": "41"
+  },
+  {
+    "id": "1344",
+    "codeC": "41016",
+    "fr": "Oum El Adhaim",
+    "codeW": "41"
+  },
+  {
+    "id": "1345",
+    "codeC": "41017",
+    "fr": "Ain Zana",
+    "codeW": "41"
+  },
+  {
+    "id": "1346",
+    "codeC": "41018",
+    "fr": "Ain Soltane",
+    "codeW": "41"
+  },
+  {
+    "id": "1347",
+    "codeC": "41019",
+    "fr": "Quillen",
+    "codeW": "41"
+  },
+  {
+    "id": "1348",
+    "codeC": "41020",
+    "fr": "Sidi Fredj",
+    "codeW": "41"
+  },
+  {
+    "id": "1349",
+    "codeC": "41021",
+    "fr": "Safel El Ouiden",
+    "codeW": "41"
+  },
+  {
+    "id": "1350",
+    "codeC": "41022",
+    "fr": "Ragouba",
+    "codeW": "41"
+  },
+  {
+    "id": "1351",
+    "codeC": "41023",
+    "fr": "Khemissa",
+    "codeW": "41"
+  },
+  {
+    "id": "1352",
+    "codeC": "41024",
+    "fr": "Oued Keberit",
+    "codeW": "41"
+  },
+  {
+    "id": "1353",
+    "codeC": "41025",
+    "fr": "Terraguelt",
+    "codeW": "41"
+  },
+  {
+    "id": "1354",
+    "codeC": "41026",
+    "fr": "Zouabi",
+    "codeW": "41"
+  },
+  {
+    "id": "1355",
+    "codeC": "42001",
+    "fr": "Tipaza",
+    "codeW": "42"
+  },
+  {
+    "id": "1356",
+    "codeC": "42002",
+    "fr": "Menaceur",
+    "codeW": "42"
+  },
+  {
+    "id": "1357",
+    "codeC": "42003",
+    "fr": "Larhat",
+    "codeW": "42"
+  },
+  {
+    "id": "1358",
+    "codeC": "42004",
+    "fr": "Douaouda",
+    "codeW": "42"
+  },
+  {
+    "id": "1359",
+    "codeC": "42005",
+    "fr": "Bourkika",
+    "codeW": "42"
+  },
+  {
+    "id": "1360",
+    "codeC": "42006",
+    "fr": "Khemisti",
+    "codeW": "42"
+  },
+  {
+    "id": "1361",
+    "codeC": "42010",
+    "fr": "Aghabal",
+    "codeW": "42"
+  },
+  {
+    "id": "1362",
+    "codeC": "42012",
+    "fr": "Hadjout",
+    "codeW": "42"
+  },
+  {
+    "id": "1363",
+    "codeC": "42013",
+    "fr": "Sidi Amar",
+    "codeW": "42"
+  },
+  {
+    "id": "1364",
+    "codeC": "42014",
+    "fr": "Gouraya",
+    "codeW": "42"
+  },
+  {
+    "id": "1365",
+    "codeC": "42015",
+    "fr": "Nodor",
+    "codeW": "42"
+  },
+  {
+    "id": "1366",
+    "codeC": "42016",
+    "fr": "Chaiba",
+    "codeW": "42"
+  },
+  {
+    "id": "1367",
+    "codeC": "42017",
+    "fr": "Ain Tagourait",
+    "codeW": "42"
+  },
+  {
+    "id": "1368",
+    "codeC": "42022",
+    "fr": "Cherchel",
+    "codeW": "42"
+  },
+  {
+    "id": "1369",
+    "codeC": "42023",
+    "fr": "Damous",
+    "codeW": "42"
+  },
+  {
+    "id": "1370",
+    "codeC": "42024",
+    "fr": "Meurad",
+    "codeW": "42"
+  },
+  {
+    "id": "1371",
+    "codeC": "42025",
+    "fr": "Fouka",
+    "codeW": "42"
+  },
+  {
+    "id": "1372",
+    "codeC": "42026",
+    "fr": "Bou Ismail",
+    "codeW": "42"
+  },
+  {
+    "id": "1373",
+    "codeC": "42027",
+    "fr": "Ahmer El Ain",
+    "codeW": "42"
+  },
+  {
+    "id": "1374",
+    "codeC": "42030",
+    "fr": "Bou Haroun",
+    "codeW": "42"
+  },
+  {
+    "id": "1375",
+    "codeC": "42032",
+    "fr": "Sidi Ghiles",
+    "codeW": "42"
+  },
+  {
+    "id": "1376",
+    "codeC": "42033",
+    "fr": "Messelmoun",
+    "codeW": "42"
+  },
+  {
+    "id": "1377",
+    "codeC": "42034",
+    "fr": "Sidi Rached",
+    "codeW": "42"
+  },
+  {
+    "id": "1378",
+    "codeC": "42035",
+    "fr": "Kolea",
+    "codeW": "42"
+  },
+  {
+    "id": "1379",
+    "codeC": "42036",
+    "fr": "Attatba",
+    "codeW": "42"
+  },
+  {
+    "id": "1380",
+    "codeC": "42040",
+    "fr": "Sidi Semiane",
+    "codeW": "42"
+  },
+  {
+    "id": "1381",
+    "codeC": "42041",
+    "fr": "Beni Milleuk",
+    "codeW": "42"
+  },
+  {
+    "id": "1382",
+    "codeC": "42042",
+    "fr": "Hadjerat Ennous",
+    "codeW": "42"
+  },
+  {
+    "id": "1383",
+    "codeC": "43001",
+    "fr": "Mila",
+    "codeW": "43"
+  },
+  {
+    "id": "1384",
+    "codeC": "43002",
+    "fr": "Ferdjioua",
+    "codeW": "43"
+  },
+  {
+    "id": "1385",
+    "codeC": "43003",
+    "fr": "Chelghoum Laid",
+    "codeW": "43"
+  },
+  {
+    "id": "1386",
+    "codeC": "43004",
+    "fr": "Oued Athmenia",
+    "codeW": "43"
+  },
+  {
+    "id": "1387",
+    "codeC": "43005",
+    "fr": "Ain Mellouk",
+    "codeW": "43"
+  },
+  {
+    "id": "1388",
+    "codeC": "43006",
+    "fr": "Telerghma",
+    "codeW": "43"
+  },
+  {
+    "id": "1389",
+    "codeC": "43007",
+    "fr": "Oued Seguen",
+    "codeW": "43"
+  },
+  {
+    "id": "1390",
+    "codeC": "43008",
+    "fr": "Tadjenanet",
+    "codeW": "43"
+  },
+  {
+    "id": "1391",
+    "codeC": "43009",
+    "fr": "Benyahia Abderrahmane",
+    "codeW": "43"
+  },
+  {
+    "id": "1392",
+    "codeC": "43010",
+    "fr": "Oued Endja",
+    "codeW": "43"
+  },
+  {
+    "id": "1393",
+    "codeC": "43011",
+    "fr": "Ahmed Rachedi",
+    "codeW": "43"
+  },
+  {
+    "id": "1394",
+    "codeC": "43012",
+    "fr": "Ouled Khalouf",
+    "codeW": "43"
+  },
+  {
+    "id": "1395",
+    "codeC": "43013",
+    "fr": "Tiberguent",
+    "codeW": "43"
+  },
+  {
+    "id": "1396",
+    "codeC": "43014",
+    "fr": "Bouhatem",
+    "codeW": "43"
+  },
+  {
+    "id": "1397",
+    "codeC": "43015",
+    "fr": "Rouached",
+    "codeW": "43"
+  },
+  {
+    "id": "1398",
+    "codeC": "43016",
+    "fr": "Tessala Lamatai",
+    "codeW": "43"
+  },
+  {
+    "id": "1399",
+    "codeC": "43017",
+    "fr": "Grarem Gouga",
+    "codeW": "43"
+  },
+  {
+    "id": "1400",
+    "codeC": "43018",
+    "fr": "Sidi Merouane",
+    "codeW": "43"
+  },
+  {
+    "id": "1401",
+    "codeC": "43019",
+    "fr": "Tassadane Haddada",
+    "codeW": "43"
+  },
+  {
+    "id": "1402",
+    "codeC": "43020",
+    "fr": "Derradji Bousselah",
+    "codeW": "43"
+  },
+  {
+    "id": "1403",
+    "codeC": "43021",
+    "fr": "Minar Zarza",
+    "codeW": "43"
+  },
+  {
+    "id": "1404",
+    "codeC": "43022",
+    "fr": "Amira Arras",
+    "codeW": "43"
+  },
+  {
+    "id": "1405",
+    "codeC": "43023",
+    "fr": "Terrai Bainen",
+    "codeW": "43"
+  },
+  {
+    "id": "1406",
+    "codeC": "43024",
+    "fr": "Hamala",
+    "codeW": "43"
+  },
+  {
+    "id": "1407",
+    "codeC": "43025",
+    "fr": "Ain Tine",
+    "codeW": "43"
+  },
+  {
+    "id": "1408",
+    "codeC": "43026",
+    "fr": "El Mechira",
+    "codeW": "43"
+  },
+  {
+    "id": "1409",
+    "codeC": "43027",
+    "fr": "Sidi Khelifa",
+    "codeW": "43"
+  },
+  {
+    "id": "1410",
+    "codeC": "43028",
+    "fr": "Zeghaia",
+    "codeW": "43"
+  },
+  {
+    "id": "1411",
+    "codeC": "43029",
+    "fr": "Elayadi Barbes",
+    "codeW": "43"
+  },
+  {
+    "id": "1412",
+    "codeC": "43030",
+    "fr": "Ain Beida Harriche",
+    "codeW": "43"
+  },
+  {
+    "id": "1413",
+    "codeC": "43031",
+    "fr": "Yahia Beniguecha",
+    "codeW": "43"
+  },
+  {
+    "id": "1414",
+    "codeC": "43032",
+    "fr": "Chigara",
+    "codeW": "43"
+  },
+  {
+    "id": "1415",
+    "codeC": "44001",
+    "fr": "Ain Defla",
+    "codeW": "44"
+  },
+  {
+    "id": "1416",
+    "codeC": "44002",
+    "fr": "Miliana",
+    "codeW": "44"
+  },
+  {
+    "id": "1417",
+    "codeC": "44003",
+    "fr": "Boumedfaa",
+    "codeW": "44"
+  },
+  {
+    "id": "1418",
+    "codeC": "44004",
+    "fr": "Khemis Miliana",
+    "codeW": "44"
+  },
+  {
+    "id": "1419",
+    "codeC": "44005",
+    "fr": "Hammam Righa",
+    "codeW": "44"
+  },
+  {
+    "id": "1420",
+    "codeC": "44006",
+    "fr": "Arib",
+    "codeW": "44"
+  },
+  {
+    "id": "1421",
+    "codeC": "44007",
+    "fr": "Djelida",
+    "codeW": "44"
+  },
+  {
+    "id": "1422",
+    "codeC": "44008",
+    "fr": "El Amra",
+    "codeW": "44"
+  },
+  {
+    "id": "1423",
+    "codeC": "44009",
+    "fr": "Bourached",
+    "codeW": "44"
+  },
+  {
+    "id": "1424",
+    "codeC": "44010",
+    "fr": "El Attaf",
+    "codeW": "44"
+  },
+  {
+    "id": "1425",
+    "codeC": "44011",
+    "fr": "El Abadia",
+    "codeW": "44"
+  },
+  {
+    "id": "1426",
+    "codeC": "44012",
+    "fr": "Djendel",
+    "codeW": "44"
+  },
+  {
+    "id": "1427",
+    "codeC": "44013",
+    "fr": "Oued Chorfa",
+    "codeW": "44"
+  },
+  {
+    "id": "1428",
+    "codeC": "44014",
+    "fr": "Ain Lechiakh",
+    "codeW": "44"
+  },
+  {
+    "id": "1429",
+    "codeC": "44015",
+    "fr": "Oued Djemaa",
+    "codeW": "44"
+  },
+  {
+    "id": "1430",
+    "codeC": "44016",
+    "fr": "Rouina",
+    "codeW": "44"
+  },
+  {
+    "id": "1431",
+    "codeC": "44017",
+    "fr": "Zeddine",
+    "codeW": "44"
+  },
+  {
+    "id": "1432",
+    "codeC": "44018",
+    "fr": "El Hassania",
+    "codeW": "44"
+  },
+  {
+    "id": "1433",
+    "codeC": "44019",
+    "fr": "Bir Ouled Khelifa",
+    "codeW": "44"
+  },
+  {
+    "id": "1434",
+    "codeC": "44020",
+    "fr": "Ain Soltane",
+    "codeW": "44"
+  },
+  {
+    "id": "1435",
+    "codeC": "44021",
+    "fr": "Tarik Ibn Ziad",
+    "codeW": "44"
+  },
+  {
+    "id": "1436",
+    "codeC": "44022",
+    "fr": "Bordj Emir Khaled",
+    "codeW": "44"
+  },
+  {
+    "id": "1437",
+    "codeC": "44023",
+    "fr": "Ain Torki",
+    "codeW": "44"
+  },
+  {
+    "id": "1438",
+    "codeC": "44024",
+    "fr": "Sidi Lakhdar",
+    "codeW": "44"
+  },
+  {
+    "id": "1439",
+    "codeC": "44025",
+    "fr": "Ben Allal",
+    "codeW": "44"
+  },
+  {
+    "id": "1440",
+    "codeC": "44026",
+    "fr": "Ain Benian",
+    "codeW": "44"
+  },
+  {
+    "id": "1441",
+    "codeC": "44027",
+    "fr": "Hoceinia",
+    "codeW": "44"
+  },
+  {
+    "id": "1442",
+    "codeC": "44028",
+    "fr": "Barbouche",
+    "codeW": "44"
+  },
+  {
+    "id": "1443",
+    "codeC": "44029",
+    "fr": "Djemaa Ouled Chikh",
+    "codeW": "44"
+  },
+  {
+    "id": "1444",
+    "codeC": "44030",
+    "fr": "Mekhatria",
+    "codeW": "44"
+  },
+  {
+    "id": "1445",
+    "codeC": "44031",
+    "fr": "Bathia",
+    "codeW": "44"
+  },
+  {
+    "id": "1446",
+    "codeC": "44032",
+    "fr": "Tachta Zegagha",
+    "codeW": "44"
+  },
+  {
+    "id": "1447",
+    "codeC": "44033",
+    "fr": "Ain Bouyahia",
+    "codeW": "44"
+  },
+  {
+    "id": "1448",
+    "codeC": "44034",
+    "fr": "El Maine",
+    "codeW": "44"
+  },
+  {
+    "id": "1449",
+    "codeC": "44035",
+    "fr": "Tiberkanine",
+    "codeW": "44"
+  },
+  {
+    "id": "1450",
+    "codeC": "44036",
+    "fr": "Belaas",
+    "codeW": "44"
+  },
+  {
+    "id": "1451",
+    "codeC": "45001",
+    "fr": "Naama",
+    "codeW": "45"
+  },
+  {
+    "id": "1452",
+    "codeC": "45002",
+    "fr": "Mechria",
+    "codeW": "45"
+  },
+  {
+    "id": "1453",
+    "codeC": "45003",
+    "fr": "Ain Sefra",
+    "codeW": "45"
+  },
+  {
+    "id": "1454",
+    "codeC": "45004",
+    "fr": "Tiout",
+    "codeW": "45"
+  },
+  {
+    "id": "1455",
+    "codeC": "45005",
+    "fr": "Sfissifa",
+    "codeW": "45"
+  },
+  {
+    "id": "1456",
+    "codeC": "45006",
+    "fr": "Moghrar",
+    "codeW": "45"
+  },
+  {
+    "id": "1457",
+    "codeC": "45007",
+    "fr": "Assela",
+    "codeW": "45"
+  },
+  {
+    "id": "1458",
+    "codeC": "45008",
+    "fr": "Djeniane Bourzeg",
+    "codeW": "45"
+  },
+  {
+    "id": "1459",
+    "codeC": "45009",
+    "fr": "Ain Ben Khelil",
+    "codeW": "45"
+  },
+  {
+    "id": "1460",
+    "codeC": "45010",
+    "fr": "Makman Ben Amer",
+    "codeW": "45"
+  },
+  {
+    "id": "1461",
+    "codeC": "45011",
+    "fr": "Kasdir",
+    "codeW": "45"
+  },
+  {
+    "id": "1462",
+    "codeC": "45012",
+    "fr": "El Biod",
+    "codeW": "45"
+  },
+  {
+    "id": "1463",
+    "codeC": "46001",
+    "fr": "Ain Temouchent",
+    "codeW": "46"
+  },
+  {
+    "id": "1464",
+    "codeC": "46002",
+    "fr": "Chaabet El Ham",
+    "codeW": "46"
+  },
+  {
+    "id": "1465",
+    "codeC": "46003",
+    "fr": "Ain Kihal",
+    "codeW": "46"
+  },
+  {
+    "id": "1466",
+    "codeC": "46004",
+    "fr": "Hammam Bouhadjar",
+    "codeW": "46"
+  },
+  {
+    "id": "1467",
+    "codeC": "46005",
+    "fr": "Bou Zedjar",
+    "codeW": "46"
+  },
+  {
+    "id": "1468",
+    "codeC": "46006",
+    "fr": "Oued Berkeche",
+    "codeW": "46"
+  },
+  {
+    "id": "1469",
+    "codeC": "46007",
+    "fr": "Aghlal",
+    "codeW": "46"
+  },
+  {
+    "id": "1470",
+    "codeC": "46008",
+    "fr": "Terga",
+    "codeW": "46"
+  },
+  {
+    "id": "1471",
+    "codeC": "46009",
+    "fr": "Ain El Arbaa",
+    "codeW": "46"
+  },
+  {
+    "id": "1472",
+    "codeC": "46010",
+    "fr": "Tamzoura",
+    "codeW": "46"
+  },
+  {
+    "id": "1473",
+    "codeC": "46011",
+    "fr": "Chentouf",
+    "codeW": "46"
+  },
+  {
+    "id": "1474",
+    "codeC": "46012",
+    "fr": "Sidi Ben Adda",
+    "codeW": "46"
+  },
+  {
+    "id": "1475",
+    "codeC": "46013",
+    "fr": "Aoubellil",
+    "codeW": "46"
+  },
+  {
+    "id": "1476",
+    "codeC": "46014",
+    "fr": "El Malah",
+    "codeW": "46"
+  },
+  {
+    "id": "1477",
+    "codeC": "46015",
+    "fr": "Sidi Boumediene",
+    "codeW": "46"
+  },
+  {
+    "id": "1478",
+    "codeC": "46016",
+    "fr": "Oued Sabah",
+    "codeW": "46"
+  },
+  {
+    "id": "1479",
+    "codeC": "46017",
+    "fr": "Ouled Boudjemaa",
+    "codeW": "46"
+  },
+  {
+    "id": "1480",
+    "codeC": "46018",
+    "fr": "Ain Tolba",
+    "codeW": "46"
+  },
+  {
+    "id": "1481",
+    "codeC": "46019",
+    "fr": "El Amria",
+    "codeW": "46"
+  },
+  {
+    "id": "1482",
+    "codeC": "46020",
+    "fr": "Hassi El Ghella",
+    "codeW": "46"
+  },
+  {
+    "id": "1483",
+    "codeC": "46021",
+    "fr": "Hassasna",
+    "codeW": "46"
+  },
+  {
+    "id": "1484",
+    "codeC": "46022",
+    "fr": "Ouled Kihal",
+    "codeW": "46"
+  },
+  {
+    "id": "1485",
+    "codeC": "46023",
+    "fr": "Beni Saf",
+    "codeW": "46"
+  },
+  {
+    "id": "1486",
+    "codeC": "46024",
+    "fr": "Sidi Safi",
+    "codeW": "46"
+  },
+  {
+    "id": "1487",
+    "codeC": "46025",
+    "fr": "Oulhaca El Gheraba",
+    "codeW": "46"
+  },
+  {
+    "id": "1488",
+    "codeC": "46026",
+    "fr": "Tadmaya",
+    "codeW": "46"
+  },
+  {
+    "id": "1489",
+    "codeC": "46027",
+    "fr": "El Emir Abdelkader",
+    "codeW": "46"
+  },
+  {
+    "id": "1490",
+    "codeC": "46028",
+    "fr": "El Messaid",
+    "codeW": "46"
+  },
+  {
+    "id": "1491",
+    "codeC": "47001",
+    "fr": "Ghardaia",
+    "codeW": "47"
+  },
+  {
+    "id": "1492",
+    "codeC": "47002",
+    "fr": "El Meniaa",
+    "codeW": "47"
+  },
+  {
+    "id": "1493",
+    "codeC": "47003",
+    "fr": "Dhayet Bendhahoua",
+    "codeW": "47"
+  },
+  {
+    "id": "1494",
+    "codeC": "47004",
+    "fr": "Berriane",
+    "codeW": "47"
+  },
+  {
+    "id": "1495",
+    "codeC": "47005",
+    "fr": "Metlili",
+    "codeW": "47"
+  },
+  {
+    "id": "1496",
+    "codeC": "47006",
+    "fr": "El Guerrara",
+    "codeW": "47"
+  },
+  {
+    "id": "1497",
+    "codeC": "47007",
+    "fr": "El Atteuf",
+    "codeW": "47"
+  },
+  {
+    "id": "1498",
+    "codeC": "47008",
+    "fr": "Zelfana",
+    "codeW": "47"
+  },
+  {
+    "id": "1499",
+    "codeC": "47009",
+    "fr": "Sebseb",
+    "codeW": "47"
+  },
+  {
+    "id": "1500",
+    "codeC": "47010",
+    "fr": "Bounoura",
+    "codeW": "47"
+  },
+  {
+    "id": "1501",
+    "codeC": "47011",
+    "fr": "Hassi Fehal",
+    "codeW": "47"
+  },
+  {
+    "id": "1502",
+    "codeC": "47012",
+    "fr": "Hassi Gara",
+    "codeW": "47"
+  },
+  {
+    "id": "1503",
+    "codeC": "47013",
+    "fr": "Mansoura",
+    "codeW": "47"
+  },
+  {
+    "id": "1504",
+    "codeC": "48001",
+    "fr": "Relizane",
+    "codeW": "48"
+  },
+  {
+    "id": "1505",
+    "codeC": "48002",
+    "fr": "Oued Rhiou",
+    "codeW": "48"
+  },
+  {
+    "id": "1506",
+    "codeC": "48003",
+    "fr": "Belaassel Bouzegza",
+    "codeW": "48"
+  },
+  {
+    "id": "1507",
+    "codeC": "48004",
+    "fr": "Sidi Saada",
+    "codeW": "48"
+  },
+  {
+    "id": "1508",
+    "codeC": "48005",
+    "fr": "Ouled Aiche",
+    "codeW": "48"
+  },
+  {
+    "id": "1509",
+    "codeC": "48006",
+    "fr": "Sidi Lazreg",
+    "codeW": "48"
+  },
+  {
+    "id": "1510",
+    "codeC": "48007",
+    "fr": "El Hamadna",
+    "codeW": "48"
+  },
+  {
+    "id": "1511",
+    "codeC": "48008",
+    "fr": "Sidi Mhamed Ben Ali",
+    "codeW": "48"
+  },
+  {
+    "id": "1512",
+    "codeC": "48009",
+    "fr": "Mediouna",
+    "codeW": "48"
+  },
+  {
+    "id": "1513",
+    "codeC": "48010",
+    "fr": "Sidi Khettab",
+    "codeW": "48"
+  },
+  {
+    "id": "1514",
+    "codeC": "48011",
+    "fr": "Ammi Moussa",
+    "codeW": "48"
+  },
+  {
+    "id": "1515",
+    "codeC": "48012",
+    "fr": "Zemmoura",
+    "codeW": "48"
+  },
+  {
+    "id": "1516",
+    "codeC": "48013",
+    "fr": "Beni Dergoun",
+    "codeW": "48"
+  },
+  {
+    "id": "1517",
+    "codeC": "48014",
+    "fr": "Djidiouia",
+    "codeW": "48"
+  },
+  {
+    "id": "1518",
+    "codeC": "48015",
+    "fr": "El Guettar",
+    "codeW": "48"
+  },
+  {
+    "id": "1519",
+    "codeC": "48016",
+    "fr": "Hamri",
+    "codeW": "48"
+  },
+  {
+    "id": "1520",
+    "codeC": "48017",
+    "fr": "El Matmar",
+    "codeW": "48"
+  },
+  {
+    "id": "1521",
+    "codeC": "48018",
+    "fr": "Sidi Mhamed Ben Aouda",
+    "codeW": "48"
+  },
+  {
+    "id": "1522",
+    "codeC": "48019",
+    "fr": "Ain Tarek",
+    "codeW": "48"
+  },
+  {
+    "id": "1523",
+    "codeC": "48020",
+    "fr": "Oued Essalem",
+    "codeW": "48"
+  },
+  {
+    "id": "1524",
+    "codeC": "48021",
+    "fr": "Ouarizane",
+    "codeW": "48"
+  },
+  {
+    "id": "1525",
+    "codeC": "48022",
+    "fr": "Mazouna",
+    "codeW": "48"
+  },
+  {
+    "id": "1526",
+    "codeC": "48023",
+    "fr": "Kalaa",
+    "codeW": "48"
+  },
+  {
+    "id": "1527",
+    "codeC": "48024",
+    "fr": "Ain Rahma",
+    "codeW": "48"
+  },
+  {
+    "id": "1528",
+    "codeC": "48025",
+    "fr": "Yellel",
+    "codeW": "48"
+  },
+  {
+    "id": "1529",
+    "codeC": "48026",
+    "fr": "Oued El Djemaa",
+    "codeW": "48"
+  },
+  {
+    "id": "1530",
+    "codeC": "48027",
+    "fr": "Ramka",
+    "codeW": "48"
+  },
+  {
+    "id": "1531",
+    "codeC": "48028",
+    "fr": "Mendes",
+    "codeW": "48"
+  },
+  {
+    "id": "1532",
+    "codeC": "48029",
+    "fr": "Lahlef",
+    "codeW": "48"
+  },
+  {
+    "id": "1533",
+    "codeC": "48030",
+    "fr": "Beni Zentis",
+    "codeW": "48"
+  },
+  {
+    "id": "1534",
+    "codeC": "48031",
+    "fr": "Souk El Haad",
+    "codeW": "48"
+  },
+  {
+    "id": "1535",
+    "codeC": "48032",
+    "fr": "Dar Ben Abdellah",
+    "codeW": "48"
+  },
+  {
+    "id": "1536",
+    "codeC": "48033",
+    "fr": "El Hassi",
+    "codeW": "48"
+  },
+  {
+    "id": "1537",
+    "codeC": "48034",
+    "fr": "Had Echkalla",
+    "codeW": "48"
+  },
+  {
+    "id": "1538",
+    "codeC": "48035",
+    "fr": "Bendaoud",
+    "codeW": "48"
+  },
+  {
+    "id": "1539",
+    "codeC": "48036",
+    "fr": "El Ouldja",
+    "codeW": "48"
+  },
+  {
+    "id": "1540",
+    "codeC": "48037",
+    "fr": "Merdja Sidi Abed",
+    "codeW": "48"
+  },
+  {
+    "id": "1541",
+    "codeC": "48038",
+    "fr": "Ouled Sidi Mihoub",
+    "codeW": "48"
+  }
+]
