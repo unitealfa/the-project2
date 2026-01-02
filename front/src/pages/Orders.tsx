@@ -3,7 +3,7 @@ import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
 import { apiFetch } from "../utils/api";
-import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya } from "../utils/communes";
+import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya, getWilayaIdByCommune } from "../utils/communes";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -1638,12 +1638,15 @@ const Orders: React.FC = () => {
         return "";
       })();
 
+      // Get the wilaya code from the resolved commune name (more reliable than from row data)
+      const resolvedWilayaCode = getWilayaIdByCommune(commune);
+
       const realClientData = {
         nom_client: nom_client || "CLIENT_INCONNU",
         telephone: telephone || "0000000000",
         telephone_2: telephone_2 || "0000000000",
         adresse: adr,
-        code_wilaya: parseInt(String(code_wilaya)) || 16,
+        code_wilaya: resolvedWilayaCode,
         montant: String(Math.round(totalForApi)),
         type: "1",
         stop_desk: stop_desk || "0",
@@ -1654,9 +1657,14 @@ const Orders: React.FC = () => {
       const trimmedComment = currentComment.trim();
       const finalRemark = trimmedComment || remarkFromSheet;
 
+      // Normalize commune name for API - remove accents (DHD API doesn't accept them)
+      const communeForApi = (commune || "alger")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
       const finalData = {
         ...realClientData,
-        commune: commune || "alger",
+        commune: communeForApi,
         Remarque: finalRemark,
         remarque: finalRemark,
       };
@@ -1668,7 +1676,8 @@ const Orders: React.FC = () => {
         normalized_phone: telephone,
         original_name: row["Nom du client"],
         normalized_name: nom_client,
-        wilaya_code: code_wilaya,
+        original_wilaya_code: code_wilaya,
+        resolved_wilaya_code: resolvedWilayaCode,
       });
 
       let currentStatus: SheetStatus = initialSheetStatus;

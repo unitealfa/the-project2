@@ -144,4 +144,38 @@ export function getCommunesByWilaya(wilayaCode: number | string): { fr: string, 
   return results.sort((a, b) => a.fr.localeCompare(b.fr));
 }
 
-export default { resolveCommuneName, getFrenchForDisplay, getFrenchWilaya, getCommunesByWilaya };
+/**
+ * Get the wilaya ID from a commune name (French or Arabic).
+ * Returns the wilaya_id as a number, or 16 (Alger) as fallback if not found.
+ */
+export function getWilayaIdByCommune(communeName: string | undefined | null): number {
+  if (!communeName) return 16;
+  const n = normalize(communeName);
+  if (!n) return 16;
+
+  // Search through byCode entries to find matching commune
+  for (const [, entry] of Object.entries((data as any).byCode)) {
+    const e = entry as any;
+    if (normalize(e.fr) === n || normalize(e.ar) === n) {
+      // Extract wilaya code from codeC (first 2 digits of postal code like "23001")
+      const codeC = String(e.codeC || '');
+      if (codeC.length >= 2) {
+        const wilayaId = parseInt(codeC.substring(0, 2), 10);
+        if (!isNaN(wilayaId) && wilayaId >= 1 && wilayaId <= 58) {
+          return wilayaId;
+        }
+      }
+      // Also try wilayaCode field if available
+      if (e.wilayaCode) {
+        const wc = parseInt(String(e.wilayaCode), 10);
+        if (!isNaN(wc) && wc >= 1 && wc <= 58) {
+          return wc;
+        }
+      }
+    }
+  }
+
+  return 16; // Fallback to Alger
+}
+
+export default { resolveCommuneName, getFrenchForDisplay, getFrenchWilaya, getCommunesByWilaya, getWilayaIdByCommune };

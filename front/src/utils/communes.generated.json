@@ -1730,7 +1730,7 @@
     },
     "15039": {
       "codeC": "15039",
-      "fr": "Ait Aissa Mimoun",
+      "fr": "Djebel Aissa Mimoun",
       "ar": "جبل عيسى ميمون",
       "wilayaCode": "15",
       "wilayaAr": "تيزي وزو",
@@ -9868,7 +9868,7 @@
       "codeC": "01001",
       "fr": "Adrar",
       "ar": "أدرار",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9876,7 +9876,7 @@
       "codeC": "01002",
       "fr": "Tamest",
       "ar": "تامست",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9884,7 +9884,7 @@
       "codeC": "01003",
       "fr": "Charouine",
       "ar": "شروين",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9892,7 +9892,7 @@
       "codeC": "01004",
       "fr": "Reggane",
       "ar": "رقان",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9900,7 +9900,7 @@
       "codeC": "01005",
       "fr": "Inozghmir",
       "ar": "إن زغمير",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9908,7 +9908,7 @@
       "codeC": "01006",
       "fr": "Tit",
       "ar": "تيت",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9916,7 +9916,7 @@
       "codeC": "01007",
       "fr": "Ksar Kaddour",
       "ar": "قصر قدور",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9924,7 +9924,7 @@
       "codeC": "01008",
       "fr": "Tsabit",
       "ar": "تسابيت",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9932,7 +9932,7 @@
       "codeC": "01009",
       "fr": "Timimoun",
       "ar": "تيميمون",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9940,7 +9940,7 @@
       "codeC": "01010",
       "fr": "Ouled Said",
       "ar": "أولادالسعيد",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9948,7 +9948,7 @@
       "codeC": "01011",
       "fr": "Zaouiet Kounta",
       "ar": "زاوية كنتة",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9956,7 +9956,7 @@
       "codeC": "01012",
       "fr": "Aoulef",
       "ar": "أولف",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9964,7 +9964,7 @@
       "codeC": "01013",
       "fr": "Timokten",
       "ar": "تيمقتن",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9972,7 +9972,7 @@
       "codeC": "01014",
       "fr": "Tamentit",
       "ar": "تامنطيط",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9980,7 +9980,7 @@
       "codeC": "01015",
       "fr": "Fenoughil",
       "ar": "فنوغيل",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9988,7 +9988,7 @@
       "codeC": "01016",
       "fr": "Tinerkouk",
       "ar": "تينركوك",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -9996,7 +9996,7 @@
       "codeC": "01017",
       "fr": "Deldoul",
       "ar": "دلدول",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10004,7 +10004,7 @@
       "codeC": "01018",
       "fr": "Sali",
       "ar": "سالي",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10012,7 +10012,7 @@
       "codeC": "01019",
       "fr": "Akabli",
       "ar": "أقبلي",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10020,7 +10020,7 @@
       "codeC": "01020",
       "fr": "Metarfa",
       "ar": "المطارفة",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10028,7 +10028,7 @@
       "codeC": "01021",
       "fr": "O Ahmed Timmi",
       "ar": "أولاد أحمد تيمي",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10036,7 +10036,7 @@
       "codeC": "01022",
       "fr": "Bouda",
       "ar": "بودة",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10044,7 +10044,7 @@
       "codeC": "01023",
       "fr": "Aougrout",
       "ar": "أوقروت",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10052,7 +10052,7 @@
       "codeC": "01024",
       "fr": "Talmine",
       "ar": "طالمين",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10060,7 +10060,7 @@
       "codeC": "01025",
       "fr": "B Badji Mokhtar",
       "ar": "برج باجي مختار",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10068,7 +10068,7 @@
       "codeC": "01026",
       "fr": "Sbaa",
       "ar": "السبع",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10076,7 +10076,7 @@
       "codeC": "01027",
       "fr": "Ouled Aissa",
       "ar": "أولاد عيسى",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10084,7 +10084,7 @@
       "codeC": "01028",
       "fr": "Timiaouine",
       "ar": "تيمياوين",
-      "wilayaCode": "1",
+      "wilayaCode": "01",
       "wilayaAr": "أدرار",
       "wilayaFr": "Adrar"
     },
@@ -10092,7 +10092,7 @@
       "codeC": "02001",
       "fr": "Chlef",
       "ar": "الشلف",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10100,7 +10100,7 @@
       "codeC": "02002",
       "fr": "Tenes",
       "ar": "تنس",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10108,7 +10108,7 @@
       "codeC": "02003",
       "fr": "Benairia",
       "ar": "بنايرية",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10116,7 +10116,7 @@
       "codeC": "02004",
       "fr": "El Karimia",
       "ar": "الكريمية",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10124,7 +10124,7 @@
       "codeC": "02005",
       "fr": "Tadjna",
       "ar": "تاجنة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10132,7 +10132,7 @@
       "codeC": "02006",
       "fr": "Taougrite",
       "ar": "تاوقريت",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10140,7 +10140,7 @@
       "codeC": "02007",
       "fr": "Beni Haoua",
       "ar": "بني حوات",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10148,7 +10148,7 @@
       "codeC": "02008",
       "fr": "Sobha",
       "ar": "صبحة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10156,7 +10156,7 @@
       "codeC": "02009",
       "fr": "Harchoun",
       "ar": "حرشون",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10164,7 +10164,7 @@
       "codeC": "02010",
       "fr": "Ouled Fares",
       "ar": "أولاد فارس",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10172,7 +10172,7 @@
       "codeC": "02011",
       "fr": "Sidi Akacha",
       "ar": "سيدي عكاشة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10180,7 +10180,7 @@
       "codeC": "02012",
       "fr": "Boukadir",
       "ar": "بوقادير",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10188,7 +10188,7 @@
       "codeC": "02013",
       "fr": "Beni Rached",
       "ar": "بني راشد",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10196,7 +10196,7 @@
       "codeC": "02014",
       "fr": "Talassa",
       "ar": "تلعصة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10204,7 +10204,7 @@
       "codeC": "02015",
       "fr": "Herenfa",
       "ar": "الهرنافة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10212,7 +10212,7 @@
       "codeC": "02016",
       "fr": "Oued Goussine",
       "ar": "وادي قوسين",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10220,7 +10220,7 @@
       "codeC": "02017",
       "fr": "Dahra",
       "ar": "الظهرة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10228,7 +10228,7 @@
       "codeC": "02018",
       "fr": "Ouled Abbes",
       "ar": "أولاد عباس",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10236,7 +10236,7 @@
       "codeC": "02019",
       "fr": "Sendjas",
       "ar": "السنجاس",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10244,7 +10244,7 @@
       "codeC": "02020",
       "fr": "Zeboudja",
       "ar": "الزبوجة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10252,7 +10252,7 @@
       "codeC": "02021",
       "fr": "Oued Sly",
       "ar": "وادي سلي",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10260,7 +10260,7 @@
       "codeC": "02022",
       "fr": "Abou El Hassen",
       "ar": "أبو الحسن",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10268,7 +10268,7 @@
       "codeC": "02023",
       "fr": "El Marsa",
       "ar": "المرسى",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10276,7 +10276,7 @@
       "codeC": "02024",
       "fr": "Chettia",
       "ar": "الشطية",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10284,7 +10284,7 @@
       "codeC": "02025",
       "fr": "Sidi Abderrahmane",
       "ar": "سيدي عبد الرحمن",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10292,7 +10292,7 @@
       "codeC": "02026",
       "fr": "Moussadek",
       "ar": "مصدق",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10300,7 +10300,7 @@
       "codeC": "02027",
       "fr": "El Hadjadj",
       "ar": "الحجاج",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10308,7 +10308,7 @@
       "codeC": "02028",
       "fr": "Labiod Medjadja",
       "ar": "الابيض مجاجة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10316,7 +10316,7 @@
       "codeC": "02029",
       "fr": "Oued Fodda",
       "ar": "وادي الفضة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10324,7 +10324,7 @@
       "codeC": "02030",
       "fr": "Ouled Ben Abdelkader",
       "ar": "أولاد بن عبد القادر",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10332,7 +10332,7 @@
       "codeC": "02031",
       "fr": "Bouzghaia",
       "ar": "بوزغاية",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10340,7 +10340,7 @@
       "codeC": "02032",
       "fr": "Ain Merane",
       "ar": "عين مران",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10348,7 +10348,7 @@
       "codeC": "02033",
       "fr": "Oum Drou",
       "ar": "أم الدروع",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10356,7 +10356,7 @@
       "codeC": "02034",
       "fr": "Breira",
       "ar": "بريرة",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10364,7 +10364,7 @@
       "codeC": "02035",
       "fr": "Ben Boutaleb",
       "ar": "بني بوعتاب",
-      "wilayaCode": "2",
+      "wilayaCode": "02",
       "wilayaAr": "الشلف",
       "wilayaFr": "Chlef"
     },
@@ -10372,7 +10372,7 @@
       "codeC": "03001",
       "fr": "Laghouat",
       "ar": "الاغواط",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10380,7 +10380,7 @@
       "codeC": "03002",
       "fr": "Ksar El Hirane",
       "ar": "قصر الحيران",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10388,7 +10388,7 @@
       "codeC": "03003",
       "fr": "Benacer Ben Chohra",
       "ar": "بناصر بن شهرة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10396,7 +10396,7 @@
       "codeC": "03004",
       "fr": "Sidi Makhlouf",
       "ar": "سيدي مخلوف",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10404,7 +10404,7 @@
       "codeC": "03005",
       "fr": "Hassi Delaa",
       "ar": "حاسي دلاعة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10412,7 +10412,7 @@
       "codeC": "03006",
       "fr": "Hassi R Mel",
       "ar": "حاسي الرمل",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10420,7 +10420,7 @@
       "codeC": "03007",
       "fr": "Ain Mahdi",
       "ar": "عين ماضي",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10428,7 +10428,7 @@
       "codeC": "03008",
       "fr": "Tadjmout",
       "ar": "تاجموت",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10436,7 +10436,7 @@
       "codeC": "03009",
       "fr": "Kheneg",
       "ar": "الخنق",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10444,7 +10444,7 @@
       "codeC": "03010",
       "fr": "Gueltat Sidi Saad",
       "ar": "قلتة سيدي سعد",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10452,7 +10452,7 @@
       "codeC": "03011",
       "fr": "Ain Sidi Ali",
       "ar": "عين سيدي علي",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10460,7 +10460,7 @@
       "codeC": "03012",
       "fr": "Beidha",
       "ar": "البيضاء",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10468,7 +10468,7 @@
       "codeC": "03013",
       "fr": "Brida",
       "ar": "بريدة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10476,7 +10476,7 @@
       "codeC": "03014",
       "fr": "El Ghicha",
       "ar": "الغيشة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10484,7 +10484,7 @@
       "codeC": "03015",
       "fr": "Hadj Mechri",
       "ar": "الحاج المشري",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10492,7 +10492,7 @@
       "codeC": "03016",
       "fr": "Sebgag",
       "ar": "سبقاق",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10500,7 +10500,7 @@
       "codeC": "03017",
       "fr": "Taouiala",
       "ar": "تاويالة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10508,7 +10508,7 @@
       "codeC": "03018",
       "fr": "Tadjrouna",
       "ar": "تاجرونة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10516,7 +10516,7 @@
       "codeC": "03019",
       "fr": "Aflou",
       "ar": "افلو",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10524,7 +10524,7 @@
       "codeC": "03020",
       "fr": "El Assafia",
       "ar": "العسافية",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10532,7 +10532,7 @@
       "codeC": "03021",
       "fr": "Oued Morra",
       "ar": "واد مرة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10540,7 +10540,7 @@
       "codeC": "03022",
       "fr": "Oued M Zi",
       "ar": "واد مزي",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10548,7 +10548,7 @@
       "codeC": "03023",
       "fr": "El Haouaita",
       "ar": "الحويطة",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10556,7 +10556,7 @@
       "codeC": "03024",
       "fr": "Sidi Bouzid",
       "ar": "سيدي بوزيد",
-      "wilayaCode": "3",
+      "wilayaCode": "03",
       "wilayaAr": "الاغواط",
       "wilayaFr": "Laghouat"
     },
@@ -10564,7 +10564,7 @@
       "codeC": "04001",
       "fr": "Oum El Bouaghi",
       "ar": "أم البواقي",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10572,7 +10572,7 @@
       "codeC": "04002",
       "fr": "Ain Beida",
       "ar": "عين البيضاء",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10580,7 +10580,7 @@
       "codeC": "04003",
       "fr": "Ainmlila",
       "ar": "عين مليلة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10588,7 +10588,7 @@
       "codeC": "04004",
       "fr": "Behir Chergui",
       "ar": "بحير الشقي",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10596,7 +10596,7 @@
       "codeC": "04005",
       "fr": "El Amiria",
       "ar": "العامرية",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10604,7 +10604,7 @@
       "codeC": "04006",
       "fr": "Sigus",
       "ar": "سيقوس",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10612,7 +10612,7 @@
       "codeC": "04007",
       "fr": "El Belala",
       "ar": "البلالة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10620,7 +10620,7 @@
       "codeC": "04008",
       "fr": "Ain Babouche",
       "ar": "عين بابوش",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10628,7 +10628,7 @@
       "codeC": "04009",
       "fr": "Berriche",
       "ar": "بريش",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10636,7 +10636,7 @@
       "codeC": "04010",
       "fr": "Ouled Hamla",
       "ar": "أولاد حملة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10644,7 +10644,7 @@
       "codeC": "04011",
       "fr": "Dhala",
       "ar": "الضلعة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10652,7 +10652,7 @@
       "codeC": "04012",
       "fr": "Ain Kercha",
       "ar": "عين كرشة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10660,7 +10660,7 @@
       "codeC": "04013",
       "fr": "Hanchir Toumghani",
       "ar": "هنشير تومغاني",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10668,7 +10668,7 @@
       "codeC": "04014",
       "fr": "El Djazia",
       "ar": "الجازية",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10676,7 +10676,7 @@
       "codeC": "04015",
       "fr": "Ain Diss",
       "ar": "عين الديس",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10684,7 +10684,7 @@
       "codeC": "04016",
       "fr": "Fkirina",
       "ar": "فكيرينة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10692,7 +10692,7 @@
       "codeC": "04017",
       "fr": "Souk Naamane",
       "ar": "سوق نعمان",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10700,7 +10700,7 @@
       "codeC": "04018",
       "fr": "Zorg",
       "ar": "الزرق",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10708,7 +10708,7 @@
       "codeC": "04019",
       "fr": "El Fedjoudj Boughrar",
       "ar": "الفجوج بوغرارة سعودي",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10716,7 +10716,7 @@
       "codeC": "04020",
       "fr": "Ouled Zouai",
       "ar": "أولاد زاوي",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10724,7 +10724,7 @@
       "codeC": "04021",
       "fr": "Bir Chouhada",
       "ar": "بئر الشهدات",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10732,7 +10732,7 @@
       "codeC": "04022",
       "fr": "Ksar Sbahi",
       "ar": "قصر الصباحي",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10740,7 +10740,7 @@
       "codeC": "04023",
       "fr": "Oued Nini",
       "ar": "وادي نيني",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10748,7 +10748,7 @@
       "codeC": "04024",
       "fr": "Meskiana",
       "ar": "مسكيانة",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10756,7 +10756,7 @@
       "codeC": "04025",
       "fr": "Ain Fekroune",
       "ar": "عين فكرون",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10764,7 +10764,7 @@
       "codeC": "04026",
       "fr": "Rahia",
       "ar": "الراحية",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10772,7 +10772,7 @@
       "codeC": "04027",
       "fr": "Ain Zitoun",
       "ar": "عين الزيتون",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10780,7 +10780,7 @@
       "codeC": "04028",
       "fr": "Ouled Gacem",
       "ar": "أولاد قاسم",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10788,7 +10788,7 @@
       "codeC": "04029",
       "fr": "El Harmilia",
       "ar": "الحرملية",
-      "wilayaCode": "4",
+      "wilayaCode": "04",
       "wilayaAr": "أم البواقي",
       "wilayaFr": "Oum El Bouaghi"
     },
@@ -10796,7 +10796,7 @@
       "codeC": "05001",
       "fr": "Batna",
       "ar": "باتنة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10804,7 +10804,7 @@
       "codeC": "05002",
       "fr": "Ghassira",
       "ar": "غسيرة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10812,7 +10812,7 @@
       "codeC": "05003",
       "fr": "Maafa",
       "ar": "معافة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10820,7 +10820,7 @@
       "codeC": "05004",
       "fr": "Merouana",
       "ar": "مروانة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10828,7 +10828,7 @@
       "codeC": "05005",
       "fr": "Seriana",
       "ar": "سريانة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10836,7 +10836,7 @@
       "codeC": "05006",
       "fr": "Menaa",
       "ar": "منعة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10844,7 +10844,7 @@
       "codeC": "05007",
       "fr": "El Madher",
       "ar": "المعذر",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10852,7 +10852,7 @@
       "codeC": "05008",
       "fr": "Tazoult",
       "ar": "تازولت",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10860,7 +10860,7 @@
       "codeC": "05009",
       "fr": "Ngaous",
       "ar": "نقاوس",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10868,7 +10868,7 @@
       "codeC": "05010",
       "fr": "Guigba",
       "ar": "قيقبة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10876,7 +10876,7 @@
       "codeC": "05011",
       "fr": "Inoughissen",
       "ar": "إينوغيسن",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10884,7 +10884,7 @@
       "codeC": "05012",
       "fr": "Ouyoun El Assafir",
       "ar": "عيون العصافير",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10892,7 +10892,7 @@
       "codeC": "05013",
       "fr": "Djerma",
       "ar": "جرمة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10900,7 +10900,7 @@
       "codeC": "05014",
       "fr": "Bitam",
       "ar": "بيطام",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10908,7 +10908,7 @@
       "codeC": "05015",
       "fr": "Metkaouak",
       "ar": "المتكوك",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10916,7 +10916,7 @@
       "codeC": "05016",
       "fr": "Arris",
       "ar": "أريس",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10924,7 +10924,7 @@
       "codeC": "05017",
       "fr": "Kimmel",
       "ar": "كيمل",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10932,7 +10932,7 @@
       "codeC": "05018",
       "fr": "Tilatou",
       "ar": "تيلاطو",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10940,7 +10940,7 @@
       "codeC": "05019",
       "fr": "Ain Djasser",
       "ar": "عين جاسر",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10948,7 +10948,7 @@
       "codeC": "05020",
       "fr": "Ouled Selam",
       "ar": "أولاد سالم",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10956,7 +10956,7 @@
       "codeC": "05021",
       "fr": "Tigherghar",
       "ar": "تغرغار",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10964,7 +10964,7 @@
       "codeC": "05022",
       "fr": "Ain Yagout",
       "ar": "عين ياقوت",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10972,7 +10972,7 @@
       "codeC": "05023",
       "fr": "Fesdis",
       "ar": "فسديس",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10980,7 +10980,7 @@
       "codeC": "05024",
       "fr": "Sefiane",
       "ar": "سفيان",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10988,7 +10988,7 @@
       "codeC": "05025",
       "fr": "Rahbat",
       "ar": "الرحبات",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -10996,7 +10996,7 @@
       "codeC": "05026",
       "fr": "Tighanimine",
       "ar": "تغانمين",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11004,7 +11004,7 @@
       "codeC": "05027",
       "fr": "Lemsane",
       "ar": "لمسان",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11012,7 +11012,7 @@
       "codeC": "05028",
       "fr": "Ksar Belezma",
       "ar": "قصر بلزمة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11020,7 +11020,7 @@
       "codeC": "05029",
       "fr": "Seggana",
       "ar": "سقانة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11028,7 +11028,7 @@
       "codeC": "05030",
       "fr": "Ichmoul",
       "ar": "أشمول",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11036,7 +11036,7 @@
       "codeC": "05031",
       "fr": "Foum Toub",
       "ar": "فم الطوب",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11044,7 +11044,7 @@
       "codeC": "05032",
       "fr": "Beni Foudhala El Hakania",
       "ar": "بني فضالة الحقانية",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11052,7 +11052,7 @@
       "codeC": "05033",
       "fr": "Oued El Ma",
       "ar": "وادي المات",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11060,7 +11060,7 @@
       "codeC": "05034",
       "fr": "Talkhamt",
       "ar": "تالغمت",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11068,7 +11068,7 @@
       "codeC": "05035",
       "fr": "Bouzina",
       "ar": "بوزينة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11076,7 +11076,7 @@
       "codeC": "05036",
       "fr": "Chemora",
       "ar": "شمرة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11084,7 +11084,7 @@
       "codeC": "05037",
       "fr": "Oued Chaaba",
       "ar": "وادي الشعبة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11092,7 +11092,7 @@
       "codeC": "05038",
       "fr": "Taxlent",
       "ar": "تاكسلانة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11100,7 +11100,7 @@
       "codeC": "05039",
       "fr": "Gosbat",
       "ar": "القصبات",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11108,7 +11108,7 @@
       "codeC": "05040",
       "fr": "Ouled Aouf",
       "ar": "أولاد عوف",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11116,7 +11116,7 @@
       "codeC": "05041",
       "fr": "Boumagueur",
       "ar": "بومقر",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11124,7 +11124,7 @@
       "codeC": "05042",
       "fr": "Barika",
       "ar": "بريكة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11132,7 +11132,7 @@
       "codeC": "05043",
       "fr": "Djezzar",
       "ar": "الجزار",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11140,7 +11140,7 @@
       "codeC": "05044",
       "fr": "Tkout",
       "ar": "تكوت",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11148,7 +11148,7 @@
       "codeC": "05045",
       "fr": "Ain Touta",
       "ar": "عين التوتة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11156,7 +11156,7 @@
       "codeC": "05046",
       "fr": "Hidoussa",
       "ar": "حيدوسة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11164,7 +11164,7 @@
       "codeC": "05047",
       "fr": "Teniet El Abed",
       "ar": "ثنية العابد",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11172,7 +11172,7 @@
       "codeC": "05048",
       "fr": "Oued Taga",
       "ar": "وادي الطاقة",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11180,7 +11180,7 @@
       "codeC": "05049",
       "fr": "Ouled Fadel",
       "ar": "أولاد فاضل",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11188,7 +11188,7 @@
       "codeC": "05050",
       "fr": "Timgad",
       "ar": "تيمقاد",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11196,7 +11196,7 @@
       "codeC": "05051",
       "fr": "Ras El Aioun",
       "ar": "رأس العيون",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11204,7 +11204,7 @@
       "codeC": "05052",
       "fr": "Chir",
       "ar": "النوادر",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11212,7 +11212,7 @@
       "codeC": "05053",
       "fr": "Ouled Si Slimane",
       "ar": "أولاد سي سليمان",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11220,7 +11220,7 @@
       "codeC": "05054",
       "fr": "Zanat El Beida",
       "ar": "زانة البيضات",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11228,7 +11228,7 @@
       "codeC": "05055",
       "fr": "Amdoukal",
       "ar": "مدوكال",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11236,7 +11236,7 @@
       "codeC": "05056",
       "fr": "Ouled Ammar",
       "ar": "أولاد عمار",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11244,7 +11244,7 @@
       "codeC": "05057",
       "fr": "El Hassi",
       "ar": "الحاسي",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11252,7 +11252,7 @@
       "codeC": "05058",
       "fr": "Lazrou",
       "ar": "لازرو",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11260,7 +11260,7 @@
       "codeC": "05059",
       "fr": "Boumia",
       "ar": "بومية",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11268,7 +11268,7 @@
       "codeC": "05060",
       "fr": "Boulhilat",
       "ar": "بوالحيلات",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11276,7 +11276,7 @@
       "codeC": "05061",
       "fr": "Larbaa",
       "ar": "لرباع",
-      "wilayaCode": "5",
+      "wilayaCode": "05",
       "wilayaAr": "باتنة",
       "wilayaFr": "Batna"
     },
@@ -11284,7 +11284,7 @@
       "codeC": "06001",
       "fr": "Bejaia",
       "ar": "بجاية",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11292,7 +11292,7 @@
       "codeC": "06002",
       "fr": "Amizour",
       "ar": "أميزور",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11300,7 +11300,7 @@
       "codeC": "06003",
       "fr": "Ferraoun",
       "ar": "فرعون",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11308,7 +11308,7 @@
       "codeC": "06004",
       "fr": "Taourirt Ighil",
       "ar": "تاوريرت إغيل",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11316,7 +11316,7 @@
       "codeC": "06005",
       "fr": "Chelata",
       "ar": "شلاطة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11324,7 +11324,7 @@
       "codeC": "06006",
       "fr": "Tamokra",
       "ar": "تامقرة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11332,7 +11332,7 @@
       "codeC": "06007",
       "fr": "Timzrit",
       "ar": "تيمزريت",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11340,7 +11340,7 @@
       "codeC": "06008",
       "fr": "Souk El Thenine",
       "ar": "سوق الاثنين",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11348,7 +11348,7 @@
       "codeC": "06009",
       "fr": "Mcisna",
       "ar": "سيدي السعيد",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11356,7 +11356,7 @@
       "codeC": "06010",
       "fr": "Thinabdher",
       "ar": "تينبذار",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11364,7 +11364,7 @@
       "codeC": "06011",
       "fr": "Tichi",
       "ar": "تيشي",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11372,7 +11372,7 @@
       "codeC": "06012",
       "fr": "Semaoun",
       "ar": "سمعون",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11380,7 +11380,7 @@
       "codeC": "06013",
       "fr": "Kendira",
       "ar": "كنديرة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11388,7 +11388,7 @@
       "codeC": "06014",
       "fr": "Tifra",
       "ar": "تيفرة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11396,7 +11396,7 @@
       "codeC": "06015",
       "fr": "Ighram",
       "ar": "إغرم",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11404,7 +11404,7 @@
       "codeC": "06016",
       "fr": "Amalou",
       "ar": "آمالو",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11412,7 +11412,7 @@
       "codeC": "06017",
       "fr": "Ighil Ali",
       "ar": "إغيل علي",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11420,7 +11420,7 @@
       "codeC": "06018",
       "fr": "Ifelain Ilmathen",
       "ar": "فلاين الماثن",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11428,7 +11428,7 @@
       "codeC": "06019",
       "fr": "Toudja",
       "ar": "توجة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11436,7 +11436,7 @@
       "codeC": "06020",
       "fr": "Darguina",
       "ar": "درقينة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11444,7 +11444,7 @@
       "codeC": "06021",
       "fr": "Sidi Ayad",
       "ar": "سيدي عياد",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11452,7 +11452,7 @@
       "codeC": "06022",
       "fr": "Aokas",
       "ar": "أوقاس",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11460,7 +11460,7 @@
       "codeC": "06023",
       "fr": "Beni Djellil",
       "ar": "بني جليل",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11468,7 +11468,7 @@
       "codeC": "06024",
       "fr": "Adekar",
       "ar": "أدكار",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11476,7 +11476,7 @@
       "codeC": "06025",
       "fr": "Akbou",
       "ar": "أقبو",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11484,7 +11484,7 @@
       "codeC": "06026",
       "fr": "Seddouk",
       "ar": "صدوق",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11492,7 +11492,7 @@
       "codeC": "06027",
       "fr": "Tazmalt",
       "ar": "تزمالت",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11500,7 +11500,7 @@
       "codeC": "06028",
       "fr": "Ait Rizine",
       "ar": "آيت رزين",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11508,7 +11508,7 @@
       "codeC": "06029",
       "fr": "Chemini",
       "ar": "شميني",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11516,7 +11516,7 @@
       "codeC": "06030",
       "fr": "Souk Oufella",
       "ar": "السوق أوفلا",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11524,7 +11524,7 @@
       "codeC": "06031",
       "fr": "Taskriout",
       "ar": "تاسكريوت",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11532,7 +11532,7 @@
       "codeC": "06032",
       "fr": "Tibane",
       "ar": "طيبان",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11540,7 +11540,7 @@
       "codeC": "06033",
       "fr": "Tala Hamza",
       "ar": "تالة حمزة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11548,7 +11548,7 @@
       "codeC": "06034",
       "fr": "Barbacha",
       "ar": "برباشة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11556,7 +11556,7 @@
       "codeC": "06035",
       "fr": "Beni Ksila",
       "ar": "بني كسيلة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11564,7 +11564,7 @@
       "codeC": "06036",
       "fr": "Ouzallaguen",
       "ar": "أوزلاقن",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11572,7 +11572,7 @@
       "codeC": "06037",
       "fr": "Bouhamza",
       "ar": "بوحمزة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11580,7 +11580,7 @@
       "codeC": "06038",
       "fr": "Beni Melikeche",
       "ar": "بني مليكش",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11588,7 +11588,7 @@
       "codeC": "06039",
       "fr": "Sidi Aich",
       "ar": "سيدي عيش",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11596,7 +11596,7 @@
       "codeC": "06040",
       "fr": "El Kseur",
       "ar": "القصر",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11604,7 +11604,7 @@
       "codeC": "06041",
       "fr": "Melbou",
       "ar": "مالبو",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11612,7 +11612,7 @@
       "codeC": "06042",
       "fr": "Akfadou",
       "ar": "أكفادو",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11620,7 +11620,7 @@
       "codeC": "06043",
       "fr": "Leflaye",
       "ar": "لفلاي",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11628,7 +11628,7 @@
       "codeC": "06044",
       "fr": "Kherrata",
       "ar": "خراطة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11636,7 +11636,7 @@
       "codeC": "06045",
       "fr": "Draa Kaid",
       "ar": "ذراع القايد",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11644,7 +11644,7 @@
       "codeC": "06046",
       "fr": "Tamridjet",
       "ar": "تامريجت",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11652,7 +11652,7 @@
       "codeC": "06047",
       "fr": "Ait Smail",
       "ar": "آيت إسماعيل",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11660,7 +11660,7 @@
       "codeC": "06048",
       "fr": "Boukhelifa",
       "ar": "بوخليفة",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11668,7 +11668,7 @@
       "codeC": "06049",
       "fr": "Tizi Nberber",
       "ar": "تيزي بربر",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11676,7 +11676,7 @@
       "codeC": "06050",
       "fr": "Beni Maouch",
       "ar": "بني معوش",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11684,7 +11684,7 @@
       "codeC": "06051",
       "fr": "Oued Ghir",
       "ar": "وادي غير",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11692,7 +11692,7 @@
       "codeC": "06052",
       "fr": "Boudjellil",
       "ar": "بوجليل",
-      "wilayaCode": "6",
+      "wilayaCode": "06",
       "wilayaAr": "بجاية",
       "wilayaFr": "Béjaïa"
     },
@@ -11700,7 +11700,7 @@
       "codeC": "07001",
       "fr": "Biskra",
       "ar": "بسكرة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11708,7 +11708,7 @@
       "codeC": "07002",
       "fr": "Oumache",
       "ar": "أوماش",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11716,7 +11716,7 @@
       "codeC": "07003",
       "fr": "Branis",
       "ar": "البرانس",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11724,7 +11724,7 @@
       "codeC": "07004",
       "fr": "Chetma",
       "ar": "شتمة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11732,7 +11732,7 @@
       "codeC": "07005",
       "fr": "Ouled Djellal",
       "ar": "أولاد جلال",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11740,7 +11740,7 @@
       "codeC": "07006",
       "fr": "Ras El Miaad",
       "ar": "رأس الميعاد",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11748,7 +11748,7 @@
       "codeC": "07007",
       "fr": "Besbes",
       "ar": "اولاد حركات",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11756,7 +11756,7 @@
       "codeC": "07008",
       "fr": "Sidi Khaled",
       "ar": "سيدي خالد",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11764,7 +11764,7 @@
       "codeC": "07009",
       "fr": "Doucen",
       "ar": "الدوسن",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11772,7 +11772,7 @@
       "codeC": "07010",
       "fr": "Ech Chaiba",
       "ar": "الشعيبة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11780,7 +11780,7 @@
       "codeC": "07011",
       "fr": "Sidi Okba",
       "ar": "سيدي عقبة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11788,7 +11788,7 @@
       "codeC": "07012",
       "fr": "Mchouneche",
       "ar": "مشونش",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11796,7 +11796,7 @@
       "codeC": "07013",
       "fr": "El Haouch",
       "ar": "الحوش",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11804,7 +11804,7 @@
       "codeC": "07014",
       "fr": "Ain Naga",
       "ar": "عين الناقة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11812,7 +11812,7 @@
       "codeC": "07015",
       "fr": "Zeribet El Oued",
       "ar": "زريبة الوادي",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11820,7 +11820,7 @@
       "codeC": "07016",
       "fr": "El Feidh",
       "ar": "الفيض",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11828,7 +11828,7 @@
       "codeC": "07017",
       "fr": "El Kantara",
       "ar": "القنطرة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11836,7 +11836,7 @@
       "codeC": "07018",
       "fr": "Ain Zaatout",
       "ar": "عين زعطوط",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11844,7 +11844,7 @@
       "codeC": "07019",
       "fr": "El Outaya",
       "ar": "الوطاية",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11852,7 +11852,7 @@
       "codeC": "07020",
       "fr": "Djemorah",
       "ar": "جمورة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11860,7 +11860,7 @@
       "codeC": "07021",
       "fr": "Tolga",
       "ar": "طولقة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11868,7 +11868,7 @@
       "codeC": "07022",
       "fr": "Lioua",
       "ar": "لوات",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11876,7 +11876,7 @@
       "codeC": "07023",
       "fr": "Lichana",
       "ar": "لشانة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11884,7 +11884,7 @@
       "codeC": "07024",
       "fr": "Ourlal",
       "ar": "أورلال",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11892,7 +11892,7 @@
       "codeC": "07025",
       "fr": "Mlili",
       "ar": "مليلي",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11900,7 +11900,7 @@
       "codeC": "07026",
       "fr": "Foughala",
       "ar": "فوغالة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11908,7 +11908,7 @@
       "codeC": "07027",
       "fr": "Bordj Ben Azzouz",
       "ar": "برج بن عزوز",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11916,7 +11916,7 @@
       "codeC": "07028",
       "fr": "Meziraa",
       "ar": "المزيرعة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11924,7 +11924,7 @@
       "codeC": "07029",
       "fr": "Bouchagroun",
       "ar": "بوشقرون",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11932,7 +11932,7 @@
       "codeC": "07030",
       "fr": "Mekhadma",
       "ar": "مخادمة",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11940,7 +11940,7 @@
       "codeC": "07031",
       "fr": "El Ghrous",
       "ar": "الغروس",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11948,7 +11948,7 @@
       "codeC": "07032",
       "fr": "El Hadjab",
       "ar": "الحاجب",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11956,7 +11956,7 @@
       "codeC": "07033",
       "fr": "Khanguet Sidinadji",
       "ar": "خنقة سيدي ناجي",
-      "wilayaCode": "7",
+      "wilayaCode": "07",
       "wilayaAr": "بسكرة",
       "wilayaFr": "Biskra"
     },
@@ -11964,7 +11964,7 @@
       "codeC": "08001",
       "fr": "Bechar",
       "ar": "بشار",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -11972,7 +11972,7 @@
       "codeC": "08002",
       "fr": "Erg Ferradj",
       "ar": "عرق فراج",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -11980,7 +11980,7 @@
       "codeC": "08003",
       "fr": "Ouled Khoudir",
       "ar": "أولاد خضير",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -11988,7 +11988,7 @@
       "codeC": "08004",
       "fr": "Meridja",
       "ar": "مريجة",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -11996,7 +11996,7 @@
       "codeC": "08005",
       "fr": "Timoudi",
       "ar": "تمودي",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12004,7 +12004,7 @@
       "codeC": "08006",
       "fr": "Lahmar",
       "ar": "الأحمر",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12012,7 +12012,7 @@
       "codeC": "08007",
       "fr": "Beni Abbes",
       "ar": "بني عباس",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12020,7 +12020,7 @@
       "codeC": "08008",
       "fr": "Beni Ikhlef",
       "ar": "بني يخلف",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12028,7 +12028,7 @@
       "codeC": "08009",
       "fr": "Mechraa Houari B",
       "ar": "مشروع هواري بومدين",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12036,7 +12036,7 @@
       "codeC": "08010",
       "fr": "Kenedsa",
       "ar": "قنادسة",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12044,7 +12044,7 @@
       "codeC": "08011",
       "fr": "Igli",
       "ar": "إيقلي",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12052,7 +12052,7 @@
       "codeC": "08012",
       "fr": "Tabalbala",
       "ar": "تبلبالة",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12060,7 +12060,7 @@
       "codeC": "08013",
       "fr": "Taghit",
       "ar": "تاغيت",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12068,7 +12068,7 @@
       "codeC": "08014",
       "fr": "El Ouata",
       "ar": "الوطات",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12076,7 +12076,7 @@
       "codeC": "08015",
       "fr": "Boukais",
       "ar": "بوقايس",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12084,7 +12084,7 @@
       "codeC": "08016",
       "fr": "Mogheul",
       "ar": "موغل",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12092,7 +12092,7 @@
       "codeC": "08017",
       "fr": "Abadla",
       "ar": "العبادلة",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12100,7 +12100,7 @@
       "codeC": "08018",
       "fr": "Kerzaz",
       "ar": "كرزاز",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12108,7 +12108,7 @@
       "codeC": "08019",
       "fr": "Ksabi",
       "ar": "قصابي",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12116,7 +12116,7 @@
       "codeC": "08020",
       "fr": "Tamtert",
       "ar": "تامترت",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12124,7 +12124,7 @@
       "codeC": "08021",
       "fr": "Beni Ounif",
       "ar": "بني ونيف",
-      "wilayaCode": "8",
+      "wilayaCode": "08",
       "wilayaAr": "بشار",
       "wilayaFr": "Béchar"
     },
@@ -12132,7 +12132,7 @@
       "codeC": "09001",
       "fr": "Blida",
       "ar": "البليدة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12140,7 +12140,7 @@
       "codeC": "09002",
       "fr": "Chebli",
       "ar": "الشبلي",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12148,7 +12148,7 @@
       "codeC": "09003",
       "fr": "Bouinan",
       "ar": "بوعينان",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12156,7 +12156,7 @@
       "codeC": "09004",
       "fr": "Oued El Alleug",
       "ar": "وادي العلايق",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12164,7 +12164,7 @@
       "codeC": "09007",
       "fr": "Ouled Yaich",
       "ar": "العفرون",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12172,7 +12172,7 @@
       "codeC": "09008",
       "fr": "Chrea",
       "ar": "الشفة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12180,7 +12180,7 @@
       "codeC": "09010",
       "fr": "El Affroun",
       "ar": "بن خليل",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12188,7 +12188,7 @@
       "codeC": "09011",
       "fr": "Chiffa",
       "ar": "الصومعة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12196,7 +12196,7 @@
       "codeC": "09012",
       "fr": "Hammam Melouane",
       "ar": "موزاية",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12204,7 +12204,7 @@
       "codeC": "09013",
       "fr": "Ben Khlil",
       "ar": "سوحان",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12212,7 +12212,7 @@
       "codeC": "09014",
       "fr": "Soumaa",
       "ar": "مفتاح",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12220,7 +12220,7 @@
       "codeC": "09016",
       "fr": "Mouzaia",
       "ar": "بوفاريك",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12228,7 +12228,7 @@
       "codeC": "09017",
       "fr": "Souhane",
       "ar": "الأربعات",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12236,7 +12236,7 @@
       "codeC": "09018",
       "fr": "Meftah",
       "ar": "وادي جر",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12244,7 +12244,7 @@
       "codeC": "09019",
       "fr": "Ouled Selama",
       "ar": "بني تامو",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12252,7 +12252,7 @@
       "codeC": "09020",
       "fr": "Boufarik",
       "ar": "بوعرفة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12260,7 +12260,7 @@
       "codeC": "09021",
       "fr": "Larbaa",
       "ar": "بني مراد",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12268,7 +12268,7 @@
       "codeC": "09022",
       "fr": "Oued Djer",
       "ar": "بوقرة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12276,7 +12276,7 @@
       "codeC": "09023",
       "fr": "Beni Tamou",
       "ar": "قرواو",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12284,7 +12284,7 @@
       "codeC": "09024",
       "fr": "Bouarfa",
       "ar": "عين الرمانة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12292,7 +12292,7 @@
       "codeC": "09025",
       "fr": "Beni Mered",
       "ar": "جبابرة",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "البليدة",
       "wilayaFr": "Blida"
     },
@@ -12300,7 +12300,7 @@
       "codeC": "09026",
       "fr": "Bougara",
       "ar": "",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
     },
@@ -12308,7 +12308,7 @@
       "codeC": "09027",
       "fr": "Guerrouaou",
       "ar": "",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
     },
@@ -12316,7 +12316,7 @@
       "codeC": "09028",
       "fr": "Ain Romana",
       "ar": "",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
     },
@@ -12324,7 +12324,7 @@
       "codeC": "09029",
       "fr": "Djebabra",
       "ar": "",
-      "wilayaCode": "9",
+      "wilayaCode": "09",
       "wilayaAr": "",
       "wilayaFr": "Blida"
     }
@@ -12848,7 +12848,7 @@
     "واضيه": "Ouadhia",
     "ازفون": "Azzefoun",
     "تيقزيرت": "Tigzirt",
-    "جبل عيسي ميمون": "Ait Aissa Mimoun",
+    "جبل عيسي ميمون": "Djebel Aissa Mimoun",
     "بوغني": "Boghni",
     "ايفيغات": "Ifigha",
     "ايت اومالو": "Ait Oumalou",
@@ -13807,6 +13807,7 @@
     "الناضور": "Nador",
     "الجزاير العاصمه": "Alger",
     "اسطاوالي": "Staoueli",
+    "ايت عيسي ميمون": "Djebel Aissa Mimoun",
     "alger": "Alger",
     "عين صالح": "In Salah",
     "عين قزام": "In Guezzam"
@@ -14332,7 +14333,7 @@
     "ouadhia": "Ouadhia",
     "azzefoun": "Azzefoun",
     "tigzirt": "Tigzirt",
-    "ait aissa mimoun": "Ait Aissa Mimoun",
+    "djebel aissa mimoun": "Djebel Aissa Mimoun",
     "boghni": "Boghni",
     "ifigha": "Ifigha",
     "ait oumalou": "Ait Oumalou",
@@ -15835,7 +15836,7 @@
     "واضيه||تيزي وزو": "Ouadhia",
     "ازفون||تيزي وزو": "Azzefoun",
     "تيقزيرت||تيزي وزو": "Tigzirt",
-    "جبل عيسي ميمون||تيزي وزو": "Ait Aissa Mimoun",
+    "جبل عيسي ميمون||تيزي وزو": "Djebel Aissa Mimoun",
     "بوغني||تيزي وزو": "Boghni",
     "ايفيغات||تيزي وزو": "Ifigha",
     "ايت اومالو||تيزي وزو": "Ait Oumalou",
@@ -17363,7 +17364,7 @@
     "ouadhia||tizi ouzou": "Ouadhia",
     "azzefoun||tizi ouzou": "Azzefoun",
     "tigzirt||tizi ouzou": "Tigzirt",
-    "ait aissa mimoun||tizi ouzou": "Ait Aissa Mimoun",
+    "djebel aissa mimoun||tizi ouzou": "Djebel Aissa Mimoun",
     "boghni||tizi ouzou": "Boghni",
     "ifigha||tizi ouzou": "Ifigha",
     "ait oumalou||tizi ouzou": "Ait Oumalou",

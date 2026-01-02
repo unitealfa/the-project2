@@ -122,7 +122,13 @@ function run() {
     "الدويرة": "Douera",
     "السحاولة": "Saoula",
     "اسطاوالي": "Staoueli",
-    "زرالدة": "Zeralda"
+    "زرالدة": "Zeralda",
+    "ايت عيسى ميمون": "Djebel Aissa Mimoun",
+    "جبل عيسى ميمون": "Djebel Aissa Mimoun"
+  };
+
+  const frOverrides = {
+    "Ait Aissa Mimoun": "Djebel Aissa Mimoun"
   };
 
   const frToArManual = {
@@ -160,10 +166,13 @@ function run() {
   const processFrList = (list, codeField, nameField) => {
     for (const frItem of list) {
       const codePostal = String(frItem[codeField]).padStart(5, '0');
-      const frName = frItem[nameField];
+      const frNameSource = frItem[nameField];
+      const frName = frOverrides[frNameSource] || frNameSource;
       const wId = parseInt(frItem.wilaya_id || frItem.codeW, 10);
 
       if (!frName || isNaN(wId)) continue;
+
+      const wIdStr = String(wId).padStart(2, '0');
 
       // Calculate Arabic key from codePostal
       // e.g. 16047 -> 1647
@@ -194,7 +203,7 @@ function run() {
         codeC: codePostal,
         fr: frName,
         ar: arName,
-        wilayaCode: String(wId),
+        wilayaCode: wIdStr,
         wilayaAr: wilayaAr,
         wilayaFr: wilayaDisplayNames[wId] || String(wId)
       };
