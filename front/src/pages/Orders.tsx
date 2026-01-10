@@ -5,6 +5,12 @@ import DeliveryCell from "../components/DeliveryCell";
 import { apiFetch } from "../utils/api";
 import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya, getWilayaIdByCommune } from "../utils/communes";
 import CommuneCorrectionModal from "../components/CommuneCorrectionModal";
+import {
+  parseSheetDateValue,
+  extractRowDate,
+  EXCEL_EPOCH,
+  toDateKey,
+} from "../utils/dateHelpers";
 import "../styles/Orders.css";
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
@@ -347,113 +353,6 @@ const CrossCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
-
-const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
-
-const toDateKey = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const parseSheetDateValue = (value: unknown): Date | null => {
-  if (!value && value !== 0) return null;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return new Date(value.getTime());
-  }
-
-  const raw = String(value).trim();
-  if (!raw) return null;
-
-  const parsedTimestamp = Date.parse(raw);
-  if (!Number.isNaN(parsedTimestamp)) {
-    return new Date(parsedTimestamp);
-  }
-
-  const normalizedNumber = Number(raw.replace(",", "."));
-  if (!Number.isNaN(normalizedNumber)) {
-    if (normalizedNumber > 30000 && normalizedNumber < 60000) {
-      const millis = Math.round(normalizedNumber * 24 * 60 * 60 * 1000);
-      const date = new Date(EXCEL_EPOCH + millis);
-      return new Date(
-        date.getUTCFullYear(),
-        date.getUTCMonth(),
-        date.getUTCDate(),
-        date.getUTCHours(),
-        date.getUTCMinutes(),
-        date.getUTCSeconds(),
-        date.getUTCMilliseconds()
-      );
-    }
-  }
-
-  const isoMatch = raw.match(
-    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
-  );
-  if (isoMatch) {
-    const [, yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr] =
-      isoMatch;
-    const year = Number(yearStr);
-    const month = Number(monthStr) - 1;
-    const day = Number(dayStr);
-    const hours = hourStr ? Number(hourStr) : 0;
-    const minutes = minuteStr ? Number(minuteStr) : 0;
-    const seconds = secondStr ? Number(secondStr) : 0;
-    const date = new Date(year, month, day, hours, minutes, seconds);
-    if (!Number.isNaN(date.getTime())) return date;
-  }
-
-  const frMatch = raw.match(
-    /^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
-  );
-  if (frMatch) {
-    const [, dayStr, monthStr, yearStr, hourStr, minuteStr, secondStr] =
-      frMatch;
-    let year = Number(yearStr);
-    if (year < 100) {
-      year += year >= 50 ? 1900 : 2000;
-    }
-    const month = Number(monthStr) - 1;
-    const day = Number(dayStr);
-    const hours = hourStr ? Number(hourStr) : 0;
-    const minutes = minuteStr ? Number(minuteStr) : 0;
-    const seconds = secondStr ? Number(secondStr) : 0;
-    const date = new Date(year, month, day, hours, minutes, seconds);
-    if (!Number.isNaN(date.getTime())) return date;
-  }
-
-  return null;
-};
-
-const extractRowDate = (row: OrderRow): Date | null => {
-  const priorityKeys = [
-    "date",
-    "Date",
-    "DATE",
-    "Date de commande",
-    "date de commande",
-    "Created At",
-    "created_at",
-  ];
-
-  for (const key of priorityKeys) {
-    if (key in row) {
-      const parsed = parseSheetDateValue(row[key]);
-      if (parsed) return parsed;
-    }
-  }
-
-  for (const key of Object.keys(row)) {
-    const normalizedKey = normalizeFieldKey(key);
-    if (!normalizedKey) continue;
-    if (!/date|jour|time|heure/.test(normalizedKey)) continue;
-    const parsed = parseSheetDateValue(row[key]);
-    if (parsed) return parsed;
-  }
-
-  return null;
-};
 
 const getRowStatus = (row: OrderRow): string => {
   const rawStatus = row["etat"] ?? row["État"] ?? row["Etat"];
