@@ -59,6 +59,16 @@ const WILAYAS = [
     { id: 46, name: "Aïn Témouchent" },
     { id: 47, name: "Ghardaïa" },
     { id: 48, name: "Relizane" },
+    { id: 49, name: "Timimoun" },
+    { id: 50, name: "Bordj Badji Mokhtar" },
+    { id: 51, name: "Ouled Djellal" },
+    { id: 52, name: "Beni Abbes" },
+    { id: 53, name: "In Salah" },
+    { id: 54, name: "In Guezzam" },
+    { id: 55, name: "Touggourt" },
+    { id: 56, name: "Djanet" },
+    { id: 57, name: "El M'Ghair" },
+    { id: 58, name: "El Meniaa" },
 ];
 
 const CommuneCorrectionModal: React.FC<CommuneCorrectionModalProps> = ({
