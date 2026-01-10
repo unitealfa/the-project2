@@ -2829,7 +2829,7 @@ Zm0 14H8V7h9v12Z"
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState<string>("");
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("all");
+  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("day");
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
 

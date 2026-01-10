@@ -428,7 +428,7 @@ const extractRowDate = (row: Record<string, string>): Date | null => {
 
 const getRowStatus = (row: Record<string, string>): string => {
   const rawStatus = row["etat"] ?? row["État"] ?? row["Etat"] ?? "";
-   const status =
+  const status =
     typeof rawStatus === "string"
       ? rawStatus.trim()
       : String(rawStatus ?? "").trim();
@@ -580,7 +580,7 @@ const Admin: React.FC = () => {
   const [rowsLoading, setRowsLoading] = useState(true);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("day");
   const [timeFilterMonth, setTimeFilterMonth] = useState<string>(
     () => getDefaultMonthValue()
   );
@@ -630,19 +630,19 @@ const Admin: React.FC = () => {
         if (cancelled) return;
 
         const mapped: ProductDto[] = Array.isArray(data)
-            ? data.map((item: any) => ({
-                id: item._id || item.id,
-                code: typeof item.code === "string" ? item.code : undefined,
-                name: typeof item.name === "string" ? item.name : "",
-                costPrice: Number(item.costPrice ?? 0) || 0,
-              salePrice: Number(item.salePrice ?? 0) || 0,
-              variants: Array.isArray(item.variants)
-                ? item.variants.map((variant: any) => ({
-                    name: String(variant?.name ?? ""),
-                    quantity: Number(variant?.quantity ?? 0) || 0,
-                  }))
-                : [],
-            }))
+          ? data.map((item: any) => ({
+            id: item._id || item.id,
+            code: typeof item.code === "string" ? item.code : undefined,
+            name: typeof item.name === "string" ? item.name : "",
+            costPrice: Number(item.costPrice ?? 0) || 0,
+            salePrice: Number(item.salePrice ?? 0) || 0,
+            variants: Array.isArray(item.variants)
+              ? item.variants.map((variant: any) => ({
+                name: String(variant?.name ?? ""),
+                quantity: Number(variant?.quantity ?? 0) || 0,
+              }))
+              : [],
+          }))
           : [];
 
         setProducts(mapped);
@@ -780,7 +780,7 @@ const Admin: React.FC = () => {
         completed: 0,
         returned: 0,
         abandoned: 0,
-       } as Record<
+      } as Record<
         "new" | "confirmed" | "shipped" | "completed" | "returned" | "abandoned",
         number
       >
@@ -816,7 +816,7 @@ const Admin: React.FC = () => {
       .map(value => ({ value, label: formatMonthLabel(value) }));
   }, [rows]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!availableMonths.some(month => month.value === timeFilterMonth)) {
       const fallback =
         availableMonths[availableMonths.length - 1]?.value ?? getDefaultMonthValue();
@@ -869,7 +869,7 @@ useEffect(() => {
     return "Nombre quotidien sur les 45 derniers jours";
   }, [chartRangeMode, selectedMonth, selectedYear]);
 
-  
+
   const timeFilterLabel = useMemo(() => {
     if (timeFilter === "customMonth") {
       const monthLabel =
@@ -1065,7 +1065,7 @@ useEffect(() => {
     let end = new Date(now);
     start.setDate(start.getDate() - 44);
 
-     start.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
 
     if (chartRangeMode === "month") {
@@ -1094,7 +1094,7 @@ useEffect(() => {
     rows.forEach(row => {
       const date = extractRowDate(row);
       if (!date) return;
-        if (date < start || date > end) return;
+      if (date < start || date > end) return;
       const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
         2,
         "0"
@@ -1109,7 +1109,7 @@ useEffect(() => {
     });
 
     const trend: { label: string; orders: number; revenue: number }[] = [];
-     const cursor = new Date(start);
+    const cursor = new Date(start);
     cursor.setHours(0, 0, 0, 0);
 
     while (cursor <= end) {
@@ -1142,10 +1142,10 @@ useEffect(() => {
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-     gradient.addColorStop(0, "rgba(107, 114, 128, 0.35)");
+    gradient.addColorStop(0, "rgba(107, 114, 128, 0.35)");
     gradient.addColorStop(1, "rgba(107, 114, 128, 0)");
 
-        const orderValues = salesTrend.map(point => point.orders);
+    const orderValues = salesTrend.map(point => point.orders);
     const maxOrders = orderValues.length ? Math.max(...orderValues) : 0;
 
     const computeNiceStep = (maxValue: number): { step: number; max: number } => {
@@ -1519,7 +1519,7 @@ useEffect(() => {
           </div>
 
           <p className="filter-hint">
-             {timeFilteredRows.length.toLocaleString("fr-DZ")} commande(s) pour {" "}
+            {timeFilteredRows.length.toLocaleString("fr-DZ")} commande(s) pour {" "}
             {timeFilterLabel}
           </p>
 
@@ -1574,9 +1574,9 @@ useEffect(() => {
                     <span className="order-date">
                       {order.date
                         ? new Intl.DateTimeFormat("fr-FR", {
-                            day: "2-digit",
-                            month: "short",
-                          }).format(order.date)
+                          day: "2-digit",
+                          month: "short",
+                        }).format(order.date)
                         : "Date inconnue"}
                     </span>
                   </div>
@@ -1615,7 +1615,7 @@ useEffect(() => {
             </p>
           )}
         </div>
-      </div>  
+      </div>
       {isProfitModalOpen && (
         <div
           className="profit-modal__backdrop"
