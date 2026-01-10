@@ -1055,6 +1055,16 @@ const Orders: React.FC = () => {
     { wilaya_id: 46, wilaya_name: "Aïn Témouchent" },
     { wilaya_id: 47, wilaya_name: "Ghardaïa" },
     { wilaya_id: 48, wilaya_name: "Relizane" },
+    { wilaya_id: 49, wilaya_name: "Timimoun" },
+    { wilaya_id: 50, wilaya_name: "Bordj Badji Mokhtar" },
+    { wilaya_id: 51, wilaya_name: "Ouled Djellal" },
+    { wilaya_id: 52, wilaya_name: "Beni Abbes" },
+    { wilaya_id: 53, wilaya_name: "In Salah" },
+    { wilaya_id: 54, wilaya_name: "In Guezzam" },
+    { wilaya_id: 55, wilaya_name: "Touggourt" },
+    { wilaya_id: 56, wilaya_name: "Djanet" },
+    { wilaya_id: 57, wilaya_name: "El M'Ghair" },
+    { wilaya_id: 58, wilaya_name: "El Meniaa" },
   ];
 
   function getWilayaIdByName(name: string) {
