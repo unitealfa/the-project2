@@ -274,6 +274,18 @@ const extractVariantValue = (row: OrderRow): string => {
   return defaultLikeVariant ?? "default";
 };
 
+/**
+ * Extrait le nom du produit sans variante depuis une ligne de commande
+ */
+const extractProductNameOnly = (row: OrderRow): string => {
+  const productLabel = extractProductLabel(row);
+  if (!productLabel) {
+    return "";
+  }
+  const { baseName } = splitProductLabel(productLabel);
+  return baseName || productLabel;
+};
+
 const extractQuantityValue = (row: OrderRow): number => {
   const rawQuantity = String(
     row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
@@ -2741,6 +2753,7 @@ Zm0 14H8V7h9v12Z"
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("day");
   const [selectedDay, setSelectedDay] = React.useState<string>("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [productSort, setProductSort] = React.useState<string>("all");
 
   // Sélection multiple des commandes
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -4479,6 +4492,18 @@ Zm0 14H8V7h9v12Z"
     return keys;
   }, [headers]);
 
+  // Liste des produits uniques (sans variantes) pour le tri
+  const availableProducts = React.useMemo(() => {
+    const productSet = new Set<string>();
+    rows.forEach((row) => {
+      const productName = extractProductNameOnly(row);
+      if (productName) {
+        productSet.add(productName);
+      }
+    });
+    return Array.from(productSet).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const filtered = React.useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
     const normalizedStatus = statusFilter.trim().toLowerCase();
@@ -4520,6 +4545,14 @@ Zm0 14H8V7h9v12Z"
           }
         }
 
+        // Filtrer par produit si un produit est sélectionné
+        if (productSort !== "all") {
+          const rowProductName = extractProductNameOnly(row);
+          if (rowProductName !== productSort) {
+            return false;
+          }
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -4545,6 +4578,7 @@ Zm0 14H8V7h9v12Z"
     statusFilter,
     timeFilter,
     activeTimeRange,
+    productSort,
   ]);
 
   React.useEffect(() => {
@@ -4553,7 +4587,7 @@ Zm0 14H8V7h9v12Z"
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [timeFilter, selectedDay, statusFilter]);
+  }, [timeFilter, selectedDay, statusFilter, productSort]);
 
   React.useEffect(() => {
     setCurrentPage((prev) => {
@@ -4657,6 +4691,22 @@ Zm0 14H8V7h9v12Z"
               {statusOptions.map((option) => (
                 <option key={option || "status-empty"} value={option}>
                   {option || "Sans statut"}
+                </option>
+              ))}
+            </select>
+
+            <span className="orders-filter-label orders-filter-label--status">
+              Produit :
+            </span>
+            <select
+              value={productSort}
+              onChange={(e) => setProductSort(e.target.value)}
+              className="orders-select"
+            >
+              <option value="all">Tous les produits</option>
+              {availableProducts.map((product) => (
+                <option key={product} value={product}>
+                  {product}
                 </option>
               ))}
             </select>
