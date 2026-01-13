@@ -2780,23 +2780,51 @@ Zm0 14H8V7h9v12Z"
     setSelectedIds(next);
   }, []);
 
+  // Charger les commentaires depuis localStorage au démarrage
   const [orderComments, setOrderComments] = React.useState<
     Record<string, string>
-  >({});
+  >(() => {
+    try {
+      const saved = localStorage.getItem("order-comments");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed === "object" && parsed !== null) {
+          return parsed as Record<string, string>;
+        }
+      }
+    } catch (error) {
+      console.warn("Erreur lors du chargement des commentaires depuis localStorage:", error);
+    }
+    return {};
+  });
+
+  // Sauvegarder les commentaires dans localStorage à chaque modification
   const updateOrderComment = React.useCallback((key: string, value: string) => {
     setOrderComments((prev) => {
       const trimmed = value.trim();
+      let next: Record<string, string>;
+      
       if (!trimmed) {
         if (!(key in prev)) {
           return prev;
         }
         const { [key]: _removed, ...rest } = prev;
-        return rest;
+        next = rest;
+      } else {
+        if (prev[key] === value) {
+          return prev;
+        }
+        next = { ...prev, [key]: value };
       }
-      if (prev[key] === value) {
-        return prev;
+
+      // Sauvegarder dans localStorage
+      try {
+        localStorage.setItem("order-comments", JSON.stringify(next));
+      } catch (error) {
+        console.warn("Erreur lors de la sauvegarde des commentaires dans localStorage:", error);
       }
-      return { ...prev, [key]: value };
+
+      return next;
     });
   }, []);
 
