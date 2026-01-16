@@ -691,6 +691,9 @@
 .orders-table__cell--variant {
   white-space: nowrap;
   min-width: 120px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .orders-table__variant {
@@ -715,6 +718,10 @@
 
 .orders-table__variant-name {
   font-variant-numeric: tabular-nums;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .orders-table__variant-icon {
@@ -1479,6 +1486,41 @@
 
 .orders-table__delivery-type-select:focus {
   outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: #ffffff;
+}
+
+.orders-table__cell--location {
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.orders-table__wilaya-select,
+.orders-table__commune-select {
+  width: 100%;
+}
+
+.orders-table__wilaya-select .searchable-select__trigger,
+.orders-table__commune-select .searchable-select__trigger {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+.orders-table__wilaya-select .searchable-select__trigger:hover,
+.orders-table__commune-select .searchable-select__trigger:hover {
+  border-color: #9ca3af;
+  background: #ffffff;
+}
+
+.orders-table__wilaya-select .searchable-select__trigger:focus,
+.orders-table__commune-select .searchable-select__trigger:focus,
+.orders-table__wilaya-select.searchable-select--open .searchable-select__trigger,
+.orders-table__commune-select.searchable-select--open .searchable-select__trigger {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   background: #ffffff;

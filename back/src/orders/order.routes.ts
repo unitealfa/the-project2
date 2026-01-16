@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { syncOfficialStatuses, updateOrderStatus, getDeliveryPersons, getDeliveryPersonOrders, getDeliveryPersonHistory, generateBordereauPDF, getAllDeliveryOrders } from './order.controller';
+import { syncOfficialStatuses, updateOrderStatus, updateWilayaAndCommune, getDeliveryPersons, getDeliveryPersonOrders, getDeliveryPersonHistory, generateBordereauPDF, getAllDeliveryOrders } from './order.controller';
 
 const router = Router();
 
 router.post('/status', updateOrderStatus);
+router.post('/wilaya-commune', updateWilayaAndCommune);
 router.post('/sync-statuses', syncOfficialStatuses);
 router.get('/delivery-persons', getDeliveryPersons);
 router.get('/delivery-person/orders', getAllDeliveryOrders);

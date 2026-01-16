@@ -5,6 +5,8 @@ import DeliveryCell from "../components/DeliveryCell";
 import { apiFetch } from "../utils/api";
 import { getFrenchForDisplay, getFrenchWilaya, resolveCommuneName, getCommunesByWilaya, getWilayaIdByCommune } from "../utils/communes";
 import CommuneCorrectionModal from "../components/CommuneCorrectionModal";
+import SearchableSelect from "../components/SearchableSelect";
+import CommuneSelectionModal from "../components/CommuneSelectionModal";
 import {
   parseSheetDateValue,
   extractRowDate,
@@ -979,16 +981,39 @@ const Orders: React.FC = () => {
   ];
 
   function getWilayaIdByName(name: string) {
+    if (!name || !name.trim()) {
+      return 16; // Fallback Alger si vide
+    }
+    
     const normalize = (s: string) =>
       (s || "")
         .trim()
         .toLowerCase()
         .normalize("NFD")
         .replace(/[̀-ͯ]/g, "")
-        .replace(/[̀-ͯ]/g, "")
         .replace(/ +/g, " ");
+    
     const target = normalize(name);
-    const found = WILAYAS.find((w) => normalize(w.wilaya_name) === target);
+    
+    // Chercher d'abord avec le nom exact
+    let found = WILAYAS.find((w) => normalize(w.wilaya_name) === target);
+    
+    // Si pas trouvé, essayer avec getFrenchWilaya pour normaliser (gère l'arabe)
+    if (!found && name.trim()) {
+      const normalizedName = getFrenchWilaya(name);
+      if (normalizedName && normalizedName !== name) {
+        found = WILAYAS.find((w) => normalize(w.wilaya_name) === normalize(normalizedName));
+      }
+    }
+    
+    // Si toujours pas trouvé, essayer une correspondance partielle
+    if (!found) {
+      found = WILAYAS.find((w) => {
+        const normalizedWilaya = normalize(w.wilaya_name);
+        return normalizedWilaya.includes(target) || target.includes(normalizedWilaya);
+      });
+    }
+    
     return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
   }
 
@@ -2203,6 +2228,7 @@ const Orders: React.FC = () => {
     onRestoreStock,
     onVariantClick,
     onDeliveryTypeChange,
+    onWilayaCommuneChange,
     commentKey,
     commentValue,
     onCommentChange,
@@ -2237,6 +2263,11 @@ const Orders: React.FC = () => {
     onDeliveryTypeChange: (
       row: OrderRow,
       nextMode: CustomerDeliveryMode
+    ) => void;
+    onWilayaCommuneChange: (
+      row: OrderRow,
+      wilaya?: string,
+      commune?: string
     ) => void;
     commentKey: string;
     commentValue: string;
@@ -2516,31 +2547,136 @@ const Orders: React.FC = () => {
           if (isWilayaColumn || isCommuneColumn) {
             const wilayaId = row["Wilaya"] || row["wilaya"] || "";
             const communeName = row["Commune"] || row["commune"] || "";
+            
+            // Normaliser la wilaya pour la recherche
+            const normalizeWilaya = (s: string) =>
+              (s || "")
+                .trim()
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[̀-ͯ]/g, "")
+                .replace(/ +/g, " ");
+            
+            // D'abord, essayer de normaliser avec getFrenchWilaya (gère l'arabe et les variantes)
+            const normalizedWilayaName = wilayaId ? getFrenchWilaya(wilayaId) : "";
+            
+            // Chercher dans WILAYAS avec le nom normalisé
+            let currentWilayaCode: number;
+            let currentWilayaName: string;
+            
+            if (normalizedWilayaName) {
+              const foundWilaya = WILAYAS.find((w) => 
+                normalizeWilaya(w.wilaya_name) === normalizeWilaya(normalizedWilayaName)
+              );
+              
+              if (foundWilaya) {
+                currentWilayaCode = foundWilaya.wilaya_id;
+                currentWilayaName = foundWilaya.wilaya_name;
+              } else {
+                // Si getFrenchWilaya a retourné quelque chose mais pas trouvé dans WILAYAS,
+                // essayer directement avec le nom original
+                const foundByOriginal = WILAYAS.find((w) =>
+                  normalizeWilaya(w.wilaya_name) === normalizeWilaya(wilayaId)
+                );
+                if (foundByOriginal) {
+                  currentWilayaCode = foundByOriginal.wilaya_id;
+                  currentWilayaName = foundByOriginal.wilaya_name;
+                } else {
+                  // Utiliser getWilayaIdByName comme fallback (retourne 16 si pas trouvé)
+                  currentWilayaCode = getWilayaIdByName(wilayaId);
+                  // Si le code est 16 mais qu'on avait une wilaya, c'est qu'elle n'a pas été trouvée
+                  // Dans ce cas, on garde le nom original pour l'affichage
+                  currentWilayaName = currentWilayaCode === 16 && wilayaId ? wilayaId : 
+                    WILAYAS.find(w => w.wilaya_id === currentWilayaCode)?.wilaya_name || "Alger";
+                }
+              }
+            } else if (wilayaId) {
+              // Pas de normalisation possible, essayer directement
+              const foundByOriginal = WILAYAS.find((w) =>
+                normalizeWilaya(w.wilaya_name) === normalizeWilaya(wilayaId)
+              );
+              if (foundByOriginal) {
+                currentWilayaCode = foundByOriginal.wilaya_id;
+                currentWilayaName = foundByOriginal.wilaya_name;
+              } else {
+                currentWilayaCode = getWilayaIdByName(wilayaId);
+                currentWilayaName = currentWilayaCode === 16 && wilayaId ? wilayaId : 
+                  WILAYAS.find(w => w.wilaya_id === currentWilayaCode)?.wilaya_name || "Alger";
+              }
+            } else {
+              // Pas de wilaya du tout, utiliser Alger par défaut
+              currentWilayaCode = 16;
+              currentWilayaName = "Alger";
+            }
+            
+            const communesForWilaya = getCommunesByWilaya(currentWilayaCode);
 
-            const displayValue = isCommuneColumn
-              ? getFrenchForDisplay(trimmedDisplayText, wilayaId)
-              : getFrenchForDisplay("", trimmedDisplayText); // If it's wilaya column, we want to try to resolve it too? 
-            // Actually getFrenchForDisplay is designed for communes.
-            // For wilayas, if it's already a string, we might just want to keep it or resolve it.
-            // Let's look at getFrenchForDisplay implementation again.
+            if (isWilayaColumn) {
+              const wilayaOptions = WILAYAS.map(w => ({
+                value: w.wilaya_id,
+                label: w.wilaya_name
+              }));
 
-            return (
-              <td
-                key={h}
-                className="orders-table__cell orders-table__cell--location"
-                data-label={h || (isWilayaColumn ? "Wilaya" : "Commune")}
-              >
-                {trimmedDisplayText ? (
-                  <span className="orders-table__pill">
-                    {isCommuneColumn
-                      ? getFrenchForDisplay(trimmedDisplayText, wilayaId)
-                      : getFrenchWilaya(trimmedDisplayText)}
-                  </span>
-                ) : (
-                  <span className="orders-table__muted">—</span>
-                )}
-              </td>
-            );
+              return (
+                <td
+                  key={h}
+                  className="orders-table__cell orders-table__cell--location"
+                  data-label={h || "Wilaya"}
+                >
+                  <SearchableSelect
+                    value={currentWilayaCode}
+                    options={wilayaOptions}
+                    onChange={(newWilayaCode) => {
+                      const newWilayaName = WILAYAS.find(w => w.wilaya_id === newWilayaCode)?.wilaya_name || "";
+                      if (newWilayaName) {
+                        handleWilayaCommuneChange(row, newWilayaName);
+                      }
+                    }}
+                    placeholder="Rechercher une wilaya..."
+                    className="orders-table__wilaya-select"
+                    ariaLabel="Wilaya"
+                    emptyMessage="Aucune wilaya trouvée"
+                  />
+                </td>
+              );
+            }
+
+            if (isCommuneColumn) {
+              const currentCommuneFr = getFrenchForDisplay(communeName, wilayaId) || communeName;
+              const currentCommuneMatch = communesForWilaya.find(
+                c => c.fr === currentCommuneFr || c.ar === communeName
+              );
+              const selectedValue = currentCommuneMatch?.fr || (currentCommuneFr || "");
+
+              const communeOptions = [
+                { value: "", label: "—" },
+                ...communesForWilaya.map(c => ({
+                  value: c.fr,
+                  label: c.fr
+                }))
+              ];
+
+              return (
+                <td
+                  key={h}
+                  className="orders-table__cell orders-table__cell--location"
+                  data-label={h || "Commune"}
+                >
+                  <SearchableSelect
+                    value={selectedValue || ""}
+                    options={communeOptions}
+                    onChange={(newCommuneFr) => {
+                      const value = typeof newCommuneFr === "string" ? newCommuneFr : String(newCommuneFr);
+                      handleWilayaCommuneChange(row, undefined, value || undefined);
+                    }}
+                    placeholder="Rechercher une commune..."
+                    className="orders-table__commune-select"
+                    ariaLabel="Commune"
+                    emptyMessage="Aucune commune trouvée"
+                  />
+                </td>
+              );
+            }
           }
 
           if (isPhoneColumn) {
@@ -4505,6 +4641,127 @@ Zm0 14H8V7h9v12Z"
     [syncStatus]
   );
 
+  const handleWilayaCommuneChange = React.useCallback(
+    async (row: OrderRow, wilaya?: string, commune?: string) => {
+      const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
+      if (!rowId) {
+        alert("Impossible d'identifier la commande");
+        return;
+      }
+
+      if (!wilaya && !commune) {
+        return;
+      }
+
+      // Si on change la wilaya, vérifier si la commune actuelle existe dans la nouvelle wilaya
+      let finalCommune = commune;
+      if (wilaya && !commune) {
+        const newWilayaCode = getWilayaIdByName(wilaya);
+        const currentCommune = row["Commune"] || row["commune"] || "";
+        const communesForNewWilaya = getCommunesByWilaya(newWilayaCode);
+        const currentCommuneFr = getFrenchForDisplay(currentCommune, row["Wilaya"] || "");
+        const communeExists = communesForNewWilaya.some(
+          c => c.fr === currentCommuneFr || c.ar === currentCommune
+        );
+        // Si la commune actuelle n'existe pas dans la nouvelle wilaya, on la réinitialise
+        if (!communeExists && currentCommune) {
+          finalCommune = "";
+        } else if (communeExists) {
+          finalCommune = currentCommuneFr || currentCommune;
+        }
+      }
+
+      try {
+        const response = await apiFetch("/api/orders/wilaya-commune", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            rowId,
+            wilaya,
+            commune: finalCommune,
+            row,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || "Erreur lors de la mise à jour"
+          );
+        }
+
+        // Mettre à jour les données locales
+        setRows((prevRows) =>
+          prevRows.map((existingRow) => {
+            const existingRowId = String(
+              existingRow["id-sheet"] || existingRow["ID"] || ""
+            ).trim();
+            if (existingRowId === rowId) {
+              const updated = { ...existingRow };
+              if (wilaya) updated["Wilaya"] = wilaya;
+              if (finalCommune !== undefined) updated["Commune"] = finalCommune || "";
+              return updated;
+            }
+            return existingRow;
+          })
+        );
+        setSelectedOrder((prev) => {
+          if (!prev) return prev;
+          const selectedRowId = String(
+            prev["id-sheet"] || prev["ID"] || ""
+          ).trim();
+          if (selectedRowId === rowId) {
+            const updated = { ...prev };
+            if (wilaya) updated["Wilaya"] = wilaya;
+            if (finalCommune !== undefined) updated["Commune"] = finalCommune || "";
+            return updated;
+          }
+          return prev;
+        });
+
+        const toast = document.createElement("div");
+        toast.textContent = wilaya && finalCommune 
+          ? `Wilaya et commune mises à jour`
+          : wilaya 
+          ? `Wilaya mise à jour`
+          : `Commune mise à jour`;
+        Object.assign(toast.style, {
+          position: "fixed",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+          color: "#fff",
+          padding: "12px 18px",
+          borderRadius: "12px",
+          boxShadow: "0 8px 24px rgba(34,197,94,0.3)",
+          fontSize: "0.9rem",
+          fontWeight: "600",
+          zIndex: "2000",
+          opacity: "0",
+          transition: "opacity 0.3s ease",
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => (toast.style.opacity = "1"), 50);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 400);
+        }, 2400);
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour de wilaya/commune", error);
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Impossible de mettre à jour la wilaya/commune"
+        );
+      }
+    },
+    [token]
+  );
+
   const searchableHeaders = React.useMemo(() => {
     const keys: string[] = [];
     const pushKey = (key: string) => {
@@ -5154,6 +5411,7 @@ Zm0 14H8V7h9v12Z"
                         onDelivered={handleDelivered}
                         onVariantClick={handleVariantClick}
                         onDeliveryTypeChange={handleDeliveryTypeChange}
+                        onWilayaCommuneChange={handleWilayaCommuneChange}
                         commentKey={commentKey}
                         commentValue={commentValue}
                         onCommentChange={updateOrderComment}
@@ -5568,39 +5826,17 @@ Zm0 14H8V7h9v12Z"
       </button>
 
       {communeSelector.isOpen && (
-        <div className="orders-modal-overlay">
-          <div className="orders-modal">
-            <div className="orders-modal__header">
-              <h2 className="orders-modal__title">Sélectionner une commune</h2>
-              <p className="orders-modal__subtitle">
-                Wilaya : {communeSelector.wilayaName || communeSelector.wilayaCode}
-              </p>
-            </div>
-            <div className="orders-modal__body">
-              <div className="orders-modal__commune-grid">
-                {getCommunesByWilaya(communeSelector.wilayaCode).map(com => (
-                  <button
-                    key={com.fr}
-                    type="button"
-                    className="orders-modal__commune-btn"
-                    onClick={() => communeSelector.onSelect(com.fr)}
-                  >
-                    {com.fr}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="orders-modal__footer">
-              <button
-                type="button"
-                className="orders-button orders-button--secondary"
-                onClick={() => setCommuneSelector(prev => ({ ...prev, isOpen: false }))}
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
+        <CommuneSelectionModal
+          isOpen={communeSelector.isOpen}
+          wilayaCode={communeSelector.wilayaCode}
+          wilayaName={communeSelector.wilayaName || String(communeSelector.wilayaCode)}
+          communes={getCommunesByWilaya(communeSelector.wilayaCode)}
+          onSelect={(commune) => {
+            communeSelector.onSelect(commune);
+            setCommuneSelector(prev => ({ ...prev, isOpen: false }));
+          }}
+          onClose={() => setCommuneSelector(prev => ({ ...prev, isOpen: false }))}
+        />
       )}
     </div>
   );

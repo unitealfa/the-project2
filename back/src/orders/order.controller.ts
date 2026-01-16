@@ -9,6 +9,44 @@ import User from '../users/user.model';
 import { decrementStockForDeliveredOrder } from './orderStockUtils';
 import { Types } from 'mongoose';
 
+export const updateWilayaAndCommune = async (req: Request, res: Response) => {
+  const { rowId, wilaya, commune, row } = req.body ?? {};
+
+  if (!rowId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Le champ "rowId" est requis.',
+    });
+  }
+
+  if (!wilaya && !commune) {
+    return res.status(400).json({
+      success: false,
+      message: 'Au moins un des champs "wilaya" ou "commune" doit être fourni.',
+    });
+  }
+
+  try {
+    const result = await sheetService.updateWilayaAndCommune({
+      rowId: String(rowId),
+      wilaya: wilaya ? String(wilaya) : undefined,
+      commune: commune ? String(commune) : undefined,
+      row: row ?? undefined,
+    });
+
+    return res.json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    return res.status(500).json({
+      success: false,
+      message,
+    });
+  }
+};
+
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const ARABIC_FONT_PATH = path.join(
   PROJECT_ROOT,

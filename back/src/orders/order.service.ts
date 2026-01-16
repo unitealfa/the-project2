@@ -50,6 +50,20 @@ const DELIVERY_TYPE_HEADER_CANDIDATES = [
   'Livraison',
   'Livraison type',
 ];
+const WILAYA_HEADER_CANDIDATES = [
+  'Wilaya',
+  'wilaya',
+  'Wilaya de destination',
+  'Wilaya destination',
+];
+const COMMUNE_HEADER_CANDIDATES = [
+  'Commune',
+  'commune',
+  'Commune de destination',
+  'Commune destination',
+  'Ville',
+  'ville',
+];
 
 const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -320,6 +334,67 @@ export class SheetSyncService {
       updatedRanges: updates.map((update) => update.range),
       status,
       tracking: tracking ?? null,
+    };
+  }
+
+  async updateWilayaAndCommune(payload: {
+    rowId: string;
+    wilaya?: string;
+    commune?: string;
+    row?: Record<string, unknown>;
+  }) {
+    const { rowId, wilaya, commune, row } = payload;
+    if (!rowId) {
+      throw new Error('Le champ "rowId" est requis.');
+    }
+    if (!wilaya && !commune) {
+      throw new Error('Au moins un des champs "wilaya" ou "commune" doit être fourni.');
+    }
+
+    const sheets = await this.getSheetsClient();
+    const rowNumber = this.resolveRowNumber(rowId, row);
+    const updates: Array<{ range: string; values: string[][] }> = [];
+
+    if (wilaya) {
+      const wilayaColumn = await this.resolveColumnLetter(
+        WILAYA_HEADER_CANDIDATES
+      );
+      if (wilayaColumn) {
+        updates.push({
+          range: `${SHEET_NAME}!${wilayaColumn}${rowNumber}`,
+          values: [[wilaya]],
+        });
+      }
+    }
+
+    if (commune) {
+      const communeColumn = await this.resolveColumnLetter(
+        COMMUNE_HEADER_CANDIDATES
+      );
+      if (communeColumn) {
+        updates.push({
+          range: `${SHEET_NAME}!${communeColumn}${rowNumber}`,
+          values: [[commune]],
+        });
+      }
+    }
+
+    if (updates.length === 0) {
+      throw new Error('Aucune colonne trouvée pour mettre à jour wilaya ou commune.');
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: updates,
+      },
+    });
+
+    return {
+      updatedRanges: updates.map((update) => update.range),
+      wilaya: wilaya ?? null,
+      commune: commune ?? null,
     };
   }
 }
