@@ -753,6 +753,9 @@ const DELIVERY_MODE_HEADER_KEY_SET = new Set(
 const normalizeSheetDeliveryMode = (value: string): CustomerDeliveryMode => {
   const normalized = normalizeTextValue(value);
   if (!normalized) return "a_domicile";
+  if (normalized.includes("home") || normalized.includes("domicile")) {
+    return "a_domicile";
+  }
   if (
     normalized.includes("stop") ||
     normalized.includes("desk") ||
@@ -761,6 +764,42 @@ const normalizeSheetDeliveryMode = (value: string): CustomerDeliveryMode => {
     return "stop_desk";
   }
   return "a_domicile";
+};
+
+const getDeliveryModeDisplayLabel = (
+  rawValue: string,
+  mode: CustomerDeliveryMode
+): string => {
+  const trimmed = String(rawValue ?? "").trim();
+  if (trimmed) return trimmed;
+  return DELIVERY_MODE_LABELS[mode] ?? DELIVERY_MODE_LABELS.a_domicile;
+};
+
+const buildDeliveryModeSelectState = (
+  rawValue: string,
+  mode: CustomerDeliveryMode
+): { value: string; options: { value: string; label: string }[] } => {
+  const displayLabel = getDeliveryModeDisplayLabel(rawValue, mode);
+  const isCustomLabel =
+    displayLabel.trim() !== "" && displayLabel !== DELIVERY_MODE_LABELS[mode];
+  if (!isCustomLabel) {
+    return { value: mode, options: DELIVERY_MODE_OPTIONS };
+  }
+  const customValue = `raw:${mode}`;
+  return {
+    value: customValue,
+    options: [{ value: customValue, label: displayLabel }, ...DELIVERY_MODE_OPTIONS],
+  };
+};
+
+const normalizeDeliveryModeSelectValue = (
+  value: string
+): CustomerDeliveryMode => {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("raw:")) {
+    return trimmed.slice(4) as CustomerDeliveryMode;
+  }
+  return trimmed as CustomerDeliveryMode;
 };
 
 const applyDeliveryModeToRow = (row: OrderRow, label: string): OrderRow => {
@@ -1339,9 +1378,9 @@ const Orders: React.FC = () => {
     const telephone_2 = telephone;
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
 
-    const stop_desk = (() => {
-      const rawType = String(row["Type de livraison"] || "").toLowerCase();
-      return rawType.includes("stop") ? "1" : "0";
+  const stop_desk = (() => {
+      const normalizedMode = getDeliveryModeFromRow(row);
+      return normalizedMode === "stop_desk" ? "1" : "0";
     })();
 
     const totalForApi = (() => {
@@ -2436,24 +2475,31 @@ const Orders: React.FC = () => {
 
           if (isDeliveryTypeColumn) {
             const currentMode = normalizeSheetDeliveryMode(trimmedDisplayText);
+            const deliveryModeSelect = buildDeliveryModeSelectState(
+              trimmedDisplayText,
+              currentMode
+            );
             return (
               <td
                 key={h}
                 className="orders-table__cell orders-table__cell--delivery-type"
               >
                 <select
-                  value={currentMode}
+                  value={deliveryModeSelect.value}
                   onChange={(event) =>
                     onDeliveryTypeChange(
                       row,
-                      event.target.value as CustomerDeliveryMode
+                      normalizeDeliveryModeSelectValue(event.target.value)
                     )
                   }
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
                 >
-                  {DELIVERY_MODE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                  {deliveryModeSelect.options.map((option) => (
+                    <option
+                      key={`${option.value}-${option.label}`}
+                      value={option.value}
+                    >
                       {option.label}
                     </option>
                   ))}
@@ -5280,7 +5326,10 @@ Zm0 14H8V7h9v12Z"
                               code_wilaya: wilayaCode,
                               montant: String(Math.round(montantNumber)),
                               type: "1",
-                              stop_desk: "0",
+                              stop_desk:
+                                getDeliveryModeFromRow(row) === "stop_desk"
+                                  ? "1"
+                                  : "0",
                               stock: "0",
                               fragile: "0",
                               produit:
@@ -5697,23 +5746,32 @@ Zm0 14H8V7h9v12Z"
                   DELIVERY_MODE_HEADER_KEY_SET.has(normalizedHeaderKeyForMatch)
                 ) {
                   const currentMode = normalizeSheetDeliveryMode(displayValue);
+                  const deliveryModeSelect = buildDeliveryModeSelectState(
+                    displayValue,
+                    currentMode
+                  );
                   return (
                     <div key={key} className="orders-modal__detail">
                       <span className="orders-modal__detail-label">
                         {header || "Type de livraison"}
                       </span>
                       <select
-                        value={currentMode}
+                        value={deliveryModeSelect.value}
                         onChange={(event) =>
                           handleDeliveryTypeChange(
                             selectedOrder,
-                            event.target.value as CustomerDeliveryMode
+                            normalizeDeliveryModeSelectValue(
+                              event.target.value
+                            )
                           )
                         }
                         className="orders-modal__detail-select"
                       >
-                        {DELIVERY_MODE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
+                        {deliveryModeSelect.options.map((option) => (
+                          <option
+                            key={`${option.value}-${option.label}`}
+                            value={option.value}
+                          >
                             {option.label}
                           </option>
                         ))}
