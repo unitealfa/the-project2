@@ -1555,9 +1555,58 @@ const Orders: React.FC = () => {
           isOpen: true,
           wilayaCode: codeW,
           wilayaName: String(row["Wilaya"] || ""),
-          onSelect: (selectedCommune: string) => {
-            handleSendToApi(selectedCommune);
+          onSelect: async (selectedCommune: string) => {
+            const trimmedCommune = String(selectedCommune || "").trim();
+            if (!trimmedCommune) return;
+
+            const targetRowId = String(row["id-sheet"] || row["ID"] || "").trim();
+            if (targetRowId) {
+              setRows((prevRows) =>
+                prevRows.map((existingRow) => {
+                  const existingRowId = String(
+                    existingRow["id-sheet"] || existingRow["ID"] || ""
+                  ).trim();
+                  if (existingRowId === targetRowId) {
+                    const updatedRow: OrderRow = {
+                      ...existingRow,
+                      Commune: trimmedCommune,
+                    };
+                    if ("commune" in existingRow) {
+                      updatedRow["commune"] = trimmedCommune;
+                    }
+                    return updatedRow;
+                  }
+                  return existingRow;
+                })
+              );
+              setSelectedOrder((prev) => {
+                if (!prev) return prev;
+                const selectedRowId = String(
+                  prev["id-sheet"] || prev["ID"] || ""
+                ).trim();
+                if (selectedRowId === targetRowId) {
+                  const updatedRow: OrderRow = {
+                    ...prev,
+                    Commune: trimmedCommune,
+                  };
+                  if ("commune" in prev) {
+                    updatedRow["commune"] = trimmedCommune;
+                  }
+                  return updatedRow;
+                }
+                return prev;
+              });
+            }
+
             setCommuneSelector(prev => ({ ...prev, isOpen: false }));
+
+            try {
+              await handleWilayaCommuneChange(row, undefined, trimmedCommune);
+            } catch (error) {
+              console.warn("Erreur lors de la mise à jour de la commune:", error);
+            }
+
+            handleSendToApi(trimmedCommune, codeW);
           }
         });
         return;
@@ -2020,6 +2069,7 @@ const Orders: React.FC = () => {
       currentComment,
       updateComment,
       resolveDeliverySettings,
+      handleWilayaCommuneChange,
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
