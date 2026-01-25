@@ -48,6 +48,7 @@ const Header: React.FC = () => {
           !navButtonRef.current.contains(target)
         ) {
           setIsNavOpen(false);
+          setIsMenuOpen(false);
         }
       }
     };
@@ -60,6 +61,7 @@ const Header: React.FC = () => {
     const handleResize = () => {
       if (window.innerWidth > 768) {
         setIsNavOpen(false);
+        setIsMenuOpen(false);
       }
     };
 
@@ -129,7 +131,15 @@ const Header: React.FC = () => {
           ref={navButtonRef}
           type="button"
           className={`menu-toggle${isNavOpen ? ' active' : ''}`}
-          onClick={() => setIsNavOpen((prev) => !prev)}
+          onClick={() =>
+            setIsNavOpen((prev) => {
+              const next = !prev;
+              if (!next) {
+                setIsMenuOpen(false);
+              }
+              return next;
+            })
+          }
           aria-haspopup="true"
           aria-controls="primary-navigation"
           aria-expanded={isNavOpen}

@@ -193,7 +193,12 @@
   }
 
   .header-right {
-    align-self: flex-end;
+    display: none;
+    width: 100%;
+    align-self: stretch;
+    justify-content: flex-start;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
   }
 
   .header-nav {
@@ -210,8 +215,24 @@
     display: flex;
   }
 
+  .header-nav.open ~ .header-right {
+    display: flex;
+  }
+
   .header-nav a {
     font-size: 1.1rem;
     width: 100%;
+  }
+
+  .profile-button {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .profile-menu {
+    position: static;
+    margin-top: 8px;
+    width: 100%;
+    box-shadow: none;
   }
 }
