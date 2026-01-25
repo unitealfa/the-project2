@@ -2897,24 +2897,53 @@ Zm0 14H8V7h9v12Z"
     (id: string) => selectedIds.has(id),
     [selectedIds]
   );
+  const runWithScrollLock = React.useCallback((action: () => void) => {
+    if (typeof window === "undefined") {
+      action();
+      return;
+    }
+
+    const scrollTop =
+      window.scrollY ||
+      (typeof document !== "undefined" ? document.documentElement.scrollTop : 0);
+    const scrollLeft =
+      window.scrollX ||
+      (typeof document !== "undefined" ? document.documentElement.scrollLeft : 0);
+
+    action();
+
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollTop, left: scrollLeft });
+      });
+    } else {
+      window.scrollTo({ top: scrollTop, left: scrollLeft });
+    }
+  }, []);
   const toggleSelected = React.useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+    runWithScrollLock(() => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
     });
-  }, []);
-  const clearSelection = React.useCallback(() => setSelectedIds(new Set()), []);
+  }, [runWithScrollLock]);
+  const clearSelection = React.useCallback(() => {
+    runWithScrollLock(() => setSelectedIds(new Set()));
+  }, [runWithScrollLock]);
   const selectAllOnPage = React.useCallback((rowsOnPage: OrderRow[]) => {
-    const next = new Set<string>();
-    rowsOnPage.forEach((row) => {
-      const summary = extractOrderSummary(row);
-      const id = summary.rowId || summary.displayRowLabel || "";
-      if (id) next.add(id);
+    runWithScrollLock(() => {
+      const next = new Set<string>();
+      rowsOnPage.forEach((row) => {
+        const summary = extractOrderSummary(row);
+        const id = summary.rowId || summary.displayRowLabel || "";
+        if (id) next.add(id);
+      });
+      setSelectedIds(next);
     });
-    setSelectedIds(next);
-  }, []);
+  }, [runWithScrollLock]);
 
   // Charger les commentaires depuis localStorage au démarrage
   const [orderComments, setOrderComments] = React.useState<
@@ -5426,7 +5455,11 @@ Zm0 14H8V7h9v12Z"
                               <input
                                 type="checkbox"
                                 checked={checked}
-                                onChange={() => id && toggleSelected(id)}
+                                onChange={(event) => {
+                                  event.stopPropagation();
+                                  if (id) toggleSelected(id);
+                                }}
+                                onClick={(event) => event.stopPropagation()}
                                 aria-label="Sélectionner la commande"
                               />
                             </td>
