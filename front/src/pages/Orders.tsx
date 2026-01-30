@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback, useContext } from "react";
+import React, { useState, useMemo, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
@@ -3101,6 +3101,9 @@ Zm0 14H8V7h9v12Z"
     summary: null,
   });
 
+  // Conserver la position du scroll à l'ouverture du modal commentaire pour éviter que la page remonte
+  const commentModalScrollRef = React.useRef({ x: 0, y: 0 });
+
   // État pour gérer les paramètres de livraison de chaque commande
   const [orderDeliverySettings, setOrderDeliverySettings] = React.useState<
     Record<
@@ -3138,6 +3141,12 @@ Zm0 14H8V7h9v12Z"
   }, []);
   const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
+      if (typeof window !== "undefined") {
+        commentModalScrollRef.current = {
+          x: window.scrollX || document.documentElement.scrollLeft || 0,
+          y: window.scrollY || document.documentElement.scrollTop || 0,
+        };
+      }
       setCommentEditor({
         isOpen: true,
         commentKey: key,
@@ -3186,6 +3195,24 @@ Zm0 14H8V7h9v12Z"
       };
     });
   }, [updateOrderComment]);
+
+  // Restaurer la position du scroll après ouverture du modal commentaire
+  React.useEffect(() => {
+    if (!commentEditor.isOpen || typeof window === "undefined") return;
+    const { x, y } = commentModalScrollRef.current;
+    const restore = () => {
+      window.scrollTo(x, y);
+    };
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(restore);
+    } else {
+      restore();
+    }
+    const textarea = document.getElementById("comment-modal-field");
+    if (textarea instanceof HTMLTextAreaElement) {
+      textarea.focus({ preventScroll: true });
+    }
+  }, [commentEditor.isOpen]);
 
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(
     null
