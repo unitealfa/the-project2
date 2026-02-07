@@ -2596,16 +2596,26 @@ const Orders: React.FC = () => {
               >
                 <select
                   value={deliveryModeSelect.value}
-                  onChange={(event) => {
+                  onChange={async (event) => {
+                    const scrollTop =
+                      typeof window !== "undefined"
+                        ? window.scrollY ||
+                        (typeof document !== "undefined"
+                          ? document.documentElement.scrollTop
+                          : 0)
+                        : 0;
                     const nextMode = normalizeDeliveryModeSelectValue(
                       event.target.value
-                    );   
+                    );
                     debugLog("table delivery select change", {
                       rowId: row["id-sheet"] || row["ID"],
                       nextMode,
-                      scroll: getScrollSnapshot(),
+                      scroll: { top: scrollTop, left: 0 },
                     });
-                    onDeliveryTypeChange(row, nextMode);
+                    await handleDeliveryTypeChange(row, nextMode);
+                    if (typeof window !== "undefined") {
+                      window.scrollTo({ top: scrollTop, behavior: "auto" });
+                    }
                   }}
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
@@ -5969,7 +5979,14 @@ Zm0 14H8V7h9v12Z"
                       </span>
                       <select
                         value={deliveryModeSelect.value}
-                        onChange={(event) => {
+                        onChange={async (event) => {
+                          const scrollTop =
+                            typeof window !== "undefined"
+                              ? window.scrollY ||
+                              (typeof document !== "undefined"
+                                ? document.documentElement.scrollTop
+                                : 0)
+                              : 0;
                           const nextMode = normalizeDeliveryModeSelectValue(
                             event.target.value
                           );
@@ -5978,9 +5995,15 @@ Zm0 14H8V7h9v12Z"
                               selectedOrder?.["id-sheet"] ||
                               selectedOrder?.["ID"],
                             nextMode,
-                            scroll: getScrollSnapshot(),
+                            scroll: { top: scrollTop, left: 0 },
                           });
-                          handleDeliveryTypeChange(selectedOrder, nextMode);
+                          await handleDeliveryTypeChange(
+                            selectedOrder,
+                            nextMode
+                          );
+                          if (typeof window !== "undefined") {
+                            window.scrollTo({ top: scrollTop, behavior: "auto" });
+                          }
                         }}
                         onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
