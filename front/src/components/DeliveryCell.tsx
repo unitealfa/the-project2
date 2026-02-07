@@ -11,7 +11,7 @@ interface DeliveryCellProps {
     deliveryPersonId: string | null;
   }>>>;
   deliveryPersons: Array<{ id: string; name: string; email: string }>;
-  preserveScroll: (action: () => void) => void;
+  preserveScroll: (action: () => void | Promise<unknown>) => void;
 }
 
 const DeliveryCell: React.FC<DeliveryCellProps> = ({

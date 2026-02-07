@@ -2561,13 +2561,16 @@ const Orders: React.FC = () => {
                 <select
                   value={deliveryModeSelect.value}
                   onChange={(event) =>
-                    onDeliveryTypeChange(
-                      row,
-                      normalizeDeliveryModeSelectValue(event.target.value)
+                    runWithScrollLock(() =>
+                      onDeliveryTypeChange(
+                        row,
+                        normalizeDeliveryModeSelectValue(event.target.value)
+                      )
                     )
                   }
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
+                  onClick={(event) => event.stopPropagation()}
                 >
                   {deliveryModeSelect.options.map((option) => (
                     <option
@@ -3018,29 +3021,48 @@ Zm0 14H8V7h9v12Z"
     (id: string) => selectedIds.has(id),
     [selectedIds]
   );
-  const runWithScrollLock = React.useCallback((action: () => void) => {
-    if (typeof window === "undefined") {
-      action();
-      return;
-    }
+  const runWithScrollLock = React.useCallback(
+    (action: () => void | Promise<unknown>) => {
+      if (typeof window === "undefined") {
+        return action();
+      }
 
-    const scrollTop =
-      window.scrollY ||
-      (typeof document !== "undefined" ? document.documentElement.scrollTop : 0);
-    const scrollLeft =
-      window.scrollX ||
-      (typeof document !== "undefined" ? document.documentElement.scrollLeft : 0);
+      const scrollTop =
+        window.scrollY ||
+        (typeof document !== "undefined"
+          ? document.documentElement.scrollTop
+          : 0);
+      const scrollLeft =
+        window.scrollX ||
+        (typeof document !== "undefined"
+          ? document.documentElement.scrollLeft
+          : 0);
 
-    action();
+      const restore = () => {
+        if (typeof window.requestAnimationFrame === "function") {
+          window.requestAnimationFrame(() => {
+            window.scrollTo({ top: scrollTop, left: scrollLeft, behavior: "auto" });
+          });
+        } else {
+          window.scrollTo({ top: scrollTop, left: scrollLeft });
+        }
+      };
 
-    if (typeof window.requestAnimationFrame === "function") {
-      window.requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollTop, left: scrollLeft });
-      });
-    } else {
-      window.scrollTo({ top: scrollTop, left: scrollLeft });
-    }
-  }, []);
+      try {
+        const result = action();
+        if (result && typeof (result as Promise<unknown>).finally === "function") {
+          (result as Promise<unknown>).finally(restore);
+        } else {
+          restore();
+        }
+        return result;
+      } catch (error) {
+        restore();
+        throw error;
+      }
+    },
+    []
+  );
   const toggleSelected = React.useCallback((id: string) => {
     runWithScrollLock(() => {
       setSelectedIds((prev) => {
@@ -3214,19 +3236,21 @@ Zm0 14H8V7h9v12Z"
   }, [runWithScrollLock]);
 
   const handleCommentModalSave = React.useCallback(() => {
-    setCommentEditor((prev) => {
-      if (!prev.isOpen) {
-        return prev;
-      }
-      updateOrderComment(prev.commentKey, prev.value);
-      return {
-        isOpen: false,
-        commentKey: "",
-        value: "",
-        summary: null,
-      };
-    });
-  }, [updateOrderComment]);
+    runWithScrollLock(() =>
+      setCommentEditor((prev) => {
+        if (!prev.isOpen) {
+          return prev;
+        }
+        updateOrderComment(prev.commentKey, prev.value);
+        return {
+          isOpen: false,
+          commentKey: "",
+          value: "",
+          summary: null,
+        };
+      })
+    );
+  }, [runWithScrollLock, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
   React.useEffect(() => {
@@ -5913,13 +5937,16 @@ Zm0 14H8V7h9v12Z"
                       <select
                         value={deliveryModeSelect.value}
                         onChange={(event) =>
-                          handleDeliveryTypeChange(
-                            selectedOrder,
-                            normalizeDeliveryModeSelectValue(
-                              event.target.value
+                          runWithScrollLock(() =>
+                            handleDeliveryTypeChange(
+                              selectedOrder,
+                              normalizeDeliveryModeSelectValue(
+                                event.target.value
+                              )
                             )
                           )
                         }
+                        onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
                       >
                         {deliveryModeSelect.options.map((option) => (
@@ -6089,5 +6116,6 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
+
 
 
