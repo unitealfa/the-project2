@@ -15,7 +15,7 @@ import {
 } from "../utils/dateHelpers";
 import "../styles/Orders.css";
 
-const DEBUG_ORDERS = true;
+const DEBUG_ORDERS = false;
 const debugLog = (...args: any[]) => {
   if (!DEBUG_ORDERS) return;
   if (typeof console !== "undefined") {
@@ -1770,16 +1770,18 @@ const Orders: React.FC = () => {
         remarque: finalRemark,
       };
 
-      console.log("Données normalisées:", {
-        original_commune: row["Commune"],
-        resolved_commune: commune,
-        original_phone: row["Numero"] || row["Téléphone"],
-        normalized_phone: telephone,
-        original_name: row["Nom du client"],
-        normalized_name: nom_client,
-        original_wilaya_code: code_wilaya,
-        resolved_wilaya_code: resolvedWilayaCode,
-      });
+      if (DEBUG_ORDERS) {
+        console.log("Données normalisées:", {
+          original_commune: row["Commune"],
+          resolved_commune: commune,
+          original_phone: row["Numero"] || row["Téléphone"],
+          normalized_phone: telephone,
+          original_name: row["Nom du client"],
+          normalized_name: nom_client,
+          original_wilaya_code: code_wilaya,
+          resolved_wilaya_code: resolvedWilayaCode,
+        });
+      }
 
       let currentStatus: SheetStatus = initialSheetStatus;
 
@@ -1988,11 +1990,13 @@ const Orders: React.FC = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        console.log(
-          `Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`,
-          url
-        );
-        console.log("Données:", finalData);
+        if (DEBUG_ORDERS) {
+          console.log(
+            `Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`,
+            url
+          );
+          console.log("Données:", finalData);
+        }
 
         const doPost = async (payload: any) => {
           const resp = await fetch(url, {
@@ -2028,8 +2032,10 @@ const Orders: React.FC = () => {
           throw new Error("Réponse API vide");
         }
 
-        console.log(`Réponse ${currentDeliveryApiConfig.label}:`, response);
-        console.log("Données de réponse:", responseData);
+        if (DEBUG_ORDERS) {
+          console.log(`Réponse ${currentDeliveryApiConfig.label}:`, response);
+          console.log("Données de réponse:", responseData);
+        }
 
         if (
           response.ok &&
@@ -2197,10 +2203,12 @@ const Orders: React.FC = () => {
         } catch (e: any) {
           // Ne pas afficher d'erreur si la décrémentation échoue
           // Le backend le fera automatiquement
-          console.log(
-            "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
-            e?.message
-          );
+          if (DEBUG_ORDERS) {
+            console.log(
+              "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
+              e?.message
+            );
+          }
         }
 
         // Mettre à jour le statut à "delivered" (cela déclenchera aussi la décrémentation automatique dans le backend)
@@ -2220,10 +2228,12 @@ const Orders: React.FC = () => {
         ) {
           alert(errorMessage);
         } else {
-          console.log(
-            "ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:",
-            errorMessage
-          );
+          if (DEBUG_ORDERS) {
+            console.log(
+              "ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:",
+              errorMessage
+            );
+          }
         }
       } finally {
         setDelivering(false);
@@ -4506,10 +4516,12 @@ Zm0 14H8V7h9v12Z"
         // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
         // On continue silencieusement
         if (!res.ok) {
-          console.log(
-            "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
-            data?.message || "Échec décrémentation"
-          );
+          if (DEBUG_ORDERS) {
+            console.log(
+              "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
+              data?.message || "Échec décrémentation"
+            );
+          }
           return; // Sortir silencieusement sans erreur
         }
 
@@ -4518,15 +4530,17 @@ Zm0 14H8V7h9v12Z"
           : [];
         if (failures.length) {
           // Ne pas lancer d'erreur, juste logger
-          console.log(
-            "ℹ️ Décrémentation partielle, le backend le fera automatiquement:",
-            failures
-              .map(
-                (f: any) =>
-                  `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
-              )
-              .join(", ")
-          );
+          if (DEBUG_ORDERS) {
+            console.log(
+              "ℹ️ Décrémentation partielle, le backend le fera automatiquement:",
+              failures
+                .map(
+                  (f: any) =>
+                    `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
+                )
+                .join(", ")
+            );
+          }
           return; // Sortir silencieusement sans erreur
         }
 
@@ -4591,10 +4605,12 @@ Zm0 14H8V7h9v12Z"
       } catch (e) {
         // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
         // On continue silencieusement
-        console.log(
-          "ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:",
-          e
-        );
+        if (DEBUG_ORDERS) {
+          console.log(
+            "ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:",
+            e
+          );
+        }
         // Ne pas throw, continuer silencieusement
       }
     },
@@ -4687,20 +4703,24 @@ Zm0 14H8V7h9v12Z"
       const cacheKeys = getCacheKeysForProduct(productCode, productName);
       const cachedEntry = readProductFromCache(productCode, productName);
 
-      console.log("[VariantModal] open", {
-        rowId: row["id-sheet"] || row["ID"] || "",
-        productName,
-        productCode,
-        currentVariant,
-        cacheKeys,
-      });
+      if (DEBUG_ORDERS) {
+        console.log("[VariantModal] open", {
+          rowId: row["id-sheet"] || row["ID"] || "",
+          productName,
+          productCode,
+          currentVariant,
+          cacheKeys,
+        });
+      }
 
       if (cachedEntry) {
-        console.log("[VariantModal] cache hit", {
-          productCode,
-          productName,
-          variants: cachedEntry.variants,
-        });
+        if (DEBUG_ORDERS) {
+          console.log("[VariantModal] cache hit", {
+            productCode,
+            productName,
+            variants: cachedEntry.variants,
+          });
+        }
         setAvailableVariants(
           cachedEntry.variants.map((variant) => ({ ...variant }))
         );
@@ -4744,11 +4764,13 @@ Zm0 14H8V7h9v12Z"
 
       const refreshedEntry = readProductFromCache(productCode, productName);
       if (refreshedEntry && refreshedEntry.variants.length > 0) {
-        console.log("[VariantModal] refreshed variants", {
-          productCode,
-          productName,
-          variants: refreshedEntry.variants,
-        });
+        if (DEBUG_ORDERS) {
+          console.log("[VariantModal] refreshed variants", {
+            productCode,
+            productName,
+            variants: refreshedEntry.variants,
+          });
+        }
         setAvailableVariants(
           refreshedEntry.variants.map((variant) => ({ ...variant }))
         );
@@ -5580,15 +5602,17 @@ Zm0 14H8V7h9v12Z"
                                   : 0,
                               stock: "0",
                               fragile: "0",
-                              produit:
-                                extractProductLabel(row) ||
-                                (row["Produit"] as any) ||
-                                "",
+                            produit:
+                              extractProductLabel(row) ||
+                              (row["Produit"] as any) ||
+                              "",
                               commune: communeResolved || "alger",
                               remarque: finalRemark,
                               Remarque: finalRemark,
                             };
-                            console.log("[BULK] POST", url, payload);
+                            if (DEBUG_ORDERS) {
+                              console.log("[BULK] POST", url, payload);
+                            }
                             const controller = new AbortController();
                             const timeoutId = setTimeout(
                               () => controller.abort(),
@@ -5613,7 +5637,9 @@ Zm0 14H8V7h9v12Z"
                             } catch {
                               data = text;
                             }
-                            console.log("[BULK] Response", resp.status, data);
+                            if (DEBUG_ORDERS) {
+                              console.log("[BULK] Response", resp.status, data);
+                            }
                             if (resp.ok) {
                               await handleUpdateRowStatus(
                                 s.rowId,
