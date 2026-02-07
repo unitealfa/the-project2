@@ -29,28 +29,26 @@ const DeliveryCell: React.FC<DeliveryCellProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
 
-    preserveScroll(() => {
-      debugLog?.("delivery-cell change", { rowId, value });
-      if (value === 'api_dhd' || value === 'api_sook') {
-        setOrderDeliverySettings(prev => ({
-          ...prev,
-          [rowId]: {
-            ...prev[rowId],
-            deliveryType: value,
-            deliveryPersonId: null
-          }
-        }));
-      } else {
-        setOrderDeliverySettings(prev => ({
-          ...prev,
-          [rowId]: {
-            ...prev[rowId],
-            deliveryType: 'livreur',
-            deliveryPersonId: value
-          }
-        }));
-      }
-    });
+    debugLog?.("delivery-cell change", { rowId, value });
+    if (value === 'api_dhd' || value === 'api_sook') {
+      setOrderDeliverySettings(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          deliveryType: value,
+          deliveryPersonId: null
+        }
+      }));
+    } else {
+      setOrderDeliverySettings(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          deliveryType: 'livreur',
+          deliveryPersonId: value
+        }
+      }));
+    }
   };
 
   const currentValue = currentSettings.deliveryType === 'livreur'

@@ -2594,19 +2594,17 @@ const Orders: React.FC = () => {
               >
                 <select
                   value={deliveryModeSelect.value}
-                  onChange={(event) =>
-                    runWithScrollLock(() => {
-                      const nextMode = normalizeDeliveryModeSelectValue(
-                        event.target.value
-                      );
-                      debugLog("table delivery select change", {
-                        rowId: row["id-sheet"] || row["ID"],
-                        nextMode,
-                        scroll: getScrollSnapshot(),
-                      });
-                      return onDeliveryTypeChange(row, nextMode);
-                    }, "table-delivery-select")
-                  }
+                  onChange={(event) => {
+                    const nextMode = normalizeDeliveryModeSelectValue(
+                      event.target.value
+                    );
+                    debugLog("table delivery select change", {
+                      rowId: row["id-sheet"] || row["ID"],
+                      nextMode,
+                      scroll: getScrollSnapshot(),
+                    });
+                    onDeliveryTypeChange(row, nextMode);
+                  }}
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
                   onClick={(event) => event.stopPropagation()}
@@ -3276,16 +3274,14 @@ Zm0 14H8V7h9v12Z"
         summaryLabel: summary?.displayRowLabel,
         scroll: getScrollSnapshot(),
       });
-      runWithScrollLock(() => {
-        setCommentEditor({
-          isOpen: true,
-          commentKey: key,
-          value,
-          summary,
-        });
-      }, "comment-open");
+      setCommentEditor({
+        isOpen: true,
+        commentKey: key,
+        value,
+        summary,
+      });
     },
-    [runWithScrollLock]
+    []
   );
 
   const handleCommentModalChange = React.useCallback(
@@ -3310,15 +3306,13 @@ Zm0 14H8V7h9v12Z"
 
   const handleCommentModalClose = React.useCallback(() => {
     debugLog("comment modal close", { scroll: getScrollSnapshot() });
-    runWithScrollLock(() => {
-      setCommentEditor({
-        isOpen: false,
-        commentKey: "",
-        value: "",
-        summary: null,
-      });
-    }, "comment-close");
-  }, [runWithScrollLock]);
+    setCommentEditor({
+      isOpen: false,
+      commentKey: "",
+      value: "",
+      summary: null,
+    });
+  }, []);
 
   const handleCommentModalSave = React.useCallback(() => {
     debugLog("comment modal save", {
@@ -3327,23 +3321,19 @@ Zm0 14H8V7h9v12Z"
       preview: commentEditor.value.slice(0, 120),
       scroll: getScrollSnapshot(),
     });
-    runWithScrollLock(
-      () =>
-        setCommentEditor((prev) => {
-          if (!prev.isOpen) {
-            return prev;
-          }
-          updateOrderComment(prev.commentKey, prev.value);
-          return {
-            isOpen: false,
-            commentKey: "",
-            value: "",
-            summary: null,
-          };
-        }),
-      "comment-save"
-    );
-  }, [commentEditor.commentKey, commentEditor.value, runWithScrollLock, updateOrderComment]);
+    setCommentEditor((prev) => {
+      if (!prev.isOpen) {
+        return prev;
+      }
+      updateOrderComment(prev.commentKey, prev.value);
+      return {
+        isOpen: false,
+        commentKey: "",
+        value: "",
+        summary: null,
+      };
+    });
+  }, [commentEditor.commentKey, commentEditor.value, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
   React.useEffect(() => {
@@ -6091,24 +6081,18 @@ Zm0 14H8V7h9v12Z"
                       </span>
                       <select
                         value={deliveryModeSelect.value}
-                        onChange={(event) =>
-                          runWithScrollLock(() => {
-                            const nextMode = normalizeDeliveryModeSelectValue(
-                              event.target.value
-                            );
-                            debugLog("modal delivery select change", {
-                              rowId:
-                                selectedOrder?.["id-sheet"] ||
-                                selectedOrder?.["ID"],
-                              nextMode,
-                              scroll: getScrollSnapshot(),
-                            });
-                            return handleDeliveryTypeChange(
-                              selectedOrder,
-                              nextMode
-                            );
-                          }, "modal-delivery-select")
-                        }
+                        onChange={(event) => {
+                          const nextMode = normalizeDeliveryModeSelectValue(
+                            event.target.value
+                          );
+                          debugLog("modal delivery select change", {
+                            rowId:
+                              selectedOrder?.["id-sheet"] || selectedOrder?.["ID"],
+                            nextMode,
+                            scroll: getScrollSnapshot(),
+                          });
+                          handleDeliveryTypeChange(selectedOrder, nextMode);
+                        }}
                         onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
                       >
