@@ -187,7 +187,7 @@ const DeliveryPerson: React.FC = () => {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    }); 
 
   const hideForPrint = (card: HTMLElement, selectors: string[]) => {
     const affected: Array<{ el: HTMLElement; prev: string }> = [];
