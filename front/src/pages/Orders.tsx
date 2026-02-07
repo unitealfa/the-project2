@@ -42,6 +42,41 @@ const getScrollSnapshot = () => {
   };
 };
 
+const restoreScroll = (pos: { top: number; left: number }) => {
+  if (typeof window === "undefined") return;
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: pos.top, left: pos.left, behavior: "auto" });
+    setTimeout(
+      () => window.scrollTo({ top: pos.top, left: pos.left, behavior: "auto" }),
+      0
+    );
+  });
+};
+
+const withScrollRestore = <T>(
+  action: () => T,
+  label: string = "action"
+): T => {
+  const snapshot = getScrollSnapshot();
+  debugLog("scroll restore start", { label, snapshot });
+  try {
+    const result = action();
+    const finalize = () => {
+      debugLog("scroll restore apply", { label, snapshot });
+      restoreScroll(snapshot);
+    };
+    if (result && typeof (result as any).finally === "function") {
+      (result as any).finally(finalize);
+    } else {
+      finalize();
+    }
+    return result;
+  } catch (error) {
+    restoreScroll(snapshot);
+    throw error;
+  }
+};
+
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
 function parseCsv(csvText: string): string[][] {
   const rows: string[][] = [];
@@ -2594,17 +2629,19 @@ const Orders: React.FC = () => {
               >
                 <select
                   value={deliveryModeSelect.value}
-                  onChange={(event) => {
-                    const nextMode = normalizeDeliveryModeSelectValue(
-                      event.target.value
-                    );
-                    debugLog("table delivery select change", {
-                      rowId: row["id-sheet"] || row["ID"],
-                      nextMode,
-                      scroll: getScrollSnapshot(),
-                    });
-                    onDeliveryTypeChange(row, nextMode);
-                  }}
+                  onChange={(event) =>
+                    withScrollRestore(() => {
+                      const nextMode = normalizeDeliveryModeSelectValue(
+                        event.target.value
+                      );
+                      debugLog("table delivery select change", {
+                        rowId: row["id-sheet"] || row["ID"],
+                        nextMode,
+                        scroll: getScrollSnapshot(),
+                      });
+                      return onDeliveryTypeChange(row, nextMode);
+                    }, "table-delivery-select")
+                  }
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
                   onClick={(event) => event.stopPropagation()}
@@ -3274,12 +3311,14 @@ Zm0 14H8V7h9v12Z"
         summaryLabel: summary?.displayRowLabel,
         scroll: getScrollSnapshot(),
       });
-      setCommentEditor({
-        isOpen: true,
-        commentKey: key,
-        value,
-        summary,
-      });
+      withScrollRestore(() => {
+        setCommentEditor({
+          isOpen: true,
+          commentKey: key,
+          value,
+          summary,
+        });
+      }, "comment-open");
     },
     []
   );
@@ -3306,12 +3345,14 @@ Zm0 14H8V7h9v12Z"
 
   const handleCommentModalClose = React.useCallback(() => {
     debugLog("comment modal close", { scroll: getScrollSnapshot() });
-    setCommentEditor({
-      isOpen: false,
-      commentKey: "",
-      value: "",
-      summary: null,
-    });
+    withScrollRestore(() => {
+      setCommentEditor({
+        isOpen: false,
+        commentKey: "",
+        value: "",
+        summary: null,
+      });
+    }, "comment-close");
   }, []);
 
   const handleCommentModalSave = React.useCallback(() => {
@@ -3321,18 +3362,20 @@ Zm0 14H8V7h9v12Z"
       preview: commentEditor.value.slice(0, 120),
       scroll: getScrollSnapshot(),
     });
-    setCommentEditor((prev) => {
-      if (!prev.isOpen) {
-        return prev;
-      }
-      updateOrderComment(prev.commentKey, prev.value);
-      return {
-        isOpen: false,
-        commentKey: "",
-        value: "",
-        summary: null,
-      };
-    });
+    withScrollRestore(() => {
+      setCommentEditor((prev) => {
+        if (!prev.isOpen) {
+          return prev;
+        }
+        updateOrderComment(prev.commentKey, prev.value);
+        return {
+          isOpen: false,
+          commentKey: "",
+          value: "",
+          summary: null,
+        };
+      });
+    }, "comment-save");
   }, [commentEditor.commentKey, commentEditor.value, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
@@ -6081,18 +6124,24 @@ Zm0 14H8V7h9v12Z"
                       </span>
                       <select
                         value={deliveryModeSelect.value}
-                        onChange={(event) => {
-                          const nextMode = normalizeDeliveryModeSelectValue(
-                            event.target.value
-                          );
-                          debugLog("modal delivery select change", {
-                            rowId:
-                              selectedOrder?.["id-sheet"] || selectedOrder?.["ID"],
-                            nextMode,
-                            scroll: getScrollSnapshot(),
-                          });
-                          handleDeliveryTypeChange(selectedOrder, nextMode);
-                        }}
+                        onChange={(event) =>
+                          withScrollRestore(() => {
+                            const nextMode = normalizeDeliveryModeSelectValue(
+                              event.target.value
+                            );
+                            debugLog("modal delivery select change", {
+                              rowId:
+                                selectedOrder?.["id-sheet"] ||
+                                selectedOrder?.["ID"],
+                              nextMode,
+                              scroll: getScrollSnapshot(),
+                            });
+                            return handleDeliveryTypeChange(
+                              selectedOrder,
+                              nextMode
+                            );
+                          }, "modal-delivery-select")
+                        }
                         onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
                       >
