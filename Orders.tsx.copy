@@ -2973,7 +2973,6 @@ Zm0 14H8V7h9v12Z"
             orderDeliverySettings={orderDeliverySettings}
             setOrderDeliverySettings={setOrderDeliverySettings}
             deliveryPersons={deliveryPersons}
-            preserveScroll={runWithScrollLock}
           />
         </td>
 
@@ -3084,38 +3083,35 @@ Zm0 14H8V7h9v12Z"
     return {};
   });
 
-  // Met à jour l'état; la persistance disque est gérée séparément (debounce)
+  // Sauvegarder les commentaires dans localStorage à chaque modification
   const updateOrderComment = React.useCallback((key: string, value: string) => {
     setOrderComments((prev) => {
       const trimmed = value.trim();
-
+      let next: Record<string, string>;
+      
       if (!trimmed) {
-        if (!(key in prev)) return prev;
+        if (!(key in prev)) {
+          return prev;
+        }
         const { [key]: _removed, ...rest } = prev;
-        return rest;
+        next = rest;
+      } else {
+        if (prev[key] === value) {
+          return prev;
+        }
+        next = { ...prev, [key]: value };
       }
 
-      if (prev[key] === value) return prev;
-      return { ...prev, [key]: value };
-    });
-  }, []);
-
-  // Sauvegarde debouncée pour éviter les lags pendant la saisie
-  React.useEffect(() => {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
+      // Sauvegarder dans localStorage
       try {
-        localStorage.setItem("order-comments", JSON.stringify(orderComments));
+        localStorage.setItem("order-comments", JSON.stringify(next));
       } catch (error) {
         console.warn("Erreur lors de la sauvegarde des commentaires dans localStorage:", error);
       }
-    }, 300);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [orderComments]);
+      return next;
+    });
+  }, []);
 
   const [commentEditor, setCommentEditor] = React.useState<{
     isOpen: boolean;
@@ -3175,16 +3171,14 @@ Zm0 14H8V7h9v12Z"
           y: window.scrollY || document.documentElement.scrollTop || 0,
         };
       }
-      runWithScrollLock(() => {
-        setCommentEditor({
-          isOpen: true,
-          commentKey: key,
-          value,
-          summary,
-        });
+      setCommentEditor({
+        isOpen: true,
+        commentKey: key,
+        value,
+        summary,
       });
     },
-    [runWithScrollLock]
+    []
   );
 
   const handleCommentModalChange = React.useCallback(
@@ -3203,15 +3197,13 @@ Zm0 14H8V7h9v12Z"
   );
 
   const handleCommentModalClose = React.useCallback(() => {
-    runWithScrollLock(() => {
-      setCommentEditor({
-        isOpen: false,
-        commentKey: "",
-        value: "",
-        summary: null,
-      });
+    setCommentEditor({
+      isOpen: false,
+      commentKey: "",
+      value: "",
+      summary: null,
     });
-  }, [runWithScrollLock]);
+  }, []);
 
   const handleCommentModalSave = React.useCallback(() => {
     setCommentEditor((prev) => {
@@ -6089,5 +6081,3 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
-
-
