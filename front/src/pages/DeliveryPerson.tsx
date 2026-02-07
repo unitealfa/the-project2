@@ -189,6 +189,21 @@ const DeliveryPerson: React.FC = () => {
       minute: "2-digit",
     });
 
+  const hideForPrint = (card: HTMLElement, selectors: string[]) => {
+    const affected: Array<{ el: HTMLElement; prev: string }> = [];
+    selectors.forEach((sel) => {
+      card.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+        affected.push({ el, prev: el.style.visibility });
+        el.style.visibility = "hidden";
+      });
+    });
+    return () => {
+      affected.forEach(({ el, prev }) => {
+        el.style.visibility = prev;
+      });
+    };
+  };
+
   const renderCardToCanvas = async (order: Order) => {
     const cardId = `delivery-person-card-${order.rowId || order._id}`;
     const card = document.getElementById(cardId);

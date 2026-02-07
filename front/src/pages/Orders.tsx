@@ -744,6 +744,9 @@ const DELIVERY_MODE_HEADER_KEYS = [
   "Mode de livraison",
   "Livraison",
   "Livraison type",
+  "stop_desk",
+  "stop desk",
+  "stopdesk",
 ];
 
 const DELIVERY_MODE_HEADER_KEY_SET = new Set(
@@ -751,19 +754,36 @@ const DELIVERY_MODE_HEADER_KEY_SET = new Set(
 );
 
 const normalizeSheetDeliveryMode = (value: string): CustomerDeliveryMode => {
-  const normalized = normalizeTextValue(value);
-  if (!normalized) return "a_domicile";
-  if (normalized.includes("home") || normalized.includes("domicile")) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return "stop_desk"; // par défaut, mieux vaut conserver stop desk pour éviter l'envoi à domicile par erreur
+
+  // Valeurs numériques / booléennes fréquemment utilisées dans les feuilles
+  if (raw === "1" || raw === "true" || raw === "oui" || raw === "yes") {
+    return "stop_desk";
+  }
+  if (raw === "0" || raw === "false" || raw === "non" || raw === "no") {
+    return "a_domicile";
+  }
+
+  const normalized = normalizeTextValue(raw);
+  if (
+    normalized.includes("home") ||
+    normalized.includes("domicile") ||
+    normalized.includes("maison")
+  ) {
     return "a_domicile";
   }
   if (
     normalized.includes("stop") ||
     normalized.includes("desk") ||
-    normalized.includes("point")
+    normalized.includes("point") ||
+    normalized.includes("relais") ||
+    normalized.includes("pickup")
   ) {
     return "stop_desk";
   }
-  return "a_domicile";
+  // Ambigu : privilégier stop desk pour éviter un mauvais routage domicile
+  return "stop_desk";
 };
 
 const getDeliveryModeDisplayLabel = (
@@ -819,7 +839,11 @@ const applyDeliveryModeToRow = (row: OrderRow, label: string): OrderRow => {
 
 const getDeliveryModeFromRow = (row: OrderRow): CustomerDeliveryMode => {
   for (const key of Object.keys(row)) {
-    if (DELIVERY_MODE_HEADER_KEY_SET.has(normalizeHeaderKey(key))) {
+    const normalizedKey = normalizeHeaderKey(key);
+    if (
+      DELIVERY_MODE_HEADER_KEY_SET.has(normalizedKey) ||
+      normalizedKey.includes("stopdesk")
+    ) {
       return normalizeSheetDeliveryMode(String(row[key] ?? ""));
     }
   }
@@ -1378,9 +1402,9 @@ const Orders: React.FC = () => {
     const telephone_2 = telephone;
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
 
-  const stop_desk = (() => {
+  const stopDeskFlag = (() => {
       const normalizedMode = getDeliveryModeFromRow(row);
-      return normalizedMode === "stop_desk" ? "1" : "0";
+      return normalizedMode === "stop_desk" ? 1 : 0;
     })();
 
     const totalForApi = (() => {
@@ -1697,7 +1721,7 @@ const Orders: React.FC = () => {
         code_wilaya: resolvedWilayaCode,
         montant: String(Math.round(totalForApi)),
         type: "1",
-        stop_desk: stop_desk || "0",
+        stop_desk: stopDeskFlag,
         stock: "0",
         fragile: "0",
         produit: produit,
@@ -2059,7 +2083,7 @@ const Orders: React.FC = () => {
       telephone_2,
       code_wilaya,
       totalForApi,
-      stop_desk,
+      stopDeskFlag,
       row,
       onUpdateStatus,
       onDelivered,
@@ -3549,21 +3573,67 @@ Zm0 14H8V7h9v12Z"
       window.addEventListener("keydown", handleKeyDown);
     }
 
-    const body = typeof document !== "undefined" ? document.body : null;
-    const previousOverflow = body ? body.style.overflow : "";
-    if (body) {
-      body.style.overflow = "hidden";
-    }
-
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("keydown", handleKeyDown);
       }
-      if (body) {
-        body.style.overflow = previousOverflow;
-      }
     };
   }, [selectedOrder]);
+
+  const hasOverlayOpen = Boolean(
+    selectedOrder || commentEditor.isOpen || communeSelector.isOpen
+  );
+
+  React.useEffect(() => {
+    if (!hasOverlayOpen) return;
+
+    const body = typeof document !== "undefined" ? document.body : null;
+    const docEl =
+      typeof document !== "undefined" ? document.documentElement : null;
+    const scrollY =
+      typeof window !== "undefined"
+        ? window.scrollY || (docEl ? docEl.scrollTop : 0)
+        : 0;
+    const scrollX =
+      typeof window !== "undefined"
+        ? window.scrollX || (docEl ? docEl.scrollLeft : 0)
+        : 0;
+
+    const previousStyle = body
+      ? {
+          overflow: body.style.overflow,
+          position: body.style.position,
+          top: body.style.top,
+          left: body.style.left,
+          width: body.style.width,
+        }
+      : null;
+
+    if (body) {
+      body.style.overflow = "hidden";
+      body.style.position = "fixed";
+      body.style.top = `-${scrollY}px`;
+      body.style.left = `-${scrollX}px`;
+      body.style.width = "100%";
+    }
+
+    return () => {
+      if (body && previousStyle) {
+        body.style.overflow = previousStyle.overflow;
+        body.style.position = previousStyle.position;
+        body.style.top = previousStyle.top;
+        body.style.left = previousStyle.left;
+        body.style.width = previousStyle.width;
+      }
+      if (typeof window !== "undefined") {
+        window.scrollTo({
+          top: scrollY,
+          left: scrollX,
+          behavior: "auto",
+        });
+      }
+    };
+  }, [hasOverlayOpen]);
 
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
@@ -5378,8 +5448,8 @@ Zm0 14H8V7h9v12Z"
                               type: "1",
                               stop_desk:
                                 getDeliveryModeFromRow(row) === "stop_desk"
-                                  ? "1"
-                                  : "0",
+                                  ? 1
+                                  : 0,
                               stock: "0",
                               fragile: "0",
                               produit:
