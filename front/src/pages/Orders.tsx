@@ -3188,6 +3188,7 @@ Zm0 14H8V7h9v12Z"
     value: "",
     summary: null,
   });
+  const commentDraftRef = React.useRef<string>("");
 
   // Conserver la position du scroll à l'ouverture du modal commentaire pour éviter que la page remonte
   const commentModalScrollRef = React.useRef({ x: 0, y: 0 });
@@ -3236,6 +3237,7 @@ Zm0 14H8V7h9v12Z"
           summaryLabel: summary?.displayRowLabel,
           scroll: getScrollSnapshot(),
         });
+        commentDraftRef.current = value || "";
         setCommentEditor({
           isOpen: true,
           commentKey: key,
@@ -3250,19 +3252,15 @@ Zm0 14H8V7h9v12Z"
   const handleCommentModalChange = React.useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       const { value } = event.target;
-      setCommentEditor((prev) =>
-        prev.isOpen
-          ? {
-              ...prev,
-              value,
-            }
-          : prev
-      );
-      debugLog("comment modal change", {
-        length: value.length,
-        preview: value.slice(0, 120),
-        scroll: getScrollSnapshot(),
-      });
+      commentDraftRef.current = value;
+      // Throttle logs pour éviter de spammer pendant la saisie
+      if (value.length === 0 || value.length % 12 === 0) {
+        debugLog("comment modal change", {
+          length: value.length,
+          preview: value.slice(0, 120),
+          scroll: getScrollSnapshot(),
+        });
+      }
     },
     []
   );
@@ -3277,15 +3275,20 @@ Zm0 14H8V7h9v12Z"
         value: "",
         summary: null,
       });
+      commentDraftRef.current = "";
     });
   }, [preserveScroll]);
 
   const handleCommentModalSave = React.useCallback(() => {
     const pos = getScrollSnapshot();
+    const currentValue =
+      commentDraftRef.current !== undefined && commentDraftRef.current !== null
+        ? commentDraftRef.current
+        : commentEditor.value;
     debugLog("comment modal save", {
       key: commentEditor.commentKey,
-      length: commentEditor.value.length,
-      preview: commentEditor.value.slice(0, 120),
+      length: currentValue.length,
+      preview: currentValue.slice(0, 120),
       scroll: pos,
     });
     preserveScroll(() => {
@@ -3293,7 +3296,7 @@ Zm0 14H8V7h9v12Z"
         if (!prev.isOpen) {
           return prev;
         }
-        updateOrderComment(prev.commentKey, prev.value);
+        updateOrderComment(prev.commentKey, currentValue);
         return {
           isOpen: false,
           commentKey: "",
@@ -3301,6 +3304,7 @@ Zm0 14H8V7h9v12Z"
           summary: null,
         };
       });
+      commentDraftRef.current = "";
     });
   }, [commentEditor.commentKey, commentEditor.value, preserveScroll, updateOrderComment]);
 
@@ -3309,6 +3313,7 @@ Zm0 14H8V7h9v12Z"
     if (!commentEditor.isOpen || typeof window === "undefined") return;
     const textarea = document.getElementById("comment-modal-field");
     if (textarea instanceof HTMLTextAreaElement) {
+      commentDraftRef.current = textarea.value || "";
       textarea.focus({ preventScroll: true });
     }
   }, [commentEditor.isOpen]);
@@ -5858,7 +5863,7 @@ Zm0 14H8V7h9v12Z"
                 id="comment-modal-field"
                 className="orders-modal__comment-input"
                 placeholder="Ajouter une remarque pour la livraison"
-                value={commentEditor.value}
+                defaultValue={commentEditor.value}
                 onChange={handleCommentModalChange}
                 rows={4}
               />
