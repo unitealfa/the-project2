@@ -2596,27 +2596,19 @@ const Orders: React.FC = () => {
               >
                 <select
                   value={deliveryModeSelect.value}
-                  onChange={async (event) => {
-                    const scrollTop =
-                      typeof window !== "undefined"
-                        ? window.scrollY ||
-                        (typeof document !== "undefined"
-                          ? document.documentElement.scrollTop
-                          : 0)
-                        : 0;
-                    const nextMode = normalizeDeliveryModeSelectValue(
-                      event.target.value
-                    );
-                    debugLog("table delivery select change", {
-                      rowId: row["id-sheet"] || row["ID"],
-                      nextMode,
-                      scroll: { top: scrollTop, left: 0 },
-                    });
-                    await handleDeliveryTypeChange(row, nextMode);
-                    if (typeof window !== "undefined") {
-                      window.scrollTo({ top: scrollTop, behavior: "auto" });
-                    }
-                  }}
+                  onChange={(event) =>
+                    preserveScroll(async () => {
+                      const nextMode = normalizeDeliveryModeSelectValue(
+                        event.target.value
+                      );
+                      debugLog("table delivery select change", {
+                        rowId: row["id-sheet"] || row["ID"],
+                        nextMode,
+                        scroll: getScrollSnapshot(),
+                      });
+                      await handleDeliveryTypeChange(row, nextMode);
+                    })
+                  }
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
                   onClick={(event) => event.stopPropagation()}
@@ -3075,8 +3067,34 @@ Zm0 14H8V7h9v12Z"
     (id: string) => selectedIds.has(id),
     [selectedIds]
   );
-  // Désactivé : laisser le navigateur gérer le scroll naturellement pour éviter les jumps
-  const runWithScrollLock = React.useCallback((action: () => void | Promise<unknown>) => action(), []);
+  // Sauvegarde / restauration simple de la position de scroll pour toutes les actions utilisateur
+  const restoreScroll = React.useCallback((pos: { top: number; left: number }) => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: pos.top, left: pos.left, behavior: "auto" });
+  }, []);
+
+  const preserveScroll = React.useCallback(
+    async (action: () => void | Promise<unknown>) => {
+      const pos = getScrollSnapshot();
+      try {
+        await action();
+      } finally {
+        if (typeof window !== "undefined") {
+          const restore = () => restoreScroll(pos);
+          requestAnimationFrame(restore);
+          setTimeout(restore, 120);
+        }
+      }
+    },
+    [restoreScroll]
+  );
+
+  const runWithScrollLock = React.useCallback(
+    (action: () => void | Promise<unknown>) => {
+      return preserveScroll(action);
+    },
+    [preserveScroll]
+  );
   const toggleSelected = React.useCallback((id: string) => {
     runWithScrollLock(() => {
       setSelectedIds((prev) => {
@@ -3211,20 +3229,22 @@ Zm0 14H8V7h9v12Z"
   }, []);
   const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
-      debugLog("comment modal open", {
-        key,
-        valuePreview: (value || "").slice(0, 120),
-        summaryLabel: summary?.displayRowLabel,
-        scroll: getScrollSnapshot(),
-      });
-      setCommentEditor({
-        isOpen: true,
-        commentKey: key,
-        value,
-        summary,
+      preserveScroll(() => {
+        debugLog("comment modal open", {
+          key,
+          valuePreview: (value || "").slice(0, 120),
+          summaryLabel: summary?.displayRowLabel,
+          scroll: getScrollSnapshot(),
+        });
+        setCommentEditor({
+          isOpen: true,
+          commentKey: key,
+          value,
+          summary,
+        });
       });
     },
-    []
+    [preserveScroll]
   );
 
   const handleCommentModalChange = React.useCallback(
@@ -3250,17 +3270,15 @@ Zm0 14H8V7h9v12Z"
   const handleCommentModalClose = React.useCallback(() => {
     const pos = getScrollSnapshot();
     debugLog("comment modal close", { scroll: pos });
-    try {
+    preserveScroll(() => {
       setCommentEditor({
         isOpen: false,
         commentKey: "",
         value: "",
         summary: null,
       });
-    } finally {
-      // no manual scroll restore
-    }
-  }, []);
+    });
+  }, [preserveScroll]);
 
   const handleCommentModalSave = React.useCallback(() => {
     const pos = getScrollSnapshot();
@@ -3270,7 +3288,7 @@ Zm0 14H8V7h9v12Z"
       preview: commentEditor.value.slice(0, 120),
       scroll: pos,
     });
-    try {
+    preserveScroll(() => {
       setCommentEditor((prev) => {
         if (!prev.isOpen) {
           return prev;
@@ -3283,10 +3301,8 @@ Zm0 14H8V7h9v12Z"
           summary: null,
         };
       });
-    } finally {
-      // no manual scroll restore
-    }
-  }, [commentEditor.commentKey, commentEditor.value, updateOrderComment]);
+    });
+  }, [commentEditor.commentKey, commentEditor.value, preserveScroll, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
   React.useEffect(() => {
@@ -4654,12 +4670,14 @@ Zm0 14H8V7h9v12Z"
         return;
       }
 
-      setVariantModalOpen({
-        isOpen: true,
-        orderRow: row,
-        productName,
-        currentVariant,
-      });
+      await preserveScroll(() =>
+        setVariantModalOpen({
+          isOpen: true,
+          orderRow: row,
+          productName,
+          currentVariant,
+        })
+      );
       const productCode = extractProductCode(row);
       const cacheKeys = getCacheKeysForProduct(productCode, productName);
       const cachedEntry = readProductFromCache(productCode, productName);
@@ -4745,6 +4763,7 @@ Zm0 14H8V7h9v12Z"
       getCacheKeysForProduct,
       missingProductKeysRef,
       readProductFromCache,
+      preserveScroll,
     ]
   );
 
@@ -4802,12 +4821,14 @@ Zm0 14H8V7h9v12Z"
         );
 
         // Fermer le modal
-        setVariantModalOpen({
-          isOpen: false,
-          orderRow: null,
-          productName: "",
-          currentVariant: trimmedVariant,
-        });
+        await preserveScroll(() =>
+          setVariantModalOpen({
+            isOpen: false,
+            orderRow: null,
+            productName: "",
+            currentVariant: trimmedVariant,
+          })
+        );
 
         // Afficher un message de succès
         const toast = document.createElement("div");
@@ -4839,7 +4860,7 @@ Zm0 14H8V7h9v12Z"
         alert("Erreur lors de la mise à jour de la variante");
       }
     },
-    [variantModalOpen.orderRow, syncStatus]
+    [preserveScroll, syncStatus, variantModalOpen.orderRow]
   );
 
   const handleDeliveryTypeChange = React.useCallback(
@@ -5328,7 +5349,7 @@ Zm0 14H8V7h9v12Z"
                     type="button"
                     key={row["id-sheet"] || row["ID"] || idx}
                     className="orders-mobile-card"
-                    onClick={() => setSelectedOrder(row)}
+                    onClick={() => preserveScroll(() => setSelectedOrder(row))}
                     aria-label={`Voir la commande de ${displayName}`}
                   >
                     <div className="orders-mobile-card__header">
@@ -5875,14 +5896,14 @@ Zm0 14H8V7h9v12Z"
         >
           <div
             className="orders-modal__backdrop"
-            onClick={() => setSelectedOrder(null)}
+            onClick={() => preserveScroll(() => setSelectedOrder(null))}
             aria-hidden="true"
           />
           <div className="orders-modal__content" role="document">
             <button
               type="button"
               className="orders-modal__close"
-              onClick={() => setSelectedOrder(null)}
+              onClick={() => preserveScroll(() => setSelectedOrder(null))}
               aria-label="Fermer"
             >
               ×
@@ -5978,33 +5999,25 @@ Zm0 14H8V7h9v12Z"
                         {header || "Type de livraison"}
                       </span>
                       <select
-                        value={deliveryModeSelect.value}
-                        onChange={async (event) => {
-                          const scrollTop =
-                            typeof window !== "undefined"
-                              ? window.scrollY ||
-                              (typeof document !== "undefined"
-                                ? document.documentElement.scrollTop
-                                : 0)
-                              : 0;
-                          const nextMode = normalizeDeliveryModeSelectValue(
-                            event.target.value
-                          );
-                          debugLog("modal delivery select change", {
-                            rowId:
-                              selectedOrder?.["id-sheet"] ||
-                              selectedOrder?.["ID"],
-                            nextMode,
-                            scroll: { top: scrollTop, left: 0 },
-                          });
-                          await handleDeliveryTypeChange(
-                            selectedOrder,
-                            nextMode
-                          );
-                          if (typeof window !== "undefined") {
-                            window.scrollTo({ top: scrollTop, behavior: "auto" });
-                          }
-                        }}
+                       value={deliveryModeSelect.value}
+                        onChange={(event) =>
+                          preserveScroll(async () => {
+                            const nextMode = normalizeDeliveryModeSelectValue(
+                              event.target.value
+                            );
+                            debugLog("modal delivery select change", {
+                              rowId:
+                                selectedOrder?.["id-sheet"] ||
+                                selectedOrder?.["ID"],
+                              nextMode,
+                              scroll: getScrollSnapshot(),
+                            });
+                            await handleDeliveryTypeChange(
+                              selectedOrder,
+                              nextMode
+                            );
+                          })
+                        }
                         onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
                       >
@@ -6054,12 +6067,14 @@ Zm0 14H8V7h9v12Z"
           <div
             className="orders-modal__backdrop"
             onClick={() =>
-              setVariantModalOpen({
-                isOpen: false,
-                orderRow: null,
-                productName: "",
-                currentVariant: "",
-              })
+              preserveScroll(() =>
+                setVariantModalOpen({
+                  isOpen: false,
+                  orderRow: null,
+                  productName: "",
+                  currentVariant: "",
+                })
+              )
             }
             aria-hidden="true"
           />
@@ -6068,12 +6083,14 @@ Zm0 14H8V7h9v12Z"
               type="button"
               className="orders-modal__close"
               onClick={() =>
-                setVariantModalOpen({
-                  isOpen: false,
-                  orderRow: null,
-                  productName: "",
-                  currentVariant: "",
-                })
+                preserveScroll(() =>
+                  setVariantModalOpen({
+                    isOpen: false,
+                    orderRow: null,
+                    productName: "",
+                    currentVariant: "",
+                  })
+                )
               }
               aria-label="Fermer"
             >
