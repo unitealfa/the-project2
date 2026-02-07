@@ -29,28 +29,46 @@ const DeliveryCell: React.FC<DeliveryCellProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
 
-    preserveScroll(() => {
-      debugLog?.("delivery-cell change", { rowId, value });
-      if (value === 'api_dhd' || value === 'api_sook') {
-        setOrderDeliverySettings(prev => ({
-          ...prev,
-          [rowId]: {
-            ...prev[rowId],
-            deliveryType: value,
-            deliveryPersonId: null
-          }
-        }));
-      } else {
-        setOrderDeliverySettings(prev => ({
-          ...prev,
-          [rowId]: {
-            ...prev[rowId],
-            deliveryType: 'livreur',
-            deliveryPersonId: value
-          }
-        }));
-      }
-    });
+    const scrollTop =
+      typeof window !== 'undefined'
+        ? window.scrollY ||
+          (typeof document !== 'undefined'
+            ? document.documentElement.scrollTop
+            : 0)
+        : 0;
+    const scrollLeft =
+      typeof window !== 'undefined'
+        ? window.scrollX ||
+          (typeof document !== 'undefined'
+            ? document.documentElement.scrollLeft
+            : 0)
+        : 0;
+
+    debugLog?.("delivery-cell change", { rowId, value, scrollTop, scrollLeft });
+    if (value === 'api_dhd' || value === 'api_sook') {
+      setOrderDeliverySettings(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          deliveryType: value,
+          deliveryPersonId: null
+        }
+      }));
+    } else {
+      setOrderDeliverySettings(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          deliveryType: 'livreur',
+          deliveryPersonId: value
+        }
+      }));
+    }
+
+    if (typeof window !== 'undefined') {
+      window.scrollTo(scrollLeft, scrollTop);
+      setTimeout(() => window.scrollTo(scrollLeft, scrollTop), 0);
+    }
   };
 
   const currentValue = currentSettings.deliveryType === 'livreur'

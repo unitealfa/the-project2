@@ -3281,25 +3281,32 @@ Zm0 14H8V7h9v12Z"
   );
 
   const handleCommentModalClose = React.useCallback(() => {
-    debugLog("comment modal close", { scroll: getScrollSnapshot() });
-    withScrollRestore(() => {
+    const pos = getScrollSnapshot();
+    debugLog("comment modal close", { scroll: pos });
+    try {
       setCommentEditor({
         isOpen: false,
         commentKey: "",
         value: "",
         summary: null,
       });
-    }, "comment-close");
+    } finally {
+      if (typeof window !== "undefined") {
+        window.scrollTo(pos.left, pos.top);
+        setTimeout(() => window.scrollTo(pos.left, pos.top), 0);
+      }
+    }
   }, []);
 
   const handleCommentModalSave = React.useCallback(() => {
+    const pos = getScrollSnapshot();
     debugLog("comment modal save", {
       key: commentEditor.commentKey,
       length: commentEditor.value.length,
       preview: commentEditor.value.slice(0, 120),
-      scroll: getScrollSnapshot(),
+      scroll: pos,
     });
-    withScrollRestore(() => {
+    try {
       setCommentEditor((prev) => {
         if (!prev.isOpen) {
           return prev;
@@ -3312,7 +3319,12 @@ Zm0 14H8V7h9v12Z"
           summary: null,
         };
       });
-    }, "comment-save");
+    } finally {
+      if (typeof window !== "undefined") {
+        window.scrollTo(pos.left, pos.top);
+        setTimeout(() => window.scrollTo(pos.left, pos.top), 0);
+      }
+    }
   }, [commentEditor.commentKey, commentEditor.value, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
@@ -4928,6 +4940,7 @@ Zm0 14H8V7h9v12Z"
 
   const handleDeliveryTypeChange = React.useCallback(
     async (row: OrderRow, nextMode: CustomerDeliveryMode) => {
+      const scrollBefore = getScrollSnapshot();
       const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
       if (!rowId) {
         alert("Impossible d'identifier la commande");
@@ -4937,7 +4950,7 @@ Zm0 14H8V7h9v12Z"
       debugLog("handleDeliveryTypeChange start", {
         rowId,
         nextMode,
-        scroll: getScrollSnapshot(),
+        scroll: scrollBefore,
       });
       const nextLabel =
         DELIVERY_MODE_LABELS[nextMode] ?? DELIVERY_MODE_LABELS.a_domicile;
@@ -5015,6 +5028,16 @@ Zm0 14H8V7h9v12Z"
           error: String(error),
           scroll: getScrollSnapshot(),
         });
+      } finally {
+        debugLog("handleDeliveryTypeChange restore scroll", {
+          rowId,
+          nextMode,
+          scrollBefore,
+        });
+        if (typeof window !== "undefined") {
+          window.scrollTo(scrollBefore.left, scrollBefore.top);
+          setTimeout(() => window.scrollTo(scrollBefore.left, scrollBefore.top), 0);
+        }
       }
     },
     [syncStatus]
