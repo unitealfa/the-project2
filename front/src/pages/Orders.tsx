@@ -3100,71 +3100,8 @@ Zm0 14H8V7h9v12Z"
     (id: string) => selectedIds.has(id),
     [selectedIds]
   );
-  const runWithScrollLock = React.useCallback(
-    (action: () => void | Promise<unknown>, label: string = "action") => {
-      if (typeof window === "undefined") {
-        debugLog("runWithScrollLock (SSR)", { label });
-        return action();
-      }
-
-      const { top: scrollTop, left: scrollLeft } = getScrollSnapshot();
-
-      debugLog("runWithScrollLock start", {
-        label,
-        scrollTop,
-        scrollLeft,
-      });
-
-      const restore = () => {
-        debugLog("runWithScrollLock restore", {
-          label,
-          scrollTop,
-          scrollLeft,
-        });
-        if (typeof window.requestAnimationFrame === "function") {
-          window.requestAnimationFrame(() => {
-            window.scrollTo({
-              top: scrollTop,
-              left: scrollLeft,
-              behavior: "auto",
-            });
-            debugLog("runWithScrollLock restored", {
-              label,
-              newTop:
-                window.scrollY ||
-                (typeof document !== "undefined"
-                  ? document.documentElement.scrollTop
-                  : 0),
-              newLeft:
-                window.scrollX ||
-                (typeof document !== "undefined"
-                  ? document.documentElement.scrollLeft
-                  : 0),
-            });
-          });
-        } else {
-          window.scrollTo({ top: scrollTop, left: scrollLeft });
-        }
-      };
-
-      try {
-        const result = action();
-        if (
-          result &&
-          typeof (result as Promise<unknown>).finally === "function"
-        ) {
-          (result as Promise<unknown>).finally(restore);
-        } else {
-          restore();
-        }
-        return result;
-      } catch (error) {
-        restore();
-        throw error;
-      }
-    },
-    []
-  );
+  // Désactivé : laisser le navigateur gérer le scroll naturellement pour éviter les jumps
+  const runWithScrollLock = React.useCallback((action: () => void | Promise<unknown>) => action(), []);
   const toggleSelected = React.useCallback((id: string) => {
     runWithScrollLock(() => {
       setSelectedIds((prev) => {
