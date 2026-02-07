@@ -197,7 +197,7 @@ const WILAYAS: { id: number; name: string }[] = [
   { id: 47, name: "Ghardaïa" },
   { id: 48, name: "Relizane" },
   { id: 49, name: "Timimoun" },
-  { id: 50, name: "Bordj Badji Mokhtar" },
+  { id: 50, name: "Bordj Badji Mokhtar" }, 
   { id: 51, name: "Ouled Djellal" },
   { id: 52, name: "Beni Abbes" },
   { id: 53, name: "In Salah" },
