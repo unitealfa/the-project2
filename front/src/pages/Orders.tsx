@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useContext, useLayoutEffect } from "react";
+﻿import React, { useState, useMemo, useCallback, useContext, useLayoutEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
@@ -2596,25 +2596,23 @@ const Orders: React.FC = () => {
               >
                 <select
                   value={deliveryModeSelect.value}
-                  onChange={(event) =>
-                    withScrollRestore(() => {
-                      const nextMode = normalizeDeliveryModeSelectValue(
-                        event.target.value
-                      );
-                      debugLog("table delivery select change", {
-                        rowId: row["id-sheet"] || row["ID"],
-                        nextMode,
-                        scroll: getScrollSnapshot(),
-                      });
-                      return onDeliveryTypeChange(row, nextMode);
-                    }, "table-delivery-select")
-                  }
+                  onChange={(event) => {
+                    const nextMode = normalizeDeliveryModeSelectValue(
+                      event.target.value
+                    );   
+                    debugLog("table delivery select change", {
+                      rowId: row["id-sheet"] || row["ID"],
+                      nextMode,
+                      scroll: getScrollSnapshot(),
+                    });
+                    onDeliveryTypeChange(row, nextMode);
+                  }}
                   className="orders-table__delivery-type-select"
                   aria-label="Type de livraison"
                   onClick={(event) => event.stopPropagation()}
                 >
                   {deliveryModeSelect.options.map((option) => (
-                    <option
+                    <option    
                       key={`${option.value}-${option.label}`}
                       value={option.value}
                     >
@@ -2688,7 +2686,7 @@ const Orders: React.FC = () => {
               </td>
             );
           }
-
+ 
           if (isProductColumn) {
             return (
               <td
@@ -5971,24 +5969,19 @@ Zm0 14H8V7h9v12Z"
                       </span>
                       <select
                         value={deliveryModeSelect.value}
-                        onChange={(event) =>
-                          withScrollRestore(() => {
-                            const nextMode = normalizeDeliveryModeSelectValue(
-                              event.target.value
-                            );
-                            debugLog("modal delivery select change", {
-                              rowId:
-                                selectedOrder?.["id-sheet"] ||
-                                selectedOrder?.["ID"],
-                              nextMode,
-                              scroll: getScrollSnapshot(),
-                            });
-                            return handleDeliveryTypeChange(
-                              selectedOrder,
-                              nextMode
-                            );
-                          }, "modal-delivery-select")
-                        }
+                        onChange={(event) => {
+                          const nextMode = normalizeDeliveryModeSelectValue(
+                            event.target.value
+                          );
+                          debugLog("modal delivery select change", {
+                            rowId:
+                              selectedOrder?.["id-sheet"] ||
+                              selectedOrder?.["ID"],
+                            nextMode,
+                            scroll: getScrollSnapshot(),
+                          });
+                          handleDeliveryTypeChange(selectedOrder, nextMode);
+                        }}
                         onClick={(event) => event.stopPropagation()}
                         className="orders-modal__detail-select"
                       >
