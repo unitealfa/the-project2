@@ -12,6 +12,7 @@ interface DeliveryCellProps {
   }>>>;
   deliveryPersons: Array<{ id: string; name: string; email: string }>;
   preserveScroll: (action: () => void | Promise<unknown>) => void;
+  debugLog?: (...args: any[]) => void;
 }
 
 const DeliveryCell: React.FC<DeliveryCellProps> = ({
@@ -19,7 +20,8 @@ const DeliveryCell: React.FC<DeliveryCellProps> = ({
   orderDeliverySettings,
   setOrderDeliverySettings,
   deliveryPersons,
-  preserveScroll
+  preserveScroll,
+  debugLog
 }) => {
   const rowId = String(row["id-sheet"] || row["ID"] || "");
   const currentSettings = orderDeliverySettings[rowId] || { deliveryType: 'api_dhd', deliveryPersonId: null };
@@ -28,6 +30,7 @@ const DeliveryCell: React.FC<DeliveryCellProps> = ({
     const value = e.target.value;
 
     preserveScroll(() => {
+      debugLog?.("delivery-cell change", { rowId, value });
       if (value === 'api_dhd' || value === 'api_sook') {
         setOrderDeliverySettings(prev => ({
           ...prev,
