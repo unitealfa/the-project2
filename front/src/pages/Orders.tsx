@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useContext } from "react";
+import React, { useState, useMemo, useCallback, useContext, useLayoutEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import DeliverySelection from "../components/DeliverySelection";
 import DeliveryCell from "../components/DeliveryCell";
@@ -42,40 +42,7 @@ const getScrollSnapshot = () => {
   };
 };
 
-const restoreScroll = (pos: { top: number; left: number }) => {
-  if (typeof window === "undefined") return;
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: pos.top, left: pos.left, behavior: "auto" });
-    setTimeout(
-      () => window.scrollTo({ top: pos.top, left: pos.left, behavior: "auto" }),
-      0
-    );
-  });
-};
-
-const withScrollRestore = <T>(
-  action: () => T,
-  label: string = "action"
-): T => {
-  const snapshot = getScrollSnapshot();
-  debugLog("scroll restore start", { label, snapshot });
-  try {
-    const result = action();
-    const finalize = () => {
-      debugLog("scroll restore apply", { label, snapshot });
-      restoreScroll(snapshot);
-    };
-    if (result && typeof (result as any).finally === "function") {
-      (result as any).finally(finalize);
-    } else {
-      finalize();
-    }
-    return result;
-  } catch (error) {
-    restoreScroll(snapshot);
-    throw error;
-  }
-};
+// Scroll keep/restore helpers removed to let browser handle scroll naturally.
 
 // Simple, robust CSV parser supporting quoted fields and commas within quotes
 function parseCsv(csvText: string): string[][] {
@@ -3234,28 +3201,20 @@ Zm0 14H8V7h9v12Z"
 
     fetchDeliveryPersons();
   }, []);
-    const handleCommentEditRequest = React.useCallback(
+  const handleCommentEditRequest = React.useCallback(
     (key: string, value: string, summary: OrderSummary) => {
-      if (typeof window !== "undefined") {
-        commentModalScrollRef.current = {
-          x: window.scrollX || document.documentElement.scrollLeft || 0,
-          y: window.scrollY || document.documentElement.scrollTop || 0,
-        };
-      }
       debugLog("comment modal open", {
         key,
         valuePreview: (value || "").slice(0, 120),
         summaryLabel: summary?.displayRowLabel,
         scroll: getScrollSnapshot(),
       });
-      withScrollRestore(() => {
-        setCommentEditor({
-          isOpen: true,
-          commentKey: key,
-          value,
-          summary,
-        });
-      }, "comment-open");
+      setCommentEditor({
+        isOpen: true,
+        commentKey: key,
+        value,
+        summary,
+      });
     },
     []
   );
@@ -3291,10 +3250,7 @@ Zm0 14H8V7h9v12Z"
         summary: null,
       });
     } finally {
-      if (typeof window !== "undefined") {
-        window.scrollTo(pos.left, pos.top);
-        setTimeout(() => window.scrollTo(pos.left, pos.top), 0);
-      }
+      // no manual scroll restore
     }
   }, []);
 
@@ -3320,25 +3276,13 @@ Zm0 14H8V7h9v12Z"
         };
       });
     } finally {
-      if (typeof window !== "undefined") {
-        window.scrollTo(pos.left, pos.top);
-        setTimeout(() => window.scrollTo(pos.left, pos.top), 0);
-      }
+      // no manual scroll restore
     }
   }, [commentEditor.commentKey, commentEditor.value, updateOrderComment]);
 
   // Restaurer la position du scroll après ouverture du modal commentaire
   React.useEffect(() => {
     if (!commentEditor.isOpen || typeof window === "undefined") return;
-    const { x, y } = commentModalScrollRef.current;
-    const restore = () => {
-      window.scrollTo(x, y);
-    };
-    if (typeof requestAnimationFrame !== "undefined") {
-      requestAnimationFrame(restore);
-    } else {
-      restore();
-    }
     const textarea = document.getElementById("comment-modal-field");
     if (textarea instanceof HTMLTextAreaElement) {
       textarea.focus({ preventScroll: true });
@@ -3737,56 +3681,7 @@ Zm0 14H8V7h9v12Z"
     selectedOrder || commentEditor.isOpen || communeSelector.isOpen
   );
 
-  React.useEffect(() => {
-    if (!hasOverlayOpen) return;
-
-    const body = typeof document !== "undefined" ? document.body : null;
-    const docEl =
-      typeof document !== "undefined" ? document.documentElement : null;
-    const scrollY =
-      typeof window !== "undefined"
-        ? window.scrollY || (docEl ? docEl.scrollTop : 0)
-        : 0;
-    const scrollX =
-      typeof window !== "undefined"
-        ? window.scrollX || (docEl ? docEl.scrollLeft : 0)
-        : 0;
-
-    const previousStyle = body
-      ? {
-          overflow: body.style.overflow,
-          position: body.style.position,
-          top: body.style.top,
-          left: body.style.left,
-          width: body.style.width,
-        }
-      : null;
-
-    if (body) {
-      body.style.overflow = "hidden";
-      body.style.position = "fixed";
-      body.style.top = `-${scrollY}px`;
-      body.style.left = `-${scrollX}px`;
-      body.style.width = "100%";
-    }
-
-    return () => {
-      if (body && previousStyle) {
-        body.style.overflow = previousStyle.overflow;
-        body.style.position = previousStyle.position;
-        body.style.top = previousStyle.top;
-        body.style.left = previousStyle.left;
-        body.style.width = previousStyle.width;
-      }
-      if (typeof window !== "undefined") {
-        window.scrollTo({
-          top: scrollY,
-          left: scrollX,
-          behavior: "auto",
-        });
-      }
-    };
-  }, [hasOverlayOpen]);
+  // overlay scroll-lock removed to avoid scroll jumps
 
   const availableDayOptions = React.useMemo(() => {
     const daySet = new Set<string>();
@@ -3812,6 +3707,7 @@ Zm0 14H8V7h9v12Z"
   }, [availableDayOptions, selectedDay]);
 
   // Debug global clicks + scroll positions to trace unexpected jumps
+  // Debug listeners
   React.useEffect(() => {
     if (!DEBUG_ORDERS || typeof document === "undefined") return;
     const handleClick = (event: MouseEvent) => {
@@ -4940,7 +4836,6 @@ Zm0 14H8V7h9v12Z"
 
   const handleDeliveryTypeChange = React.useCallback(
     async (row: OrderRow, nextMode: CustomerDeliveryMode) => {
-      const scrollBefore = getScrollSnapshot();
       const rowId = String(row["id-sheet"] || row["ID"] || "").trim();
       if (!rowId) {
         alert("Impossible d'identifier la commande");
@@ -4950,7 +4845,7 @@ Zm0 14H8V7h9v12Z"
       debugLog("handleDeliveryTypeChange start", {
         rowId,
         nextMode,
-        scroll: scrollBefore,
+        scroll: getScrollSnapshot(),
       });
       const nextLabel =
         DELIVERY_MODE_LABELS[nextMode] ?? DELIVERY_MODE_LABELS.a_domicile;
@@ -5029,15 +4924,7 @@ Zm0 14H8V7h9v12Z"
           scroll: getScrollSnapshot(),
         });
       } finally {
-        debugLog("handleDeliveryTypeChange restore scroll", {
-          rowId,
-          nextMode,
-          scrollBefore,
-        });
-        if (typeof window !== "undefined") {
-          window.scrollTo(scrollBefore.left, scrollBefore.top);
-          setTimeout(() => window.scrollTo(scrollBefore.left, scrollBefore.top), 0);
-        }
+        // no manual scroll restore
       }
     },
     [syncStatus]
