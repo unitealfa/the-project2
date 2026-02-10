@@ -3,6 +3,8 @@ import sheetService from './order.service';
 import Order from './order.model';
 import { decrementStockForDeliveredOrder } from './orderStockUtils';
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const DEFAULT_DHD_API_BASE_URL =
   process.env.DHD_API_URL ?? 'https://platform.dhd-dz.com';
 const DEFAULT_DHD_API_TOKEN =
@@ -18,6 +20,8 @@ const DEFAULT_SOOK_API_TOKEN =
 const DHD_ORDERS_PATH = '/api/v1/get/orders';
 const OFFICIAL_SYNC_TIMEOUT_MS = 10000;
 const MAX_PAGES_TO_SCAN = 250;
+const RATE_LIMIT_DELAY_MS = Number(process.env.DHD_RATE_LIMIT_DELAY_MS ?? 1500);
+const MAX_RATE_LIMIT_RETRIES = Number(process.env.DHD_RATE_LIMIT_RETRIES ?? 3);
 
 interface RawOfficialOrderEntry {
   tracking?: string | null;
@@ -310,7 +314,8 @@ const fetchOrdersPage = async (
   config: DeliveryApiConfig,
   page: number,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  attempt = 0
 ): Promise<{
   data: RawOfficialOrderEntry[];
   current_page?: number;
@@ -324,22 +329,44 @@ const fetchOrdersPage = async (
     params.end_date = endDate;
   }
 
-  const response = await axios.get(
-    `${config.baseUrl.replace(/\/$/, '')}${DHD_ORDERS_PATH}`,
-    {
-      params,
-      headers: buildRequestHeaders(config),
-      timeout: OFFICIAL_SYNC_TIMEOUT_MS,
-    }
-  );
+  try {
+    const response = await axios.get(
+      `${config.baseUrl.replace(/\/$/, '')}${DHD_ORDERS_PATH}`,
+      {
+        params,
+        headers: buildRequestHeaders(config),
+        timeout: OFFICIAL_SYNC_TIMEOUT_MS,
+      }
+    );
 
-  const payload = response.data ?? {};
-  const list = Array.isArray(payload?.data) ? payload.data : [];
-  return {
-    data: list,
-    current_page: payload?.current_page,
-    last_page: payload?.last_page,
-  };
+    // Throttle to stay under 50 req/min (doc DHD)
+    if (RATE_LIMIT_DELAY_MS > 0) {
+      await delay(RATE_LIMIT_DELAY_MS);
+    }
+
+    const payload = response.data ?? {};
+    const list = Array.isArray(payload?.data) ? payload.data : [];
+    return {
+      data: list,
+      current_page: payload?.current_page,
+      last_page: payload?.last_page,
+    };
+  } catch (error) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 429 &&
+      attempt < MAX_RATE_LIMIT_RETRIES
+    ) {
+      const retryAfterHeader = error.response.headers?.['retry-after'];
+      const retryAfterSeconds = retryAfterHeader
+        ? Number(retryAfterHeader)
+        : 5;
+      const backoffMs = (isNaN(retryAfterSeconds) ? 5 : retryAfterSeconds) * 1000;
+      await delay(backoffMs);
+      return fetchOrdersPage(config, page, startDate, endDate, attempt + 1);
+    }
+    throw error;
+  }
 };
 
 export const syncOfficialStatuses = async (

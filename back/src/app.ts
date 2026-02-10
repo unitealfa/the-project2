@@ -8,6 +8,7 @@ import User from './users/user.model';
 import Product from './products/product.model';
 import productRoutes from './products/product.routes';
 import orderRoutes from './orders/order.routes';
+import { startOrderStatusScheduler } from './orders/orderStatusScheduler';
 
 // Initial Mongo connection removed in favor of middleware
 
@@ -95,6 +96,11 @@ const uploadsDir =
   process.env.UPLOADS_DIR ||
   (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads'));
 app.use('/uploads', express.static(uploadsDir));
+
+// Lancement de la synchro automatique des statuts officiels (hors environnements serverless)
+if (!process.env.VERCEL && process.env.ENABLE_OFFICIAL_STATUS_CRON !== 'false') {
+  startOrderStatusScheduler();
+}
 
 export default app;
 
