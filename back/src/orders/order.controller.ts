@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
@@ -6,7 +6,7 @@ import sheetService from './order.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import Order from './order.model';
 import User from '../users/user.model';
-import { decrementStockForDeliveredOrder } from './orderStockUtils';
+import { decrementStockForDeliveredOrder, incrementStockForReturnedOrder } from './orderStockUtils';
 import { Types } from 'mongoose';
 
 export const updateWilayaAndCommune = async (req: Request, res: Response) => {
@@ -196,9 +196,20 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     // Décrémenter automatiquement le stock si le statut devient "delivered"
     // et que le statut précédent n'était pas déjà "delivered" (pour éviter les doubles décrémentations)
     const normalizedStatus = String(status).toLowerCase().trim();
-    const previousStatus = existingOrder?.status ? String(existingOrder.status).toLowerCase().trim() : '';
-    const isDelivered = normalizedStatus === 'delivered' || normalizedStatus === 'livrée';
-    const wasAlreadyDelivered = previousStatus === 'delivered' || previousStatus === 'livrée';
+    const previousStatus = existingOrder?.status
+      ? String(existingOrder.status).toLowerCase().trim()
+      : '';
+    const isDelivered =
+      normalizedStatus === 'delivered' || normalizedStatus === 'livrée';
+    const wasAlreadyDelivered =
+      previousStatus === 'delivered' || previousStatus === 'livrée';
+    const isReturned =
+      normalizedStatus === 'returned' ||
+      normalizedStatus === 'retour' ||
+      normalizedStatus === 'retournée' ||
+      normalizedStatus === 'retournee';
+    const wasDeliveredBeforeReturn =
+      previousStatus === 'delivered' || previousStatus === 'livrée';
 
     if (isDelivered && !wasAlreadyDelivered) {
       const orderRow = row ?? existingOrder?.row ?? savedOrder.row;
@@ -206,6 +217,20 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         // Décrémenter le stock de manière asynchrone (ne pas bloquer la réponse)
         decrementStockForDeliveredOrder(orderRow, String(rowId)).catch((error) => {
           console.error('Erreur lors de la décrémentation automatique du stock:', error);
+        });
+      }
+    }
+
+    // Ré-incrémenter automatiquement le stock si la commande passe en "returned"
+    // uniquement si elle était précédemment livrée (pour éviter les doubles ajustements)
+    if (isReturned && wasDeliveredBeforeReturn) {
+      const orderRow = row ?? existingOrder?.row ?? savedOrder.row;
+      if (orderRow) {
+        incrementStockForReturnedOrder(orderRow, String(rowId)).catch((error) => {
+          console.error(
+            'Erreur lors de la ré-incrémentation automatique du stock pour une commande retournée:',
+            error
+          );
         });
       }
     }

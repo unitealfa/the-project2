@@ -664,3 +664,157 @@ export const decrementStockForDeliveredOrder = async (
   }
 };
 
+/**
+ * Ré-incrémente automatiquement le stock pour une commande retournée
+ * (annule la décrémentation faite lors du statut "delivered")
+ * Ne lance pas d'erreur si le produit n'est pas trouvé
+ */
+export const incrementStockForReturnedOrder = async (
+  row: Record<string, unknown>,
+  rowId: string
+): Promise<void> => {
+  const productInfo = extractProductInfo(row);
+  if (!productInfo) {
+    console.log(
+      `ℹ️ Impossible d'extraire les informations produit pour la commande ${rowId} lors du retour - aucune modification de stock`
+    );
+    return;
+  }
+
+  const { name, variant, quantity } = productInfo;
+
+  if (!name || !variant || quantity <= 0) {
+    console.log(
+      `ℹ️ Informations produit incomplètes pour la commande ${rowId} lors du retour (nom: ${
+        name || 'N/A'
+      }, variante: ${variant || 'N/A'}) - aucune modification de stock`
+    );
+    return;
+  }
+
+  try {
+    const Product = (await import('../products/product.model')).default;
+
+    const normalizedName = normalizeForComparison(name);
+    const normalizedVariant = normalizeForComparison(variant);
+    const variantParts = normalizedVariant
+      .split(/\s*\/\s*/)
+      .map((p) => p.trim())
+      .filter((p) => p);
+
+    const products = await Product.find({
+      name: {
+        $regex: new RegExp(
+          normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          'i'
+        ),
+      },
+    });
+
+    if (products.length === 0) {
+      console.log(
+        `ℹ️ Aucun produit trouvé avec le nom "${name}" pour la commande ${rowId} lors du retour - aucune modification de stock`
+      );
+      return;
+    }
+
+    let foundProduct: any = null;
+    let foundVariant: string | null = null;
+
+    for (const product of products) {
+      const productName = normalizeForComparison(product.name);
+
+      if (
+        productName === normalizedName ||
+        productName.includes(normalizedName) ||
+        normalizedName.includes(productName)
+      ) {
+        for (const candidateVariant of product.variants || []) {
+          const candidateVariantName = normalizeForComparison(
+            candidateVariant.name
+          );
+
+          if (candidateVariantName === normalizedVariant) {
+            foundProduct = product;
+            foundVariant = candidateVariant.name;
+            break;
+          }
+
+          for (const part of variantParts) {
+            if (
+              candidateVariantName === part ||
+              candidateVariantName.includes(part) ||
+              part.includes(candidateVariantName)
+            ) {
+              foundProduct = product;
+              foundVariant = candidateVariant.name;
+              break;
+            }
+          }
+
+          if (foundVariant) break;
+
+          const candidateVariantParts = candidateVariantName
+            .split(/\s*\/\s*/)
+            .map((p) => p.trim())
+            .filter((p) => p);
+          for (const part of variantParts) {
+            for (const candidatePart of candidateVariantParts) {
+              if (
+                part === candidatePart ||
+                part.includes(candidatePart) ||
+                candidatePart.includes(part)
+              ) {
+                foundProduct = product;
+                foundVariant = candidateVariant.name;
+                break;
+              }
+            }
+            if (foundVariant) break;
+          }
+
+          if (foundVariant) break;
+        }
+
+        if (foundVariant) break;
+      }
+    }
+
+    if (!foundProduct || !foundVariant) {
+      console.log(
+        `ℹ️ Produit trouvé mais variante "${variant}" non trouvée pour la commande ${rowId} lors du retour - aucune modification de stock`
+      );
+      return;
+    }
+
+    const normalizedFoundVariant = normalizeForComparison(foundVariant);
+    const variantIndex = foundProduct.variants.findIndex(
+      (v: any) => normalizeForComparison(v.name) === normalizedFoundVariant
+    );
+
+    if (variantIndex === -1) {
+      console.log(
+        `ℹ️ Variante "${foundVariant}" non trouvée dans le produit pour la commande ${rowId} lors du retour - aucune modification de stock`
+      );
+      return;
+    }
+
+    const currentQuantity =
+      Number(foundProduct.variants[variantIndex].quantity) || 0;
+    const nextQuantity = currentQuantity + quantity;
+
+    foundProduct.variants[variantIndex].quantity = nextQuantity;
+    await foundProduct.save();
+
+    console.log(
+      `✅ Stock ré-incrémenté automatiquement pour la commande ${rowId}: ${foundProduct.name} / ${foundVariant} (${currentQuantity} -> ${nextQuantity})`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Erreur inconnue';
+    console.log(
+      `ℹ️ Erreur lors de la ré-incrémentation automatique du stock pour la commande ${rowId}: ${message} - aucune erreur renvoyée à l'utilisateur`
+    );
+  }
+};
+
