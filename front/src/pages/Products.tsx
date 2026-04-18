@@ -204,7 +204,7 @@ const Products: React.FC = () => {
               />
             </div>
             <div className="products-form__field">
-              <label className="products-form__label">Prix d'achat *</label>
+              <label className="products-form__label">Prix d'achat (DA) *</label>
               <input 
                 className="products-form__input"
                 type="number" 
@@ -217,7 +217,7 @@ const Products: React.FC = () => {
               />
             </div>
             <div className="products-form__field">
-              <label className="products-form__label">Prix de vente *</label>
+              <label className="products-form__label">Prix de vente (DA) *</label>
               <input 
                 className="products-form__input"
                 type="number" 
@@ -332,8 +332,8 @@ const Products: React.FC = () => {
                       <th className="products-table__header">Code</th>
                       <th className="products-table__header">Nom</th>
                       <th className="products-table__header">Variantes</th>
-                      <th className="products-table__header">Prix d'achat</th>
-                      <th className="products-table__header">Prix de vente</th>
+                      <th className="products-table__header">Prix d'achat (DA)</th>
+                      <th className="products-table__header">Prix de vente (DA)</th>
                       <th className="products-table__header">Image</th>
                       {canEdit && <th className="products-table__header">Actions</th>}
                     </tr>
@@ -363,10 +363,10 @@ const Products: React.FC = () => {
                           ) : '-'}
                         </td>
                         <td className="products-table__cell products-table__cell--price">
-                          {p.costPrice?.toFixed(2)} €
+                          {p.costPrice?.toFixed(2)} DA
                         </td>
                         <td className="products-table__cell products-table__cell--price">
-                          {p.salePrice?.toFixed(2)} €
+                          {p.salePrice?.toFixed(2)} DA
                         </td>
                         <td className="products-table__cell products-table__cell--image">
                           {p.image ? (

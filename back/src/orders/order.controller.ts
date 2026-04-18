@@ -200,16 +200,24 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       ? String(existingOrder.status).toLowerCase().trim()
       : '';
     const isDelivered =
-      normalizedStatus === 'delivered' || normalizedStatus === 'livrée';
+      normalizedStatus === 'delivered' ||
+      normalizedStatus === 'livrée' ||
+      normalizedStatus === 'livree';
     const wasAlreadyDelivered =
-      previousStatus === 'delivered' || previousStatus === 'livrée';
+      previousStatus === 'delivered' ||
+      previousStatus === 'livrée' ||
+      previousStatus === 'livree';
     const isReturned =
       normalizedStatus === 'returned' ||
       normalizedStatus === 'retour' ||
+      normalizedStatus === 'retours' ||
       normalizedStatus === 'retournée' ||
-      normalizedStatus === 'retournee';
+      normalizedStatus === 'retournee' ||
+      normalizedStatus === 'retourne';
     const wasDeliveredBeforeReturn =
-      previousStatus === 'delivered' || previousStatus === 'livrée';
+      previousStatus === 'delivered' ||
+      previousStatus === 'livrée' ||
+      previousStatus === 'livree';
 
     if (isDelivered && !wasAlreadyDelivered) {
       const orderRow = row ?? existingOrder?.row ?? savedOrder.row;

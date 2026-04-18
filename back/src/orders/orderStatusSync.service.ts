@@ -1,7 +1,10 @@
 import axios from 'axios';
 import sheetService from './order.service';
 import Order from './order.model';
-import { decrementStockForDeliveredOrder } from './orderStockUtils';
+import {
+  decrementStockForDeliveredOrder,
+  incrementStockForReturnedOrder,
+} from './orderStockUtils';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -557,16 +560,36 @@ export const syncOfficialStatuses = async (
 
         const normalizedMappedStatus = mappedStatus.toLowerCase().trim();
         const normalizedPreviousStatus = order.currentStatus ? String(order.currentStatus).toLowerCase().trim() : '';
-        const isDelivered = normalizedMappedStatus === 'delivered' || normalizedMappedStatus === 'livrée';
-        const wasAlreadyDelivered = normalizedPreviousStatus === 'delivered' || normalizedPreviousStatus === 'livrée';
+        const isDelivered =
+          normalizedMappedStatus === 'delivered' ||
+          normalizedMappedStatus === 'livrée' ||
+          normalizedMappedStatus === 'livree';
+        const wasAlreadyDelivered =
+          normalizedPreviousStatus === 'delivered' ||
+          normalizedPreviousStatus === 'livrée' ||
+          normalizedPreviousStatus === 'livree';
+        const isReturned =
+          normalizedMappedStatus === 'returned' ||
+          normalizedMappedStatus === 'retour' ||
+          normalizedMappedStatus === 'retours' ||
+          normalizedMappedStatus === 'retournée' ||
+          normalizedMappedStatus === 'retournee' ||
+          normalizedMappedStatus === 'retourne';
+        const wasDeliveredBeforeReturn = wasAlreadyDelivered;
 
-        if (isDelivered && !wasAlreadyDelivered) {
-          const existingOrder = await Order.findOne({ rowId: order.rowId });
-          if (existingOrder?.row) {
-            decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
-              console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
-            });
-          }
+        const existingOrder = await Order.findOne({ rowId: order.rowId });
+        if (isDelivered && !wasAlreadyDelivered && existingOrder?.row) {
+          decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
+            console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
+          });
+        }
+        if (isReturned && wasDeliveredBeforeReturn && existingOrder?.row) {
+          incrementStockForReturnedOrder(existingOrder.row, order.rowId).catch((error) => {
+            console.error(
+              `Erreur lors de la ré-incrémentation du stock (retour) pour la commande ${order.rowId}:`,
+              error
+            );
+          });
         }
       } catch (error) {
         const message =
