@@ -71,6 +71,7 @@ const connectDB = async () => {
 
         const connectionOptions: mongoose.ConnectOptions = {
             bufferCommands: false, // Don't buffer commands if not connected, fail fast
+            serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS ?? 10000),
         };
 
         if (shouldUseDefaultDatabase(connectionUri)) {

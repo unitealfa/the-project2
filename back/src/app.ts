@@ -16,6 +16,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Avoid DB work for healthcheck/favicon. This matters on Vercel when MongoDB
+// is temporarily unreachable or the deployment IP is not whitelisted yet.
+app.get('/favicon.ico', (_req, res) => res.status(204).end());
+app.get('/', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 // Middleware to ensure DB connection on every request
 app.use(async (req, res, next) => {
   if (req.path === '/favicon.ico') return next();
@@ -27,10 +32,6 @@ app.use(async (req, res, next) => {
     res.status(500).json({ success: false, message: 'Service temporarily unavailable' });
   }
 });
-// Avoid favicon 500s when no icon is set
-app.get('/favicon.ico', (_req, res) => res.status(204).end());
-// Healthcheck/root route
-app.get('/', (_req, res) => res.status(200).json({ status: 'ok' }));
 // Google Sheet update passthrough (previously in server.ts)
 app.post('/update-sheet', async (req, res) => {
   try {
