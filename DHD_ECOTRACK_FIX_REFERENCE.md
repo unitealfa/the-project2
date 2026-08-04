@@ -394,7 +394,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 8 — Validation, staging et deploiement
 
-- Etat : `[~] tests/builds locaux et deploiement backend verifies; flux DHD/Sheet authentifie staging restant`
+- Etat : `[~] tests/builds locaux, nouveau backend Vercel et frontend local relies; flux DHD/Sheet authentifie staging restant`
 - Tester d'abord avec fixtures, puis environnement de staging.
 - Comparer un echantillon autorise de trackings entre ECOTRACK, Mongo, Sheet et
   UI sans publier de PII.
@@ -881,6 +881,30 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   fichier `.env` et le JSON ne doivent jamais etre commits ou televerses avec
   les sources.
 
+### Entree 15 — 2026-08-04 — Frontend local relie au nouveau backend Vercel
+
+- Etape : 8. Anomalies surveillees : B-002 et B-012; aucune modification du
+  contrat ECOTRACK ni des routes de commandes.
+- Le lien Dashboard fourni a ete resolu par `vercel inspect` vers le deploiement
+  Production `Ready` et son alias public stable
+  `https://the-project2.vercel.app`; le build contient uniquement la fonction
+  `api/index`.
+- Preuves backend sans mutation : `GET /` retourne HTTP 200 et le preflight de
+  `http://localhost:5173` vers `/api/orders/sheet` retourne HTTP 204 avec
+  `Access-Control-Allow-Origin` exact.
+- Fichier configure : `front/.env`, deja suivi par Git et ne contenant qu'une
+  URL publique; seule `VITE_API_BASE_URL` a ete remplacee par l'alias public du
+  nouveau backend. Aucun secret frontend et aucun backend local n'ont ete
+  ajoutes ou lances.
+- Tests : `npm run build` dans `front` reussi; scan du bundle confirme le
+  nouveau domaine, l'absence de l'ancien domaine et l'absence d'appel direct a
+  `platform.dhd-dz.com`.
+- Execution locale : `npm run dev -- --host localhost` demarre Vite sur
+  `http://localhost:5173`; une lecture HTTP locale retourne 200 avec le point
+  de montage React et le client Vite.
+- Limite : aucun flux authentifie ni mutation DHD/Sheet n'a ete execute. Le
+  serveur frontend doit rester actif pendant la verification manuelle.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -913,9 +937,9 @@ Configuration locale          PARTIELLE; ACCES SHEET/DHD MANQUANTS
 Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
-Validation staging            ROUTE/CORS LIVE OK; FLUX AUTHENTIFIE DHD/SHEET RESTANT
+Validation staging            NOUVEAU BACKEND/FRONT LOCAL ROUTE+CORS OK; FLUX AUTHENTIFIE DHD/SHEET RESTANT
 JWT production                CONFIGURE; RECONNEXION ET FLUX AUTHENTIFIE A VALIDER
-Deploiement corrige            BACKEND PRODUCTION READY; ROUTES PUBLIQUES/JWT INVALIDES OK
+Deploiement corrige            NOUVEAU BACKEND PRODUCTION READY; FRONT LOCAL RELIE
 ```
 
 Ne pas modifier cet etat synthetique sans mettre a jour les anomalies, les

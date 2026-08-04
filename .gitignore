@@ -30,3 +30,5 @@ debuglogs*.txt
 
 # Generated/private documentation
 docucompletededhd.html
+
+front/.env
