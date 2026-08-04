@@ -21,6 +21,9 @@ const getSpreadsheetId = (): string => {
   return spreadsheetId;
 };
 
+export const getSheetEditUrl = (): string =>
+  `https://docs.google.com/spreadsheets/d/${encodeURIComponent(getSpreadsheetId())}/edit`;
+
 const getSheetName = (): string => {
   const sheetName = String(process.env.GOOGLE_SHEET_NAME ?? 'Mirocho').trim();
   if (!sheetName || sheetName.length > 100 || /[\r\n]/.test(sheetName)) {

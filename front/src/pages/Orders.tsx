@@ -2332,6 +2332,11 @@ Zm0 14H8V7h9v12Z"
   });
 
   const [error, setError] = React.useState<string | null>(null);
+  const [sheetEditUrl, setSheetEditUrl] = React.useState<string>(SHEET_EDIT_URL);
+  const [sheetLinkLoading, setSheetLinkLoading] = React.useState<boolean>(
+    !SHEET_EDIT_URL
+  );
+  const [sheetLinkError, setSheetLinkError] = React.useState<boolean>(false);
   const [query, setQuery] = React.useState<string>("");
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("day");
@@ -2341,6 +2346,40 @@ Zm0 14H8V7h9v12Z"
 
   React.useEffect(() => {
     debugLog("Orders page mount", { scroll: getScrollSnapshot() });
+  }, []);
+
+  React.useEffect(() => {
+    if (SHEET_EDIT_URL) return;
+
+    let cancelled = false;
+    const loadSheetEditUrl = async () => {
+      try {
+        const response = await apiFetch("/api/orders/sheet-link", {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as { url?: unknown };
+        const url = typeof data.url === "string" ? data.url.trim() : "";
+        if (
+          !response.ok ||
+          !/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(url)
+        ) {
+          throw new Error("Lien Google Sheets invalide");
+        }
+        if (!cancelled) {
+          setSheetEditUrl(url);
+          setSheetLinkError(false);
+        }
+      } catch {
+        if (!cancelled) setSheetLinkError(true);
+      } finally {
+        if (!cancelled) setSheetLinkLoading(false);
+      }
+    };
+
+    void loadSheetEditUrl();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Sélection multiple des commandes
@@ -4330,16 +4369,25 @@ Zm0 14H8V7h9v12Z"
               placeholder="Rechercher (client, wilaya, produit, …)"
               className="orders-input"
             />
-            {SHEET_EDIT_URL && (
-              <a
-                href={SHEET_EDIT_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="orders-link"
-              >
-                Ouvrir la feuille Google
-              </a>
-            )}
+            <button
+              type="button"
+              className="orders-link"
+              disabled={!sheetEditUrl}
+              title={
+                sheetLinkError
+                  ? "Lien Google Sheets indisponible"
+                  : "Ouvrir la feuille Google dans un nouvel onglet"
+              }
+              onClick={() => {
+                if (sheetEditUrl) {
+                  window.open(sheetEditUrl, "_blank", "noopener,noreferrer");
+                }
+              }}
+            >
+              {sheetLinkLoading
+                ? "Préparation de la feuille…"
+                : "Ouvrir la feuille Google"}
+            </button>
           </div>
 
           <div className="orders-toolbar__row orders-toolbar__row--filters">

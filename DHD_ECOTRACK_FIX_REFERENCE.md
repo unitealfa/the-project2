@@ -905,6 +905,39 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Limite : aucun flux authentifie ni mutation DHD/Sheet n'a ete execute. Le
   serveur frontend doit rester actif pendant la verification manuelle.
 
+### Entree 16 — 2026-08-04 — Restauration durable du bouton Google Sheets
+
+- Etapes : 6, 7 et 8. Anomalie surveillee : B-012. Objectif : rendre de
+  nouveau visible et utilisable le bouton d'acces a la feuille sans placer
+  l'identifiant Spreadsheet ni une credential Google dans le bundle frontend.
+- Fait verifie dans le code actif : `front/src/pages/Orders.tsx` contenait
+  encore le lien, mais son rendu etait conditionne a `VITE_SHEET_EDIT_URL`;
+  cette variable est absente de `front/.env`, donc le bouton etait masque. Les
+  copies `Orders.tsx.copy` et `front/src/Orders.tmp` n'ont pas ete consultees.
+- Contrat verifie : `ECOTRACK API.postman_collection.json` ne definit aucun
+  acces Google Sheets; la nouvelle route reste interne a l'application et ne
+  modifie aucun endpoint, payload ou statut ECOTRACK/DHD.
+- Fichiers touches : `back/src/orders/order.service.ts`,
+  `back/src/orders/order.controller.ts`, `back/src/orders/order.routes.ts`,
+  `back/tests/ecotrack-contract.test.js`, `front/src/pages/Orders.tsx`,
+  `front/src/styles/Orders.css` et `front/.env.example`.
+- Modification : ajout de `GET /api/orders/sheet-link`, protege par JWT et par
+  les roles `admin`/`confirmateur`. Le backend valide
+  `GOOGLE_SPREADSHEET_ID`, construit le lien Google et ne retourne aucune cle
+  de compte de service. Le frontend affiche toujours le bouton, recupere le
+  lien par la route authentifiee si aucune surcharge Vite valide n'existe,
+  puis l'ouvre dans un nouvel onglet.
+- Tests : `npm test` dans `back` reussi apres compilation; la fixture verifie
+  la construction du lien et la presence des trois couches de la route
+  (route, authentification, autorisation). `npm run build` dans `front` reussi
+  avec typecheck et build Vite. `git diff --check` reussi. Le scan du bundle
+  confirme la presence du bouton et de `/api/orders/sheet-link`, ainsi que
+  l'absence des valeurs sensibles du backend.
+- Decision : `VITE_SHEET_EDIT_URL` reste une surcharge facultative; elle n'est
+  plus requise pour afficher le bouton. Etat : termine localement avec preuves
+  reproductibles. Limite : le backend et le frontend doivent tous deux etre
+  redeployes avant la validation authentifiee en Production.
+
 ### Modele pour les prochaines entrees
 
 ```text

@@ -1,5 +1,16 @@
 import { Router } from 'express';
-import { syncOfficialStatuses, updateOrderStatus, updateWilayaAndCommune, getDeliveryPersons, getDeliveryPersonOrders, getDeliveryPersonHistory, generateBordereauPDF, getAllDeliveryOrders, getSheetCsv } from './order.controller';
+import {
+  syncOfficialStatuses,
+  updateOrderStatus,
+  updateWilayaAndCommune,
+  getDeliveryPersons,
+  getDeliveryPersonOrders,
+  getDeliveryPersonHistory,
+  generateBordereauPDF,
+  getAllDeliveryOrders,
+  getSheetCsv,
+  getSheetEditLink,
+} from './order.controller';
 import { authenticateJWT } from '../middleware/auth.middleware';
 import { authorizeRole } from '../middleware/role.middleware';
 import {
@@ -19,6 +30,7 @@ router.get('/cron/sync-statuses', cronSyncOfficialStatuses);
 
 router.post('/send', authenticateJWT, operators, sendOrderToCarrier);
 router.get('/sheet', authenticateJWT, operators, getSheetCsv);
+router.get('/sheet-link', authenticateJWT, operators, getSheetEditLink);
 router.post('/metadata', authenticateJWT, operators, getOrderMetadata);
 router.get('/:rowId/activity', authenticateJWT, operators, getCarrierActivity);
 router.post(

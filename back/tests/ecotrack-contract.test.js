@@ -22,6 +22,10 @@ const {
 const {
   classifyGoogleSheetError,
 } = require('../dist/src/orders/googleSheetError.js');
+const {
+  getSheetEditUrl,
+} = require('../dist/src/orders/order.service.js');
+const orderRouter = require('../dist/src/orders/order.routes.js').default;
 
 test('les routes protegees refusent une requete sans JWT', () => {
   let statusCode = 200;
@@ -80,6 +84,32 @@ test('Google Sheets: les erreurs sont classifiees sans exposer les secrets', () 
     classifyGoogleSheetError({ code: 'ETIMEDOUT' }),
     'sheet_timeout'
   );
+});
+
+test("Google Sheets: le lien d'edition est construit cote backend", () => {
+  const previousSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  process.env.GOOGLE_SPREADSHEET_ID = 'spreadsheet_fixture_1234567890';
+  try {
+    assert.equal(
+      getSheetEditUrl(),
+      'https://docs.google.com/spreadsheets/d/spreadsheet_fixture_1234567890/edit'
+    );
+  } finally {
+    if (previousSpreadsheetId === undefined) {
+      delete process.env.GOOGLE_SPREADSHEET_ID;
+    } else {
+      process.env.GOOGLE_SPREADSHEET_ID = previousSpreadsheetId;
+    }
+  }
+});
+
+test("Google Sheets: la route du lien d'edition est protegee", () => {
+  const routeLayer = orderRouter.stack.find(
+    (layer) => layer.route?.path === '/sheet-link'
+  );
+  assert.ok(routeLayer, 'route /sheet-link absente');
+  assert.equal(routeLayer.route.methods.get, true);
+  assert.equal(routeLayer.route.stack.length, 3);
 });
 
 test('ECOTRACK: HTTP 200 avec success:false reste un echec metier', () => {

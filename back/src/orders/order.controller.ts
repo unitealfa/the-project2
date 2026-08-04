@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
-import sheetService from './order.service';
+import sheetService, { getSheetEditUrl } from './order.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import Order from './order.model';
 import User from '../users/user.model';
@@ -49,6 +49,23 @@ export const getSheetCsv = async (_req: Request, res: Response) => {
       success: false,
       code,
       message: 'Impossible de charger la feuille de commandes.',
+    });
+  }
+};
+
+export const getSheetEditLink = (_req: Request, res: Response) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      url: getSheetEditUrl(),
+    });
+  } catch (error) {
+    const code = classifyGoogleSheetError(error);
+    console.error(`[Google Sheets] lien d'edition indisponible: ${code}`);
+    return res.status(503).json({
+      success: false,
+      code,
+      message: "Le lien de la feuille Google n'est pas disponible.",
     });
   }
 };
