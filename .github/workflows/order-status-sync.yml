@@ -1,0 +1,51 @@
+name: Synchronisation des statuts ECOTRACK
+
+on:
+  schedule:
+    # Decale de deux minutes pour eviter le pic du debut d'heure.
+    - cron: '2/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ecotrack-status-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      SYNC_URL: https://the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/cron/sync-statuses
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Appeler la synchronisation protegee
+        shell: bash
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Secret GitHub CRON_SECRET non configure."
+            exit 1
+          fi
+
+          http_status="$(curl --silent --show-error \
+            --output sync-response.json \
+            --write-out '%{http_code}' \
+            --max-time 70 \
+            --retry 2 \
+            --retry-delay 5 \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$SYNC_URL")"
+
+          if [ "$http_status" = "409" ]; then
+            echo "Une synchronisation est deja en cours."
+            exit 0
+          fi
+
+          if [ "$http_status" != "200" ]; then
+            echo "La synchronisation a echoue (HTTP $http_status)."
+            exit 1
+          fi
+
+          node -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync("sync-response.json","utf8"));console.log(JSON.stringify({success:b.success===true,processed:b.processed??0,updates:b.updates??0,notFound:b.notFound??0,skipped:b.skipped??0,errors:b.errors??0,requestsMade:b.requestsMade??0}));if(b.success!==true)process.exit(1)'

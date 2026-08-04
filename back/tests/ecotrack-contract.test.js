@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   assertEcotrackSuccess,
@@ -147,4 +149,19 @@ test('le stock refuse les quantites ambiguës et ne confond pas reference comman
   assert.equal(product.name, 'T-shirt');
   assert.equal(product.variant, 'XL');
   assert.equal(product.code, undefined);
+});
+
+test('le deploiement Hobby garde le cron hors de vercel.json', () => {
+  const vercelConfig = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../vercel.json'), 'utf8')
+  );
+  assert.equal(Object.hasOwn(vercelConfig, 'crons'), false);
+
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, '../../.github/workflows/order-status-sync.yml'),
+    'utf8'
+  );
+  assert.match(workflow, /cron: '2\/5 \* \* \* \*'/);
+  assert.match(workflow, /secrets\.CRON_SECRET/);
+  assert.match(workflow, /\/api\/orders\/cron\/sync-statuses/);
 });

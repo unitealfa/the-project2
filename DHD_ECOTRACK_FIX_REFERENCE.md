@@ -647,6 +647,32 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   Sheet/DHD/reset non declarables fonctionnelles tant que leurs nouveaux acces
   ne sont pas fournis et testes.
 
+### Entree 8 — 2026-08-04 — Correction du deploiement Vercel Hobby
+
+- Symptome verifie : le commit `56b842e` ne contient aucun conflit Git et passe
+  tous les builds locaux, mais GitHub publie deux statuts Vercel distincts : le
+  projet frontend termine avec succes et le projet backend echoue au
+  deploiement.
+- Cause : `back/vercel.json` declarait `*/5 * * * *`. Vercel Hobby refuse les
+  expressions cron executees plus d'une fois par jour et fait echouer le
+  deploiement avant la mise en production du nouveau backend.
+- Correction : retrait du cron natif dans `back/vercel.json`; conservation de
+  la route protegee et du verrou Mongo; ajout du workflow
+  `.github/workflows/order-status-sync.yml`, planifie a `2/5 * * * *`, appelant
+  la meme route avec `secrets.CRON_SECRET`. Un HTTP 409 concurrent est traite
+  comme une execution deja couverte et non comme une panne.
+- Securite : permissions GitHub limitees a `contents: read`; aucun token
+  DHD/Sook ni aucune donnee de commande dans le workflow ou ses logs; seul le
+  secret cron doit etre duplique dans les coffres Vercel backend et GitHub.
+- Documentation : procedure monorepo Vercel et configuration du secret GitHub
+  ajoutees au `README.md`.
+- Tests : build TypeScript backend, 11 scenarios contractuels dont la garde
+  anti-regression Vercel Hobby, typecheck/build frontend, validation JSON et
+  `git diff --check` reussis localement.
+- Limite externe : le prochain commit doit etre pousse pour obtenir une preuve
+  de deploiement backend; le workflow doit ensuite etre lance manuellement une
+  premiere fois apres configuration du secret GitHub.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -672,10 +698,11 @@ Audit                         TERMINE
 Reference anti-hallucination  TERMINE
 Implementation backend       TERMINEE LOCALEMENT
 Migration frontend            TERMINEE LOCALEMENT
-Cron Vercel                   CONFIGURE, VALIDATION LIVE RESTANTE
+Cron Vercel                   RETIRE CAR INCOMPATIBLE AVEC HOBBY
+Cron GitHub 5 minutes         CONFIGURE, SECRET ET VALIDATION LIVE RESTANTS
 Rotation secrets              A EFFECTUER DANS LES SERVICES
 Configuration locale          PARTIELLE; ACCES SHEET/DHD MANQUANTS
-Tests contractuels            10 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
+Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
 Validation staging            NON COMMENCEE
