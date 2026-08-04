@@ -1,24 +1,28 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn src/app.ts",
-    "build": "tsc"
+    "dev": "ts-node-dev --respawn src/server.ts",
+    "start": "node dist/src/server.js",
+    "build": "tsc",
+    "test": "npm run build && node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "dependencies": {
-    "axios": "^1.12.2",
+    "axios": "^1.19.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "express": "^4.21.2",
+    "express": "^4.22.2",
     "google-auth-library": "^10.4.0",
     "googleapis": "^162.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.20.0",
-    "mongoose": "^7.8.7",
-    "multer": "^2.0.2",
-    "nodemailer": "^7.0.9",
+    "mongoose": "^7.8.11",
+    "multer": "^2.2.0",
+    "nodemailer": "^9.0.3",
     "pdfkit": "^0.17.2"
   },
   "devDependencies": {

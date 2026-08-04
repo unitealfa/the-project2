@@ -6,32 +6,89 @@ import sheetService from './order.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import Order from './order.model';
 import User from '../users/user.model';
-import { decrementStockForDeliveredOrder, incrementStockForReturnedOrder } from './orderStockUtils';
 import { Types } from 'mongoose';
+import { reconcileOrderStock } from './orderStockReconciliation.service';
+import { AuthRequest } from '../middleware/auth.middleware';
+import {
+  acquireStatusSyncLock,
+  releaseStatusSyncLock,
+} from './orderApi.controller';
+
+const debugLog = (...args: unknown[]) => {
+  if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
+    console.log(...args);
+  }
+};
+
+const sanitizeOrderRow = (value: unknown): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const sanitized: Record<string, unknown> = {};
+  for (const [rawKey, rawValue] of Object.entries(value).slice(0, 250)) {
+    const key = rawKey.trim();
+    if (!key || key.length > 160 || key.startsWith('$') || key.includes('.') || key.includes('\0')) {
+      continue;
+    }
+    if (typeof rawValue === 'string') sanitized[key] = rawValue.slice(0, 5_000);
+    else if (typeof rawValue === 'number' && Number.isFinite(rawValue)) sanitized[key] = rawValue;
+    else if (typeof rawValue === 'boolean' || rawValue === null) sanitized[key] = rawValue;
+  }
+  return sanitized;
+};
+
+export const getSheetCsv = async (_req: Request, res: Response) => {
+  try {
+    const csv = await sheetService.getSheetCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(502).json({
+      success: false,
+      message: 'Impossible de charger la feuille de commandes.',
+    });
+  }
+};
 
 export const updateWilayaAndCommune = async (req: Request, res: Response) => {
   const { rowId, wilaya, commune, row } = req.body ?? {};
+  const normalizedRowId =
+    typeof rowId === 'string' || typeof rowId === 'number'
+      ? String(rowId).trim()
+      : '';
+  const normalizedWilaya = typeof wilaya === 'string' ? wilaya.trim() : '';
+  const normalizedCommune = typeof commune === 'string' ? commune.trim() : '';
+  const normalizedRow = sanitizeOrderRow(row);
 
-  if (!rowId) {
+  if (!normalizedRowId) {
     return res.status(400).json({
       success: false,
       message: 'Le champ "rowId" est requis.',
     });
   }
 
-  if (!wilaya && !commune) {
+  if (!normalizedWilaya && !normalizedCommune) {
     return res.status(400).json({
       success: false,
       message: 'Au moins un des champs "wilaya" ou "commune" doit être fourni.',
     });
   }
+  if (
+    normalizedRowId.length > 100 ||
+    normalizedWilaya.length > 100 ||
+    normalizedCommune.length > 100
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'Une valeur dépasse la longueur autorisée.',
+    });
+  }
 
   try {
     const result = await sheetService.updateWilayaAndCommune({
-      rowId: String(rowId),
-      wilaya: wilaya ? String(wilaya) : undefined,
-      commune: commune ? String(commune) : undefined,
-      row: row ?? undefined,
+      rowId: normalizedRowId,
+      wilaya: normalizedWilaya || undefined,
+      commune: normalizedCommune || undefined,
+      row: normalizedRow,
     });
 
     return res.json({
@@ -39,10 +96,9 @@ export const updateWilayaAndCommune = async (req: Request, res: Response) => {
       result,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
     return res.status(500).json({
       success: false,
-      message,
+      message: 'Impossible de mettre à jour la wilaya ou la commune.',
     });
   }
 };
@@ -93,21 +149,120 @@ const formatPhoneNumber = (value?: unknown): string => {
   return digits || 'N/A';
 };
 
+const parseLocaleAmount = (value: unknown): number | null => {
+  if (value === undefined || value === null) return null;
+  let text = String(value)
+    .replace(/[\s\u00a0\u202f]+/g, '')
+    .replace(/[^\d,.-]/g, '');
+  if (!text || !/\d/.test(text)) return null;
+  const negative = text.startsWith('-');
+  text = text.replace(/-/g, '');
+  const commaIndex = text.lastIndexOf(',');
+  const dotIndex = text.lastIndexOf('.');
+  if (commaIndex >= 0 && dotIndex >= 0) {
+    const decimalSeparator = commaIndex > dotIndex ? ',' : '.';
+    const thousandsSeparator = decimalSeparator === ',' ? '.' : ',';
+    text = text.split(thousandsSeparator).join('');
+    const decimalIndex = text.lastIndexOf(decimalSeparator);
+    text =
+      text.slice(0, decimalIndex).split(decimalSeparator).join('') +
+      '.' +
+      text.slice(decimalIndex + 1);
+  } else {
+    const separator = commaIndex >= 0 ? ',' : dotIndex >= 0 ? '.' : '';
+    if (separator) {
+      const parts = text.split(separator);
+      const looksLikeThousands =
+        parts.length > 1 && parts.slice(1).every((part) => part.length === 3);
+      text = looksLikeThousands
+        ? parts.join('')
+        : `${parts.slice(0, -1).join('')}.${parts[parts.length - 1] ?? ''}`;
+    }
+  }
+  const parsed = Number(`${negative ? '-' : ''}${text}`);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parsePositiveQuantity = (value: unknown): number | null => {
+  if (value === undefined || value === null || String(value).trim() === '') return 1;
+  const normalized = String(value).trim().replace(',', '.');
+  const match = normalized.match(
+    /^(\d+)(?:\.0+)?(?:\s*(?:x|pcs?|pi[eè]ces?|unit[eé]s?))?$/i
+  );
+  const parsed = match ? Number(match[1]) : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 10_000
+    ? parsed
+    : null;
+};
+
 export const updateOrderStatus = async (req: Request, res: Response) => {
-  const { rowId, status, tracking, row, deliveryType, deliveryPersonId } =
+  const {
+    rowId,
+    status,
+    tracking,
+    row,
+    deliveryType,
+    deliveryPersonId,
+    carrierStatus,
+  } =
     req.body ?? {};
 
-  if (!rowId || !status) {
+  const normalizedRowId = typeof rowId === 'string' || typeof rowId === 'number'
+    ? String(rowId).trim()
+    : '';
+  const normalizedStatus = typeof status === 'string' ? status.trim() : '';
+  const normalizedTracking = typeof tracking === 'string' ? tracking.trim() : '';
+  const normalizedCarrierStatus =
+    typeof carrierStatus === 'string' ? carrierStatus.trim() : '';
+  const normalizedRow = sanitizeOrderRow(row);
+
+  if (!normalizedRowId || !normalizedStatus) {
     return res.status(400).json({
       success: false,
       message: 'Les champs "rowId" et "status" sont requis.',
     });
   }
+  if (
+    normalizedRowId.length > 100 ||
+    normalizedStatus.length > 80 ||
+    normalizedTracking.length > 100 ||
+    normalizedCarrierStatus.length > 160
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'Une valeur de commande dépasse la longueur autorisée.',
+    });
+  }
 
   try {
-    const existingOrder = await Order.findOne({ rowId: String(rowId) });
+    const existingOrder = await Order.findOne({ rowId: normalizedRowId });
+    const authRequest = req as AuthRequest;
+    if (authRequest.user?.role === 'livreur') {
+      if (
+        !existingOrder ||
+        existingOrder.deliveryType !== 'livreur' ||
+        String(existingOrder.deliveryPersonId ?? '') !== authRequest.user.id
+      ) {
+        return res.status(403).json({ success: false, message: 'Acces refuse.' });
+      }
+      const allowedDeliveryStatuses = new Set([
+        'delivered',
+        'livrée',
+        'livree',
+        'returned',
+        'retours',
+      ]);
+      if (!allowedDeliveryStatuses.has(normalizedStatus.toLowerCase())) {
+        return res.status(403).json({
+          success: false,
+          message: 'Ce changement de statut n’est pas autorise pour un livreur.',
+        });
+      }
+    }
 
+    const isDeliveryUser = authRequest.user?.role === 'livreur';
     const normalizedDeliveryType: 'api_dhd' | 'api_sook' | 'livreur' = (() => {
+      if (isDeliveryUser) return 'livreur';
       if (deliveryType === 'livreur') {
         return 'livreur';
       }
@@ -120,12 +275,37 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       return existingOrder?.deliveryType ?? 'api_dhd';
     })();
 
+    const hasExistingTracking = Boolean(
+      existingOrder?.tracking &&
+      existingOrder.tracking.trim().length >= 5 &&
+      !['N/A', 'NA', 'NONE', '0'].includes(existingOrder.tracking.trim().toUpperCase())
+    );
+    if (
+      hasExistingTracking &&
+      existingOrder?.deliveryType !== normalizedDeliveryType
+    ) {
+      return res.status(409).json({
+        success: false,
+        message:
+          'Le transporteur ne peut pas être changé après la création du tracking sans intervention manuelle contrôlée.',
+      });
+    }
+
     // Si c'est un envoi vers un livreur, vérifier que le livreur existe
     let resolvedDeliveryPersonId: string | undefined;
     let deliveryPersonName: string | undefined;
 
     if (normalizedDeliveryType === 'livreur') {
-      if (deliveryPersonId) {
+      if (isDeliveryUser && existingOrder?.deliveryPersonId) {
+        resolvedDeliveryPersonId = existingOrder.deliveryPersonId;
+        deliveryPersonName = existingOrder.deliveryPersonName;
+      } else if (deliveryPersonId) {
+        if (!Types.ObjectId.isValid(String(deliveryPersonId))) {
+          return res.status(400).json({
+            success: false,
+            message: 'Livreur non trouvé ou invalide.',
+          });
+        }
         const deliveryPerson = await User.findById(deliveryPersonId);
         if (!deliveryPerson || deliveryPerson.role !== 'livreur') {
           return res.status(400).json({
@@ -146,45 +326,48 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       }
     }
 
-    if (normalizedDeliveryType !== 'livreur') {
-      resolvedDeliveryPersonId = undefined;
-      deliveryPersonName = undefined;
+    const effectiveTracking = normalizedTracking || existingOrder?.tracking;
+    const effectiveCarrierStatus =
+      normalizedCarrierStatus || existingOrder?.carrierStatus;
+    const setValues: Record<string, unknown> = {
+      rowId: normalizedRowId,
+      status: normalizedStatus,
+      deliveryType: normalizedDeliveryType,
+      row: normalizedRow ?? existingOrder?.row,
+    };
+    if (effectiveTracking) setValues.tracking = effectiveTracking;
+    if (effectiveCarrierStatus) setValues.carrierStatus = effectiveCarrierStatus;
+    if (normalizedDeliveryType === 'livreur') {
+      setValues.deliveryPersonId = resolvedDeliveryPersonId;
+      setValues.deliveryPersonName = deliveryPersonName;
     }
 
-    // Mettre à jour le statut dans Google Sheets
-    const result = await sheetService.updateStatus({
-      rowId: String(rowId),
-      status: String(status),
-      tracking: typeof tracking === 'string' ? tracking : undefined,
-      row,
-    });
+    const unsetValues: Record<string, 1> = {};
+    if (normalizedDeliveryType === 'livreur') {
+      unsetValues.tracking = 1;
+      unsetValues.carrierStatus = 1;
+      unsetValues.carrierStatusUpdatedAt = 1;
+      unsetValues.carrierValidatedAt = 1;
+    } else {
+      unsetValues.deliveryPersonId = 1;
+      unsetValues.deliveryPersonName = 1;
+    }
 
-    // Sauvegarder ou mettre à jour la commande dans la base de données
-    const orderData = {
-      rowId: String(rowId),
-      status: String(status),
-      tracking: typeof tracking === 'string' ? tracking : undefined,
-      deliveryType: normalizedDeliveryType,
-      deliveryPersonId: resolvedDeliveryPersonId,
-      deliveryPersonName,
-      row: row ?? existingOrder?.row,
-    };
-
-    console.log('💾 Sauvegarde de la commande:', {
-      rowId: String(rowId),
-      status: String(status),
+    debugLog('Sauvegarde de la commande:', {
+      rowId: normalizedRowId,
+      status: normalizedStatus,
       deliveryType: normalizedDeliveryType,
       deliveryPersonId: resolvedDeliveryPersonId,
       deliveryPersonName
     });
 
     const savedOrder = await Order.findOneAndUpdate(
-      { rowId: String(rowId) },
-      orderData,
+      { rowId: normalizedRowId },
+      { $set: setValues, $unset: unsetValues },
       { upsert: true, new: true }
     );
 
-    console.log('✅ Commande sauvegardée:', {
+    debugLog('Commande sauvegardée:', {
       _id: savedOrder._id,
       rowId: savedOrder.rowId,
       status: savedOrder.status,
@@ -193,65 +376,63 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       deliveryPersonName: savedOrder.deliveryPersonName
     });
 
-    // Décrémenter automatiquement le stock si le statut devient "delivered"
-    // et que le statut précédent n'était pas déjà "delivered" (pour éviter les doubles décrémentations)
-    const normalizedStatus = String(status).toLowerCase().trim();
-    const previousStatus = existingOrder?.status
-      ? String(existingOrder.status).toLowerCase().trim()
-      : '';
-    const isDelivered =
-      normalizedStatus === 'delivered' ||
-      normalizedStatus === 'livrée' ||
-      normalizedStatus === 'livree';
-    const wasAlreadyDelivered =
-      previousStatus === 'delivered' ||
-      previousStatus === 'livrée' ||
-      previousStatus === 'livree';
-    const isReturned =
-      normalizedStatus === 'returned' ||
-      normalizedStatus === 'retour' ||
-      normalizedStatus === 'retours' ||
-      normalizedStatus === 'retournée' ||
-      normalizedStatus === 'retournee' ||
-      normalizedStatus === 'retourne';
-    const wasDeliveredBeforeReturn =
-      previousStatus === 'delivered' ||
-      previousStatus === 'livrée' ||
-      previousStatus === 'livree';
-
-    if (isDelivered && !wasAlreadyDelivered) {
-      const orderRow = row ?? existingOrder?.row ?? savedOrder.row;
-      if (orderRow) {
-        // Décrémenter le stock de manière asynchrone (ne pas bloquer la réponse)
-        decrementStockForDeliveredOrder(orderRow, String(rowId)).catch((error) => {
-          console.error('Erreur lors de la décrémentation automatique du stock:', error);
-        });
-      }
+    // Une seule machine d'état serveur gere le stock. Le filtre atomique de
+    // reconcileOrderStock rend les répétitions de webhook/UI/synchronisation idempotentes.
+    let stockMessage = '';
+    try {
+      await reconcileOrderStock(normalizedRowId, normalizedStatus);
+    } catch (stockError) {
+      stockMessage =
+        stockError instanceof Error ? stockError.message : 'Erreur stock inconnue';
     }
 
-    // Ré-incrémenter automatiquement le stock si la commande passe en "returned"
-    // uniquement si elle était précédemment livrée (pour éviter les doubles ajustements)
-    if (isReturned && wasDeliveredBeforeReturn) {
-      const orderRow = row ?? existingOrder?.row ?? savedOrder.row;
-      if (orderRow) {
-        incrementStockForReturnedOrder(orderRow, String(rowId)).catch((error) => {
-          console.error(
-            'Erreur lors de la ré-incrémentation automatique du stock pour une commande retournée:',
-            error
-          );
-        });
-      }
+    let sheetResult: unknown;
+    let sheetFailed = false;
+    try {
+      sheetResult = await sheetService.updateStatus({
+        rowId: normalizedRowId,
+        status: normalizedStatus,
+        tracking:
+          normalizedDeliveryType === 'livreur' ? undefined : effectiveTracking,
+        carrierStatus:
+          normalizedDeliveryType === 'livreur' ? undefined : effectiveCarrierStatus,
+        carrierType:
+          normalizedDeliveryType === 'api_dhd' ||
+          normalizedDeliveryType === 'api_sook'
+            ? normalizedDeliveryType
+            : undefined,
+        row: normalizedRow ?? savedOrder.row,
+      });
+    } catch {
+      sheetFailed = true;
+    }
+
+    const syncErrors = [
+      ...(stockMessage ? [`Stock: ${stockMessage}`] : []),
+      ...(sheetFailed ? ['Google Sheets: synchronisation impossible'] : []),
+    ];
+    await Order.updateOne(
+      { rowId: normalizedRowId },
+      { $set: { lastSyncError: syncErrors.join(' | ') } }
+    );
+    if (syncErrors.length > 0) {
+      return res.status(sheetFailed ? 502 : 500).json({
+        success: false,
+        partialSuccess: true,
+        message: sheetFailed
+          ? 'Le statut est sauvegardé dans la base, mais Google Sheets n’a pas pu être synchronisé.'
+          : `Le statut est sauvegardé, mais le stock n'a pas pu être ajusté: ${stockMessage}`,
+      });
     }
 
     return res.json({
       success: true,
-      result,
+      result: sheetResult,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur inconnue';
     return res.status(500).json({
       success: false,
-      message,
+      message: 'Impossible de mettre à jour la commande.',
     });
   }
 };
@@ -260,23 +441,20 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 export const getDeliveryPersons = async (req: Request, res: Response) => {
   try {
     const deliveryPersons = await User.find({ role: 'livreur' })
-      .select('_id firstName lastName email');
+      .select('_id firstName lastName');
     
     return res.json({
       success: true,
       deliveryPersons: deliveryPersons.map(person => ({
         id: person._id,
-        name: `${person.firstName} ${person.lastName}`,
-        email: person.email
+        name: `${person.firstName} ${person.lastName}`
       }))
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur lors de la recuperation des livreurs';
-    console.error('Erreur getDeliveryPersons:', message);
-    return res.json({
-      success: true,
-      deliveryPersons: [],
-      message,
+    console.error('Erreur getDeliveryPersons');
+    return res.status(500).json({
+      success: false,
+      message: 'Impossible de charger les livreurs.',
     });
   }
 };
@@ -285,10 +463,18 @@ export const getDeliveryPersons = async (req: Request, res: Response) => {
 export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
   try {
     const { deliveryPersonId } = req.params;
+    const authRequest = req as AuthRequest;
+    if (
+      authRequest.user?.role === 'livreur' &&
+      authRequest.user.id !== deliveryPersonId
+    ) {
+      return res.status(403).json({ success: false, message: 'Acces refuse.' });
+    }
     
-    console.log('🔍 Recherche des commandes pour le livreur:', deliveryPersonId);
-    
-    // Rechercher avec l'ID exact (string) et aussi avec ObjectId si c'est un ObjectId valide
+    if (!Types.ObjectId.isValid(deliveryPersonId)) {
+      return res.status(400).json({ success: false, message: 'Identifiant livreur invalide.' });
+    }
+
     const query: any = {
       deliveryType: 'livreur',
       status: { 
@@ -300,39 +486,15 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
           'En préparation',
           'Prêt à expédier',
           'En livraison',
-          'En cours de livraison',
-          'delivered',
-          'returned'
+          'En cours de livraison'
         ] 
       }
     };
     
-    // Essayer de matcher l'ID comme string d'abord
     query.deliveryPersonId = deliveryPersonId;
-    
-    let orders = await Order.find(query).sort({ updatedAt: -1 });
-    
-    console.log(`📦 Trouvé ${orders.length} commandes avec deliveryPersonId string`);
-    
-    // Si aucune commande trouvée, essayer avec ObjectId
-    if (orders.length === 0) {
-      try {
-        const mongoose = require('mongoose');
-        const objectId = new mongoose.Types.ObjectId(deliveryPersonId);
-        query.deliveryPersonId = objectId;
-        orders = await Order.find(query).sort({ updatedAt: -1 });
-        console.log(`📦 Trouvé ${orders.length} commandes avec deliveryPersonId ObjectId`);
-      } catch (objectIdError) {
-        console.log('❌ Erreur lors de la conversion en ObjectId:', objectIdError);
-      }
-    }
-    
-    // Debug: afficher toutes les commandes avec deliveryType 'livreur'
-    const allDeliveryOrders = await Order.find({ deliveryType: 'livreur' });
-    console.log(`📦 Total des commandes pour livreurs: ${allDeliveryOrders.length}`);
-    allDeliveryOrders.forEach(order => {
-      console.log(`   - Commande ${order.rowId}: deliveryPersonId="${order.deliveryPersonId}" (type: ${typeof order.deliveryPersonId})`);
-    });
+    const orders = await Order.find(query)
+      .select('rowId status tracking deliveryType deliveryPersonId deliveryPersonName row createdAt updatedAt')
+      .sort({ updatedAt: -1 });
     
     return res.json({
       success: true,
@@ -340,7 +502,7 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des commandes';
-    console.error('❌ Erreur dans getDeliveryPersonOrders:', error);
+    console.error('Erreur dans getDeliveryPersonOrders:', message);
     return res.status(500).json({
       success: false,
       message,
@@ -351,12 +513,22 @@ export const getDeliveryPersonOrders = async (req: Request, res: Response) => {
 export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
   try {
     const { deliveryPersonId } = req.params;
+    const authRequest = req as AuthRequest;
+    if (
+      authRequest.user?.role === 'livreur' &&
+      authRequest.user.id !== deliveryPersonId
+    ) {
+      return res.status(403).json({ success: false, message: 'Acces refuse.' });
+    }
 
     if (!deliveryPersonId) {
       return res.status(400).json({
         success: false,
         message: 'L\'identifiant du livreur est requis',
       });
+    }
+    if (!Types.ObjectId.isValid(deliveryPersonId)) {
+      return res.status(400).json({ success: false, message: 'Identifiant livreur invalide.' });
     }
 
     const finalStatuses = [
@@ -369,6 +541,8 @@ export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
       'returned',
       'Returned',
       'retour',
+      'retours',
+      'Retours',
       'retournée',
       'Retournée',
       'retournee',
@@ -376,7 +550,10 @@ export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
       'annulée',
       'Annulée',
       'annulee',
-      'Annulee'
+      'Annulee',
+      'abandoned',
+      'canceled',
+      'cancelled'
     ];
 
     const baseQuery: Record<string, unknown> = {
@@ -384,24 +561,9 @@ export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
       status: { $in: finalStatuses }
     };
 
-    const queries = [{ ...baseQuery, deliveryPersonId }];
-
-    try {
-      const mongoose = require('mongoose');
-      if (mongoose.Types.ObjectId.isValid(deliveryPersonId)) {
-        queries.push({ ...baseQuery, deliveryPersonId: new mongoose.Types.ObjectId(deliveryPersonId) });
-      }
-    } catch (objectIdError) {
-      console.log('❌ Erreur lors de la conversion en ObjectId pour l\'historique:', objectIdError);
-    }
-
-    let orders: any[] = [];
-    for (const query of queries) {
-      orders = await Order.find(query).sort({ updatedAt: -1 });
-      if (orders.length > 0) {
-        break;
-      }
-    }
+    const orders = await Order.find({ ...baseQuery, deliveryPersonId })
+      .select('rowId status tracking deliveryType deliveryPersonId deliveryPersonName row createdAt updatedAt')
+      .sort({ updatedAt: -1 });
 
     return res.json({
       success: true,
@@ -409,7 +571,7 @@ export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur lors de la récupération de l\'historique';
-    console.error('❌ Erreur dans getDeliveryPersonHistory:', error);
+    console.error('Erreur dans getDeliveryPersonHistory:', message);
     return res.status(500).json({
       success: false,
       message,
@@ -426,8 +588,22 @@ export const syncOfficialStatuses = async (req: Request, res: Response) => {
       message: 'Le corps de la requête doit contenir un tableau "orders" non vide.',
     });
   }
+  if (orders.length > 1000) {
+    return res.status(400).json({
+      success: false,
+      message: 'Une synchronisation manuelle ne peut pas dépasser 1000 commandes.',
+    });
+  }
 
+  let lockAcquired = false;
   try {
+    lockAcquired = await acquireStatusSyncLock();
+    if (!lockAcquired) {
+      return res.status(409).json({
+        success: false,
+        message: 'Une synchronisation des statuts est déjà en cours.',
+      });
+    }
     const result = await syncOfficialStatusesService({
       orders,
       startDate: typeof startDate === 'string' ? startDate : undefined,
@@ -445,6 +621,10 @@ export const syncOfficialStatuses = async (req: Request, res: Response) => {
       success: false,
       message,
     });
+  } finally {
+    if (lockAcquired) {
+      await releaseStatusSyncLock().catch(() => undefined);
+    }
   }
 };
 
@@ -473,6 +653,14 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
         success: false,
         message: 'Commande non trouvée.',
       });
+    }
+
+    const authRequest = req as AuthRequest;
+    if (
+      authRequest.user?.role === 'livreur' &&
+      String(order.deliveryPersonId ?? '') !== authRequest.user.id
+    ) {
+      return res.status(403).json({ success: false, message: 'Acces refuse.' });
     }
 
     if (!order.row) {
@@ -656,11 +844,11 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
         // Vérifier que c'est un nom de produit valide (accepte l'arabe)
         if (trimmed && isValidProductName(trimmed)) {
           produitLabel = trimmed;
-          console.log('✅ Nom de produit trouvé dans:', rawKey, '=', trimmed.substring(0, 50));
+          debugLog('Nom de produit trouvé');
           break;
         } else if (trimmed) {
           const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(trimmed);
-          console.log('⚠️ Champ produit ignoré:', rawKey, '=', trimmed.substring(0, 30), '| Arabe:', hasArabic, '| Valide:', isValidProductName(trimmed));
+          debugLog('Champ produit ignoré');
         }
       }
     }
@@ -673,16 +861,16 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
         // Vérifier si c'est un nom valide (accepte l'arabe)
         if (isValidProductName(fallbackValue)) {
           produitLabel = fallbackValue;
-          console.log('✅ Utilisation du champ "Produit":', fallbackValue.substring(0, 50));
+          debugLog('Utilisation du champ produit standard');
         } else {
           const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(fallbackValue);
-          console.log('⚠️ Champ "Produit" ignoré:', fallbackValue.substring(0, 30), '| Arabe:', hasArabic, '| Valide:', isValidProductName(fallbackValue));
+          debugLog('Champ produit standard ignoré');
         }
       }
       
       // Si toujours pas trouvé (ou si "Produit" était corrompu), chercher dans TOUS les autres champs
       if (!produitLabel) {
-        console.log('🔍 Recherche du nom de produit dans tous les champs disponibles...');
+        debugLog('Recherche du nom de produit');
         for (const [key, value] of Object.entries(row)) {
           const normalizedKey = normalizeKey(String(key));
           // Ignorer les champs connus qui ne sont pas des noms
@@ -712,7 +900,7 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
           // Prendre le premier champ qui semble être un nom valide (accepte l'arabe)
           if (trimmed && isValidProductName(trimmed)) {
             produitLabel = trimmed;
-            console.log('✅ Nom de produit trouvé dans le champ alternatif:', key, '=', trimmed.substring(0, 50));
+            debugLog('Nom de produit trouvé dans un champ alternatif');
             break;
           }
         }
@@ -777,27 +965,27 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
       // Vérifier à nouveau si c'est corrompu après nettoyage
       if (isCorruptedText(produit) && !hasArabicChars) {
         // Rejeter si corrompu ET pas d'arabe (même si long)
-        console.log('⚠️ Nom de produit rejeté comme corrompu après nettoyage:', produit, '(origine:', produitLabel.substring(0, 30), '...)');
+        debugLog('Nom de produit rejeté après nettoyage');
         produit = 'N/A';
       } else {
-        console.log('✅ Nom de produit extrait:', produit, '| Longueur:', produit.length, '| Contient arabe:', hasArabicChars);
+        debugLog('Nom de produit extrait');
         // Afficher un aperçu pour vérifier
         if (produit.length > 0) {
           const preview = produit.substring(0, Math.min(50, produit.length));
-          console.log('   Aperçu:', preview, '...');
+          debugLog('Aperçu produit disponible');
         }
       }
     } else {
-      console.log('⚠️ Aucun nom de produit trouvé dans les données de la commande');
+      debugLog('Aucun nom de produit trouvé');
       // Log pour déboguer - afficher tous les champs disponibles
-      console.log('   Champs disponibles contenant "produit":', Object.keys(row).filter(k => k.toLowerCase().includes('produit')));
+      debugLog('Aucun champ produit exploitable');
       // Afficher tous les champs et leurs valeurs (pour déboguer)
-      console.log('   📋 Tous les champs de la commande:');
+      debugLog('Inspection des champs de commande');
       for (const [key, value] of Object.entries(row)) {
         const valStr = String(value ?? '').trim();
         if (valStr && valStr.length > 2 && valStr.length < 200) {
           const isCorrupted = isCorruptedText(valStr);
-          console.log(`     - ${key}: "${valStr.substring(0, 60)}${valStr.length > 60 ? '...' : ''}" (corrompu: ${isCorrupted}, longueur: ${valStr.length})`);
+          debugLog('Champ de commande inspecté');
         }
       }
     }
@@ -814,18 +1002,6 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
       }
     }
     
-    // Fonction pour parser un montant
-    const parseAmount = (value: unknown): number | null => {
-      if (value === undefined || value === null) return null;
-      const cleaned = String(value)
-        .replace(/\s+/g, '')
-        .replace(/[^\d,.-]/g, '')
-        .replace(/,/g, '.');
-      if (!cleaned) return null;
-      const parsed = parseFloat(cleaned);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-    
     // Extraire le montant total (priorité au champ "total")
     let prix = '0';
     const prixKeys = ['total', 'Total', 'TOTAL', 'Montant', 'Montant total', 'Prix total'];
@@ -833,7 +1009,7 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     // D'abord chercher le champ "total" (en priorité)
     for (const key of prixKeys) {
       if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-        const parsed = parseAmount(row[key]);
+        const parsed = parseLocaleAmount(row[key]);
         if (parsed !== null) {
           // Formater le montant (enlever les décimales si c'est un nombre entier)
           prix = parsed % 1 === 0 ? String(Math.round(parsed)) : parsed.toFixed(2);
@@ -845,17 +1021,16 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     // Si aucun montant trouvé, essayer de calculer depuis prix unitaire * quantité
     if (prix === '0') {
       const quantityForTotal = (() => {
-        const raw = String(row['Quantité'] || row['Quantite'] || row['Qte'] || '1');
-        const sanitized = raw.replace(/[^\d]/g, '');
-        const n = parseInt(sanitized, 10);
-        return Number.isNaN(n) || n <= 0 ? 1 : n;
+        return parsePositiveQuantity(
+          row['Quantité'] || row['Quantite'] || row['Qte']
+        ) ?? 1;
       })();
 
       const unitPriceForTotal = (() => {
         const priceCandidates = ['Prix unitaire', 'Prix', 'PrixU', 'PU', 'Prix U'];
         for (const key of priceCandidates) {
           if (key in row) {
-            const parsed = parseAmount(row[key]);
+            const parsed = parseLocaleAmount(row[key]);
             if (parsed !== null) return parsed;
           }
         }
@@ -893,7 +1068,8 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
 
     // Configurer les en-têtes de réponse
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="bordereau_${order.rowId || orderId}.pdf"`);
+    const safeFileId = String(order.rowId || orderId).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
+    res.setHeader('Content-Disposition', `attachment; filename="bordereau_${safeFileId}.pdf"`);
 
     // Pipe le PDF directement vers la réponse
     doc.pipe(res);
@@ -974,7 +1150,7 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
     
     // Log pour déboguer
     if (produit && produit !== 'N/A') {
-      console.log('📦 Produit à afficher:', produit.substring(0, 50), '... | Contient de l\'arabe:', hasArabic, '| Longueur:', produit.length);
+      debugLog('Produit ajouté au bordereau');
     }
 
     // Référence (seulement si elle existe et n'est pas vide)
@@ -1006,7 +1182,7 @@ export const generateBordereauPDF = async (req: Request, res: Response) => {
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur lors de la génération du bordereau.';
-    console.error('Erreur lors de la génération du bordereau:', error);
+    console.error('Erreur lors de la génération du bordereau:', message);
     return res.status(500).json({
       success: false,
       message,
@@ -1030,9 +1206,9 @@ export const getAllDeliveryOrders = async (_req: Request, res: Response) => {
       ])
     );
 
-    const orders = await Order.find({ deliveryType: 'livreur' }).sort({
-      updatedAt: -1,
-    });
+    const orders = await Order.find({ deliveryType: 'livreur' })
+      .select('rowId status tracking deliveryType deliveryPersonId deliveryPersonName row createdAt updatedAt')
+      .sort({ updatedAt: -1 });
 
     const decorated = orders.map((order) => {
       const normalizedId = order.deliveryPersonId
@@ -1060,4 +1236,3 @@ export const getAllDeliveryOrders = async (_req: Request, res: Response) => {
     return res.status(500).json({ success: false, message });
   }
 };
-

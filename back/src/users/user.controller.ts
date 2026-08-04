@@ -11,8 +11,8 @@ export const getAllUsers = async (_req: any, res: Response) => {
   try {
     const list = await service.getAllUsers();
     res.json(list);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch {
+    res.status(500).json({ message: 'Impossible de charger les utilisateurs' });
   }
 };
 
@@ -21,10 +21,16 @@ export const login = async (req: Request, res: Response) => {
   try {
     const dto: LoginDto = req.body;
     const { user, token } = await service.authenticate(dto);
-    const { password, ...rest } = user.toObject();
-    res.json({ ...rest, id: (user._id as any).toString(), token }); // FIX ligne 25
+    res.json({
+      id: String(user._id),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      token,
+    });
   } catch (err: any) {
-    res.status(401).json({ message: err.message });
+    res.status(401).json({ message: 'Identifiants invalides' });
   }
 };
 
@@ -34,8 +40,10 @@ export const forgotPassword = async (_req: Request, res: Response) => {
   try {
     const response = await service.requestPasswordReset();
     res.json(response);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch {
+    res.status(503).json({
+      message: 'Impossible d’envoyer le code de vérification pour le moment.',
+    });
   }
 };
 
@@ -44,8 +52,8 @@ export const forgotPassword = async (_req: Request, res: Response) => {
 export const verifyCode = async (req: Request, res: Response) => {
   try {
     const dto: VerifyCodeDto = req.body;
-    if (!dto.code) {
-      return res.status(400).json({ message: 'Code requis' });
+    if (!dto.code || !dto.newPassword) {
+      return res.status(400).json({ message: 'Code et nouveau mot de passe requis' });
     }
     const response = await service.verifyResetCode(dto);
     res.json(response);
@@ -79,8 +87,13 @@ export const getUser = async (req: any, res: Response) => {
       return res.status(403).json({ message: 'Accès refusé' });
     }
     const u = await service.getById(id);
-    const { password, ...rest } = u.toObject();
-    res.json({ ...rest, id: (u._id as any).toString() }); // FIX ligne 57
+    res.json({
+      id: String(u._id),
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      role: u.role,
+    });
   } catch (err: any) {
     res.status(404).json({ message: err.message });
   }

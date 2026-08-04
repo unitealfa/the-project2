@@ -1,295 +1,128 @@
-﻿// back/src/products/product.controller.ts
+import fs from 'fs';
+import path from 'path';
 import { Request, Response } from 'express';
 import { ProductService } from './product.service';
-
-
-const normalizeVariantName = (value: string | undefined | null): string => {
-  if (!value) {
-    return '';
-  }
-
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-};
-
-const resolveFinalVariantStock = (
-  product: { variants?: Array<{ name?: string; quantity?: number }> },
-  variant: string
-): number => {
-  const variants = Array.isArray(product?.variants) ? product.variants : [];
-  if (!variants.length) {
-    return 0;
-  }
-
-  const target = normalizeVariantName(variant);
-  const match = variants.find(
-    (candidate) =>
-      normalizeVariantName(String(candidate?.name ?? '')) === target
-  );
-
-  if (!match) {
-    return 0;
-  }
-
-  const parsedQuantity = Number(match.quantity);
-  return Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
-};
+import type { AuthRequest } from '../middleware/auth.middleware';
 
 const service = new ProductService();
+const uploadsDir = path.resolve(
+  process.env.UPLOADS_DIR ||
+    (process.env.VERCEL
+      ? path.join('/tmp', 'uploads')
+      : path.join(process.cwd(), 'uploads'))
+);
+
+const removeFile = async (filePath: string | undefined): Promise<void> => {
+  if (!filePath) return;
+  await fs.promises.unlink(filePath).catch(() => undefined);
+};
+
+const removeStoredImage = async (imagePath: string | undefined): Promise<void> => {
+  if (!imagePath) return;
+  const fileName = path.basename(imagePath);
+  if (imagePath !== `/uploads/${fileName}`) return;
+  const absolutePath = path.resolve(uploadsDir, fileName);
+  if (path.dirname(absolutePath) !== uploadsDir) return;
+  await removeFile(absolutePath);
+};
+
+const parseVariants = (value: unknown): Array<{ name: string; quantity: number }> => {
+  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  if (parsed === undefined) return [];
+  if (!Array.isArray(parsed)) {
+    throw new Error('Le champ variantes doit être un tableau');
+  }
+  return parsed;
+};
+
+const publicMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const body = req.body as any;
-    let variants: Array<{ name: string; quantity: number }> = [];
-    try {
-      variants = typeof body.variants === 'string' ? JSON.parse(body.variants) : (Array.isArray(body.variants) ? body.variants : []);
-    } catch {
-      variants = [];
-    }
-    const imagePath = (req as any).file ? `/uploads/${(req as any).file.filename}` : (body.image || '');
-    const dto = {
-      code: body.code ?? '',
-      name: String(body.name),
+    const body = req.body as Record<string, unknown>;
+    const product = await service.create({
+      code: typeof body.code === 'string' ? body.code : '',
+      name: typeof body.name === 'string' ? body.name : '',
       costPrice: Number(body.costPrice),
       salePrice: Number(body.salePrice),
-      image: imagePath,
-      variants,
-    };
-    const p = await service.create(dto);
-    res.status(201).json(p);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+      image: req.file ? `/uploads/${req.file.filename}` : String(body.image ?? ''),
+      variants: parseVariants(body.variants),
+    });
+    return res.status(201).json(product);
+  } catch (error) {
+    await removeFile(req.file?.path);
+    return res.status(400).json({
+      message: publicMessage(error, 'Produit invalide'),
+    });
   }
 };
 
-export const listProducts = async (_req: Request, res: Response) => {
+export const listProducts = async (req: Request, res: Response) => {
   try {
     const list = await service.list();
-    res.json(list);
-  } catch (err: any) {
-    console.error("listProducts error:", err?.message || err);
-    res.json([]);
+    if ((req as AuthRequest).user?.role === 'confirmateur') {
+      return res.json(
+        list.map((product) => {
+          const { costPrice, ...safe } = product.toObject();
+          return safe;
+        })
+      );
+    }
+    return res.json(list);
+  } catch {
+    console.error('Chargement des produits impossible');
+    return res.status(500).json({ message: 'Impossible de charger les produits' });
   }
 };
 
 export const getProduct = async (req: Request, res: Response) => {
   try {
-    const p = await service.getById(req.params.id);
-    res.json(p);
-  } catch (err: any) {
-    res.status(404).json({ message: err.message });
+    return res.json(await service.getById(req.params.id));
+  } catch (error) {
+    return res.status(404).json({
+      message: publicMessage(error, 'Produit non trouvé'),
+    });
   }
 };
 
 export const updateProduct = async (req: Request, res: Response) => {
+  let previousImage = '';
   try {
-    const body = req.body as any;
-    const partial: any = {};
+    const body = req.body as Record<string, unknown>;
+    const partial: Record<string, unknown> = {};
     if (body.code !== undefined) partial.code = body.code;
     if (body.name !== undefined) partial.name = body.name;
     if (body.costPrice !== undefined) partial.costPrice = Number(body.costPrice);
     if (body.salePrice !== undefined) partial.salePrice = Number(body.salePrice);
-    if ((req as any).file) {
-      partial.image = `/uploads/${(req as any).file.filename}`;
-    } else if (body.image !== undefined) {
-      partial.image = body.image; // keep existing or clear
+    if (req.file) partial.image = `/uploads/${req.file.filename}`;
+    else if (body.image !== undefined) partial.image = body.image;
+    if (body.variants !== undefined) partial.variants = parseVariants(body.variants);
+
+    if (req.file || body.image !== undefined) {
+      previousImage = (await service.getById(req.params.id)).image;
     }
-    if (body.variants !== undefined) {
-      try {
-        partial.variants = typeof body.variants === 'string' ? JSON.parse(body.variants) : body.variants;
-      } catch {
-        partial.variants = [];
-      }
+    const product = await service.update(req.params.id, partial);
+    if (previousImage && previousImage !== product.image) {
+      await removeStoredImage(previousImage);
     }
-    const p = await service.update(req.params.id, partial);
-    res.json(p);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    return res.json(product);
+  } catch (error) {
+    await removeFile(req.file?.path);
+    return res.status(400).json({
+      message: publicMessage(error, 'Mise à jour invalide'),
+    });
   }
 };
 
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
-    await service.remove(req.params.id);
-    res.status(204).send();
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-// Décrémentation de stock en lot lors de la livraison d'une commande
-// Corps attendu: { items: Array<{ code?: string; name?: string; variant: string; quantity: number }> }
-export const decrementStockBulk = async (req: Request, res: Response) => {
-  try {
-    const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    if (!items.length) {
-      return res.status(400).json({ message: 'Aucun item à traiter' });
-    }
-
-    const results = [] as Array<{
-      ok: boolean;
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-      error?: string;
-    }>;
-
-    for (const it of items) {
-      const code = typeof it.code === 'string' && it.code.trim() !== '' ? it.code.trim() : undefined;
-      const name = typeof it.name === 'string' && it.name.trim() !== '' ? it.name.trim() : undefined;
-      const variant = String(it.variant || '').trim();
-      const quantity = Number(it.quantity);
-      if ((!code && !name) || !variant || !Number.isFinite(quantity) || quantity <= 0) {
-        results.push({ ok: false, code, name, variant, quantity, error: 'Paramètres invalides' });
-        continue;
-      }
-      try {
-        await service.decrementByCodeNameVariant(code, name, variant, quantity);
-        results.push({ ok: true, code, name, variant, quantity });
-      } catch (e: any) {
-        results.push({ ok: false, code, name, variant, quantity, error: e?.message || 'Erreur' });
-      }
-    }
-
-    const hasFailure = results.some(r => !r.ok);
-    return res.status(hasFailure ? 207 : 200).json({ results });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Décrémentation de stock en lot permettant le stock 0 (pour confirmation de commande)
-// Corps attendu: { items: Array<{ code?: string; name?: string; variant: string; quantity: number }> }
-export const decrementStockBulkAllowZero = async (req: Request, res: Response) => {
-  try {
-    const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    if (!items.length) {
-      return res.status(400).json({ message: 'Aucun item à traiter' });
-    }
-
-    const results = [] as Array<{
-      ok: boolean;
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-      finalStock: number;
-      error?: string;
-    }>;
-
-    for (const it of items) {
-      const code = typeof it.code === 'string' && it.code.trim() !== '' ? it.code.trim() : undefined;
-      const name = typeof it.name === 'string' && it.name.trim() !== '' ? it.name.trim() : undefined;
-      const variant = String(it.variant || '').trim();
-      const quantity = Number(it.quantity);
-      if ((!code && !name) || !variant || !Number.isFinite(quantity) || quantity <= 0) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: 'Paramètres invalides' });
-        continue;
-      }
-      try {
-        const updatedProduct = await service.decrementByCodeNameVariantAllowZero(code, name, variant, quantity);
-        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
-        results.push({ ok: true, code, name, variant, quantity, finalStock });
-      } catch (e: any) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });
-      }
-    }
-
-    const hasFailure = results.some(r => !r.ok);
-    return res.status(hasFailure ? 207 : 200).json({ results });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Décrémentation de stock en lot permettant le stock négatif (pour validation de commande)
-// Corps attendu: { items: Array<{ code?: string; name?: string; variant: string; quantity: number }> }
-export const decrementStockBulkAllowNegative = async (req: Request, res: Response) => {
-  try {
-    const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    if (!items.length) {
-      return res.status(400).json({ message: 'Aucun item à traiter' });
-    }
-
-    const results = [] as Array<{
-      ok: boolean;
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-      finalStock: number;
-      error?: string;
-    }>;
-
-    for (const it of items) {
-      const code = typeof it.code === 'string' && it.code.trim() !== '' ? it.code.trim() : undefined;
-      const name = typeof it.name === 'string' && it.name.trim() !== '' ? it.name.trim() : undefined;
-      const variant = String(it.variant || '').trim();
-      const quantity = Number(it.quantity);
-      if ((!code && !name) || !variant || !Number.isFinite(quantity) || quantity <= 0) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: 'Paramètres invalides' });
-        continue;
-      }
-      try {
-        const updatedProduct = await service.decrementByCodeNameVariantAllowNegative(code, name, variant, quantity);
-        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
-        results.push({ ok: true, code, name, variant, quantity, finalStock });
-      } catch (e: any) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });
-      }
-    }
-
-    const hasFailure = results.some(r => !r.ok);
-    return res.status(hasFailure ? 207 : 200).json({ results });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-export const incrementStockBulk = async (req: Request, res: Response) => {
-  try {
-    const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    if (!items.length) {
-      return res.status(400).json({ message: 'Aucun item à traiter' });
-    }
-
-    const results = [] as Array<{
-      ok: boolean;
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-      finalStock: number;
-      error?: string;
-    }>;
-
-    for (const it of items) {
-      const code = typeof it.code === 'string' && it.code.trim() !== '' ? it.code.trim() : undefined;
-      const name = typeof it.name === 'string' && it.name.trim() !== '' ? it.name.trim() : undefined;
-      const variant = String(it.variant || '').trim();
-      const quantity = Number(it.quantity);
-      if ((!code && !name) || !variant || !Number.isFinite(quantity) || quantity <= 0) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: 'Paramètres invalides' });
-        continue;
-      }
-
-      try {
-        const updatedProduct = await service.incrementByCodeNameVariant(code, name, variant, quantity);
-        const finalStock = resolveFinalVariantStock(updatedProduct, variant);
-        results.push({ ok: true, code, name, variant, quantity, finalStock });
-      } catch (e: any) {
-        results.push({ ok: false, code, name, variant, quantity, finalStock: 0, error: e?.message || 'Erreur' });
-      }
-    }
-
-    const hasFailure = results.some(r => !r.ok);
-    return res.status(hasFailure ? 207 : 200).json({ results });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    const image = await service.remove(req.params.id);
+    await removeStoredImage(image);
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(400).json({
+      message: publicMessage(error, 'Suppression impossible'),
+    });
   }
 };

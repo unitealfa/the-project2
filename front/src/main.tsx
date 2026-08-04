@@ -1,6 +1,6 @@
 // front/src/main.tsx
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -8,19 +8,19 @@ import AuthProvider from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import ProtectedLayout from './components/ProtectedLayout';
 
-import Login        from './pages/Login';
-import Admin        from './pages/Admin';
-import CreateUser   from './pages/CreateUser';
-import Team         from './pages/Team';
-import UserDetail   from './pages/UserDetail';
-import EditUser     from './pages/EditUser';
-import Gestionnaire from './pages/Gestionnaire';
-import Confirmateur from './pages/Confirmateur';
-import DeliveryPerson from './pages/DeliveryPerson';
-import DeliveryHistory from './pages/DeliveryHistory';
-import AdminDeliveryOrders from './pages/AdminDeliveryOrders';
-import Orders       from './pages/Orders';
-import Products     from './pages/Products';
+const Login = lazy(() => import('./pages/Login'));
+const Admin = lazy(() => import('./pages/Admin'));
+const CreateUser = lazy(() => import('./pages/CreateUser'));
+const Team = lazy(() => import('./pages/Team'));
+const UserDetail = lazy(() => import('./pages/UserDetail'));
+const EditUser = lazy(() => import('./pages/EditUser'));
+const Gestionnaire = lazy(() => import('./pages/Gestionnaire'));
+const Confirmateur = lazy(() => import('./pages/Confirmateur'));
+const DeliveryPerson = lazy(() => import('./pages/DeliveryPerson'));
+const DeliveryHistory = lazy(() => import('./pages/DeliveryHistory'));
+const AdminDeliveryOrders = lazy(() => import('./pages/AdminDeliveryOrders'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Products = lazy(() => import('./pages/Products'));
 
 import './styles/global.css';
 
@@ -28,12 +28,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <Suspense fallback={<p style={{ textAlign: 'center', marginTop: '2rem' }}>Chargement…</p>}>
+          <Routes>
           {/* Public */}
           <Route path="/" element={<Login />} />
 
           {/* Admin-only */}
-          <Route element={<PrivateRoute roles={['admin']} />}>
+          <Route element={<PrivateRoute roles={['admin']} ownPage />}>
             <Route element={<ProtectedLayout />}>
               <Route path="/admin/:id"                     element={<Admin />} />
               <Route path="/admin/:id/team"                element={<Team />} />
@@ -72,7 +73,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   </React.StrictMode>

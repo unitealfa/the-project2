@@ -39,6 +39,7 @@ const Team: React.FC = () => {
       admin: 'Administrateur',
       gestionnaire: 'Gestionnaire',
       confirmateur: 'Confirmateur',
+      livreur: 'Livreur',
     }),
     []
   );

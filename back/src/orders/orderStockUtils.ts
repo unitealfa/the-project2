@@ -3,6 +3,12 @@
 
 import { ProductService } from '../products/product.service';
 
+const debugLog = (...args: unknown[]) => {
+  if (process.env.DEBUG_ORDER_STOCK === 'true' && process.env.NODE_ENV !== 'production') {
+    console.log(...args);
+  }
+};
+
 const normalizeKey = (key: string): string => {
   return key
     .normalize('NFD')
@@ -165,11 +171,19 @@ const extractVariantValue = (row: Record<string, unknown>): string => {
  * Extrait la quantité depuis une ligne de commande
  */
 const extractQuantityValue = (row: Record<string, unknown>): number => {
-  const rawQuantity = String(
-    row['Quantité'] || row['Quantite'] || row['Qte'] || '1'
-  ).replace(/[^\d]/g, '');
-  const parsed = parseInt(rawQuantity, 10);
-  return Number.isNaN(parsed) || parsed <= 0 ? 1 : parsed;
+  const rawValue = row['Quantité'] ?? row['Quantite'] ?? row['Qte'];
+  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') {
+    return 1;
+  }
+  const normalized = String(rawValue).trim().replace(',', '.');
+  const match = normalized.match(
+    /^(\d+)(?:\.0+)?(?:\s*(?:x|pcs?|pi[eè]ces?|unit[eé]s?))?$/i
+  );
+  const parsed = match ? Number(match[1]) : Number.NaN;
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 10_000) {
+    throw new Error('Quantité de commande invalide');
+  }
+  return parsed;
 };
 
 /**
@@ -181,8 +195,6 @@ const extractProductCode = (row: Record<string, unknown>): string => {
     'code',
     'SKU',
     'Sku',
-    'Référence',
-    'Reference',
   ];
   for (const key of candidates) {
     if (key in row) {
@@ -330,7 +342,7 @@ export const extractProductInfo = (row: Record<string, unknown>): ProductInfo | 
       quantity,
     };
   } catch (error) {
-    console.error('Erreur lors de l\'extraction des informations produit:', error);
+    debugLog('Extraction des informations produit impossible');
     return null;
   }
 };
@@ -345,23 +357,22 @@ const findVariantInProduct = async (
   const normalizedVariant = normalizeForComparison(variant);
   const variantParts = normalizedVariant.split(/\s*\/\s*/).map(p => p.trim()).filter(p => p);
   
-  console.log(`   Recherche de la variante "${variant}" (normalisée: "${normalizedVariant}")`);
-  console.log(`   Parties de la variante:`, variantParts);
+  debugLog('Recherche de variante');
   
   for (const candidateVariant of product.variants || []) {
     const candidateVariantName = normalizeForComparison(candidateVariant.name);
-    console.log(`   Comparaison avec "${candidateVariant.name}" (normalisée: "${candidateVariantName}")`);
+    debugLog('Comparaison de variante');
     
     // Comparaison exacte
     if (candidateVariantName === normalizedVariant) {
-      console.log(`   ✅ Correspondance exacte trouvée: "${candidateVariant.name}"`);
+      debugLog('Correspondance exacte de variante');
       return candidateVariant.name;
     }
     
     // Comparaison avec les parties de la variante
     for (const part of variantParts) {
       if (candidateVariantName === part || candidateVariantName.includes(part) || part.includes(candidateVariantName)) {
-        console.log(`   ✅ Correspondance par partie trouvée: "${candidateVariant.name}" (partie: "${part}")`);
+        debugLog('Correspondance partielle de variante');
         return candidateVariant.name;
       }
     }
@@ -371,14 +382,14 @@ const findVariantInProduct = async (
     for (const part of variantParts) {
       for (const candidatePart of candidateVariantParts) {
         if (part === candidatePart || part.includes(candidatePart) || candidatePart.includes(part)) {
-          console.log(`   ✅ Correspondance inverse trouvée: "${candidateVariant.name}" (partie: "${part}" = "${candidatePart}")`);
+          debugLog('Correspondance inverse de variante');
           return candidateVariant.name;
         }
       }
     }
   }
   
-  console.log(`   ❌ Aucune correspondance trouvée pour "${variant}"`);
+  debugLog('Aucune correspondance de variante');
   return null;
 };
 
@@ -406,7 +417,7 @@ const decrementVariantStock = async (
   product.variants[variantIndex].quantity = nextQuantity;
   await product.save();
   
-  console.log(`   Stock décrémenté: ${currentQuantity} -> ${nextQuantity} (quantité: ${quantity})`);
+  debugLog('Stock décrémenté');
 };
 
 /**
@@ -485,7 +496,7 @@ const findProductFlexible = async (
 
   // Tentative 2: Recherche flexible par nom
   if (name) {
-    const normalizedName = normalizeForComparison(name);
+    const normalizedName = normalizeForComparison(name ?? '');
     
     // Chercher tous les produits dont le nom correspond (recherche partielle)
     const candidates = await Product.find({
@@ -536,7 +547,7 @@ const findProductFlexible = async (
  * Décrémente automatiquement le stock pour une commande livrée
  * Permet les stocks négatifs
  * Compare le nom et la variante de la commande avec les produits du stock
- * Ne lance pas d'erreur si le produit n'est pas trouvé (la commande passe quand même à delivered)
+ * Échoue explicitement si le produit ou la variante ne peut pas être identifié.
  */
 export const decrementStockForDeliveredOrder = async (
   row: Record<string, unknown>,
@@ -544,37 +555,42 @@ export const decrementStockForDeliveredOrder = async (
 ): Promise<void> => {
   const productInfo = extractProductInfo(row);
   if (!productInfo) {
-    // Pas d'erreur, juste un log silencieux
-    console.log(`ℹ️ Impossible d'extraire les informations produit pour la commande ${rowId} - la commande passe quand même à delivered`);
-    return;
+    throw new Error('Informations produit introuvables dans la commande');
   }
 
   const { id, code, name, variant, quantity } = productInfo;
 
   // Besoin au minimum d'un nom et d'une variante pour chercher
-  if (!name || !variant || quantity <= 0) {
-    // Pas d'erreur, juste un log silencieux
-    console.log(`ℹ️ Informations produit incomplètes pour la commande ${rowId} (nom: ${name || 'N/A'}, variante: ${variant || 'N/A'}) - la commande passe quand même à delivered`);
-    return;
+  if ((!id && !code && !name) || !variant || quantity <= 0) {
+    throw new Error('Informations produit incomplètes dans la commande');
   }
 
   try {
     const Product = (await import('../products/product.model')).default;
     
     // Chercher tous les produits qui correspondent au nom (recherche flexible)
-    const normalizedName = normalizeForComparison(name);
+    const normalizedName = normalizeForComparison(name ?? '');
     const normalizedVariant = normalizeForComparison(variant);
     const variantParts = normalizedVariant.split(/\s*\/\s*/).map(p => p.trim()).filter(p => p);
     
-    // Recherche par nom (recherche partielle pour être plus flexible)
-    const products = await Product.find({
-      name: { $regex: new RegExp(normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
-    });
+    let products: any[] = [];
+    if (id && /^[a-f\d]{24}$/i.test(id)) {
+      const productById = await Product.findById(id);
+      if (productById) products = [productById];
+    }
+    if (products.length === 0 && code) {
+      const escapedCode = code.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      products = await Product.find({ code: new RegExp(`^${escapedCode}$`, 'i') });
+    }
+    if (products.length === 0 && name) {
+      const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      products = await Product.find({
+        name: { $regex: new RegExp(`^${escapedName}$`, 'i') }
+      });
+    }
     
     if (products.length === 0) {
-      // Pas d'erreur, juste un log silencieux
-      console.log(`ℹ️ Aucun produit trouvé avec le nom "${name}" pour la commande ${rowId} - la commande passe quand même à delivered`);
-      return;
+      throw new Error('Produit de la commande introuvable dans le stock');
     }
     
     // Chercher le produit et la variante qui correspondent
@@ -585,7 +601,7 @@ export const decrementStockForDeliveredOrder = async (
       const productName = normalizeForComparison(product.name);
       
       // Vérifier si le nom correspond (exact ou partiel)
-      if (productName === normalizedName || productName.includes(normalizedName) || normalizedName.includes(productName)) {
+      if (id || (!name && code) || productName === normalizedName) {
         // Chercher la variante dans ce produit
         for (const candidateVariant of product.variants || []) {
           const candidateVariantName = normalizeForComparison(candidateVariant.name);
@@ -599,7 +615,7 @@ export const decrementStockForDeliveredOrder = async (
           
           // Comparaison avec les parties de la variante
           for (const part of variantParts) {
-            if (candidateVariantName === part || candidateVariantName.includes(part) || part.includes(candidateVariantName)) {
+            if (candidateVariantName === part) {
               foundProduct = product;
               foundVariant = candidateVariant.name;
               break;
@@ -612,7 +628,7 @@ export const decrementStockForDeliveredOrder = async (
           const candidateVariantParts = candidateVariantName.split(/\s*\/\s*/).map(p => p.trim()).filter(p => p);
           for (const part of variantParts) {
             for (const candidatePart of candidateVariantParts) {
-              if (part === candidatePart || part.includes(candidatePart) || candidatePart.includes(part)) {
+              if (part === candidatePart) {
                 foundProduct = product;
                 foundVariant = candidateVariant.name;
                 break;
@@ -629,9 +645,7 @@ export const decrementStockForDeliveredOrder = async (
     }
     
     if (!foundProduct || !foundVariant) {
-      // Pas d'erreur, juste un log silencieux
-      console.log(`ℹ️ Produit trouvé mais variante "${variant}" non trouvée pour la commande ${rowId} - la commande passe quand même à delivered`);
-      return;
+      throw new Error('Variante de la commande introuvable dans le stock');
     }
     
     // Décrémenter le stock (permet stocks négatifs)
@@ -641,33 +655,29 @@ export const decrementStockForDeliveredOrder = async (
     );
     
     if (variantIndex === -1) {
-      // Pas d'erreur, juste un log silencieux
-      console.log(`ℹ️ Variante "${foundVariant}" non trouvée dans le produit pour la commande ${rowId} - la commande passe quand même à delivered`);
-      return;
+      throw new Error('Variante de la commande introuvable dans le stock');
     }
     
-    const currentQuantity = Number(foundProduct.variants[variantIndex].quantity) || 0;
-    const nextQuantity = currentQuantity - quantity;
-    
-    // Permettre les stocks négatifs
-    foundProduct.variants[variantIndex].quantity = nextQuantity;
-    await foundProduct.save();
-    
-    // Log silencieux de succès
-    console.log(`✅ Stock décrémenté automatiquement pour la commande ${rowId}: ${foundProduct.name} / ${foundVariant} (${currentQuantity} -> ${nextQuantity})`);
+    const variantId = foundProduct.variants[variantIndex]._id;
+    const result = await Product.updateOne(
+      { _id: foundProduct._id, 'variants._id': variantId },
+      { $inc: { 'variants.$.quantity': -quantity } }
+    );
+    if (result.modifiedCount !== 1) {
+      throw new Error('Le stock a changé pendant la mise à jour');
+    }
+    debugLog('Stock décrémenté pour une commande');
     
   } catch (error) {
-    // Pas d'erreur affichée à l'utilisateur, juste un log silencieux
     const message = error instanceof Error ? error.message : 'Erreur inconnue';
-    console.log(`ℹ️ Erreur lors de la décrémentation automatique du stock pour la commande ${rowId}: ${message} - la commande passe quand même à delivered`);
-    // Ne pas faire échouer la mise à jour du statut
+    throw new Error(`Stock non décrémenté: ${message}`);
   }
 };
 
 /**
  * Ré-incrémente automatiquement le stock pour une commande retournée
  * (annule la décrémentation faite lors du statut "delivered")
- * Ne lance pas d'erreur si le produit n'est pas trouvé
+ * Échoue explicitement si la restauration ne peut pas être appliquée.
  */
 export const incrementStockForReturnedOrder = async (
   row: Record<string, unknown>,
@@ -675,47 +685,45 @@ export const incrementStockForReturnedOrder = async (
 ): Promise<void> => {
   const productInfo = extractProductInfo(row);
   if (!productInfo) {
-    console.log(
-      `ℹ️ Impossible d'extraire les informations produit pour la commande ${rowId} lors du retour - aucune modification de stock`
-    );
-    return;
+    throw new Error('Informations produit introuvables dans la commande retournée');
   }
 
-  const { name, variant, quantity } = productInfo;
+  const { id, code, name, variant, quantity } = productInfo;
 
-  if (!name || !variant || quantity <= 0) {
-    console.log(
-      `ℹ️ Informations produit incomplètes pour la commande ${rowId} lors du retour (nom: ${
-        name || 'N/A'
-      }, variante: ${variant || 'N/A'}) - aucune modification de stock`
-    );
-    return;
+  if ((!id && !code && !name) || !variant || quantity <= 0) {
+    throw new Error('Informations produit incomplètes dans la commande retournée');
   }
 
   try {
     const Product = (await import('../products/product.model')).default;
 
-    const normalizedName = normalizeForComparison(name);
+    const normalizedName = normalizeForComparison(name ?? '');
     const normalizedVariant = normalizeForComparison(variant);
     const variantParts = normalizedVariant
       .split(/\s*\/\s*/)
       .map((p) => p.trim())
       .filter((p) => p);
 
-    const products = await Product.find({
-      name: {
-        $regex: new RegExp(
-          normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-          'i'
-        ),
-      },
-    });
+    let products: any[] = [];
+    if (id && /^[a-f\d]{24}$/i.test(id)) {
+      const productById = await Product.findById(id);
+      if (productById) products = [productById];
+    }
+    if (products.length === 0 && code) {
+      const escapedCode = code.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      products = await Product.find({ code: new RegExp(`^${escapedCode}$`, 'i') });
+    }
+    if (products.length === 0 && name) {
+      const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      products = await Product.find({
+        name: {
+          $regex: new RegExp(`^${escapedName}$`, 'i'),
+        },
+      });
+    }
 
     if (products.length === 0) {
-      console.log(
-        `ℹ️ Aucun produit trouvé avec le nom "${name}" pour la commande ${rowId} lors du retour - aucune modification de stock`
-      );
-      return;
+      throw new Error('Produit de la commande retournée introuvable dans le stock');
     }
 
     let foundProduct: any = null;
@@ -725,9 +733,9 @@ export const incrementStockForReturnedOrder = async (
       const productName = normalizeForComparison(product.name);
 
       if (
-        productName === normalizedName ||
-        productName.includes(normalizedName) ||
-        normalizedName.includes(productName)
+        id ||
+        (!name && code) ||
+        productName === normalizedName
       ) {
         for (const candidateVariant of product.variants || []) {
           const candidateVariantName = normalizeForComparison(
@@ -741,11 +749,7 @@ export const incrementStockForReturnedOrder = async (
           }
 
           for (const part of variantParts) {
-            if (
-              candidateVariantName === part ||
-              candidateVariantName.includes(part) ||
-              part.includes(candidateVariantName)
-            ) {
+            if (candidateVariantName === part) {
               foundProduct = product;
               foundVariant = candidateVariant.name;
               break;
@@ -760,11 +764,7 @@ export const incrementStockForReturnedOrder = async (
             .filter((p) => p);
           for (const part of variantParts) {
             for (const candidatePart of candidateVariantParts) {
-              if (
-                part === candidatePart ||
-                part.includes(candidatePart) ||
-                candidatePart.includes(part)
-              ) {
+              if (part === candidatePart) {
                 foundProduct = product;
                 foundVariant = candidateVariant.name;
                 break;
@@ -781,10 +781,7 @@ export const incrementStockForReturnedOrder = async (
     }
 
     if (!foundProduct || !foundVariant) {
-      console.log(
-        `ℹ️ Produit trouvé mais variante "${variant}" non trouvée pour la commande ${rowId} lors du retour - aucune modification de stock`
-      );
-      return;
+      throw new Error('Variante de la commande retournée introuvable dans le stock');
     }
 
     const normalizedFoundVariant = normalizeForComparison(foundVariant);
@@ -793,28 +790,21 @@ export const incrementStockForReturnedOrder = async (
     );
 
     if (variantIndex === -1) {
-      console.log(
-        `ℹ️ Variante "${foundVariant}" non trouvée dans le produit pour la commande ${rowId} lors du retour - aucune modification de stock`
-      );
-      return;
+      throw new Error('Variante de la commande retournée introuvable dans le stock');
     }
 
-    const currentQuantity =
-      Number(foundProduct.variants[variantIndex].quantity) || 0;
-    const nextQuantity = currentQuantity + quantity;
-
-    foundProduct.variants[variantIndex].quantity = nextQuantity;
-    await foundProduct.save();
-
-    console.log(
-      `✅ Stock ré-incrémenté automatiquement pour la commande ${rowId}: ${foundProduct.name} / ${foundVariant} (${currentQuantity} -> ${nextQuantity})`
+    const variantId = foundProduct.variants[variantIndex]._id;
+    const result = await Product.updateOne(
+      { _id: foundProduct._id, 'variants._id': variantId },
+      { $inc: { 'variants.$.quantity': quantity } }
     );
+    if (result.modifiedCount !== 1) {
+      throw new Error('Le stock a changé pendant la restauration');
+    }
+    debugLog('Stock restauré pour une commande');
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Erreur inconnue';
-    console.log(
-      `ℹ️ Erreur lors de la ré-incrémentation automatique du stock pour la commande ${rowId}: ${message} - aucune erreur renvoyée à l'utilisateur`
-    );
+    throw new Error(`Stock non restauré: ${message}`);
   }
 };
-

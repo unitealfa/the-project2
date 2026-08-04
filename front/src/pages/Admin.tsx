@@ -16,6 +16,7 @@ import { AuthContext } from "../context/AuthContext";
 import type { ProductDto } from "../types";
 import "../styles/AdminDashboard.css";
 import { apiFetch } from "../utils/api";
+import { parseLocaleAmount, parsePositiveIntegerQuantity } from "../utils/numberParsing";
 
 const PRODUCT_NAME_KEYS = [
   "Produit",
@@ -39,8 +40,6 @@ const PRODUCT_CODE_KEYS = [
   "code",
   "SKU",
   "Sku",
-  "Référence",
-  "Reference",
 ];
 
 const QUANTITY_KEYS = ["Quantité", "Quantite", "Qte"];
@@ -74,16 +73,7 @@ const normalizeLookupValue = (value: string): string =>
 const normalizeCodeValue = (value: string): string => value.trim().toLowerCase();
 
 const parseAmountValue = (value?: string): number | null => {
-  if (!value) return null;
-  const cleaned = value
-    .replace(/\s+/g, "")
-    .replace(/[^\d,.-]/g, "")
-    .replace(/,/g, ".");
-  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
-    return null;
-  }
-  const parsed = Number.parseFloat(cleaned);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseLocaleAmount(value);
 };
 
 const extractQuantityValue = (row: Record<string, string>): number => {
@@ -91,10 +81,8 @@ const extractQuantityValue = (row: Record<string, string>): number => {
     if (key in row) {
       const raw = row[key];
       if (!raw) continue;
-      const sanitized = raw.replace(/[^\d]/g, "");
-      if (!sanitized) continue;
-      const parsed = Number.parseInt(sanitized, 10);
-      if (Number.isFinite(parsed) && parsed > 0) {
+      const parsed = parsePositiveIntegerQuantity(raw);
+      if (parsed !== null) {
         return parsed;
       }
     }
@@ -493,6 +481,7 @@ const Admin: React.FC = () => {
   const { user, token } = useContext(AuthContext);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [rowsLoading, setRowsLoading] = useState(true);
+  const [rowsError, setRowsError] = useState('');
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("day");
@@ -579,9 +568,6 @@ const Admin: React.FC = () => {
 
 
   useEffect(() => {
-    const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-
     const parseCsv = (csvText: string): string[][] => {
       const out: string[][] = [];
       let field = "";
@@ -624,17 +610,10 @@ const Admin: React.FC = () => {
       return out;
     };
 
-    const normalizeAmount = (amount: string): number => {
-      if (!amount) return 1000;
-      const normalized = amount.replace(/[^\d.,]/g, "").replace(",", ".");
-      const n = parseFloat(normalized);
-      if (Number.isNaN(n)) return 1000;
-      return n;
-    };
-
     (async () => {
       try {
-        const res = await fetch(CSV_URL);
+        const res = await apiFetch('/api/orders/sheet', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         const grid = parseCsv(text);
         if (grid.length === 0) return;
@@ -646,14 +625,10 @@ const Admin: React.FC = () => {
             hdr.forEach((h, i) => {
               o[h] = r[i] ?? "";
             });
-            const qty =
-              parseInt(
-                (o["Quantité"] || o["Quantite"] || o["Qte"] || "1")
-                  .toString()
-                  .replace(/[^\d]/g, ""),
-                10
-              ) || 1;
-            const unit = normalizeAmount(o["Total"] || "1000");
+            const qty = parsePositiveIntegerQuantity(
+              o["Quantité"] || o["Quantite"] || o["Qte"]
+            ) ?? 1;
+            const unit = parseLocaleAmount(o["Total"]) ?? 1000;
             const code = getWilayaIdByName(o["Wilaya"]);
             const stopFlag = (o["Type de livraison"] || "")
               .toLowerCase()
@@ -667,8 +642,10 @@ const Admin: React.FC = () => {
             return o;
           });
         setRows(mapped);
-      } catch (error) {
-        // silencieux
+        setRowsError('');
+      } catch {
+        setRows([]);
+        setRowsError('Impossible de charger les commandes pour le moment.');
       } finally {
         setRowsLoading(false);
       }
@@ -1278,6 +1255,7 @@ const Admin: React.FC = () => {
 
   return (
     <div className="admin-dashboard">
+      {rowsError && <p role="alert" className="subtitle">{rowsError}</p>}
       {isLoading && (
         <div className="admin-loader" role="status" aria-live="polite">
           <div className="admin-loader__spinner" />

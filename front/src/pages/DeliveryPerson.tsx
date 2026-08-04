@@ -216,13 +216,15 @@ const DeliveryPerson: React.FC = () => {
       ".delivery-person-order-actions",
       ".delivery-person-status",
     ]);
-    const canvas = await html2canvas(card, {
-      scale: 2,
-      useCORS: true,
-      windowWidth: card.scrollWidth,
-    });
-    cleanup();
-    return canvas;
+    try {
+      return await html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        windowWidth: card.scrollWidth,
+      });
+    } finally {
+      cleanup();
+    }
   };
 
   const getStatusColor = (status: string) => {

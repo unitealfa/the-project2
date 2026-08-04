@@ -15,7 +15,6 @@ interface DeliverySelectionProps {
 interface DeliveryPerson {
   id: string;
   name: string;
-  email: string;
 }
 
 const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
@@ -158,7 +157,7 @@ const DeliverySelection: React.FC<DeliverySelectionProps> = React.memo(({
             <option value="">-- Choisir un livreur --</option>
             {deliveryPersons.map((person) => (
               <option key={person.id} value={person.id}>
-                {person.name} ({person.email})
+                {person.name}
               </option>
             ))}
           </select>

@@ -136,13 +136,15 @@ const AdminDeliveryOrders: React.FC = () => {
       ".admin-delivery-checkbox",
       ".admin-delivery-status",
     ]);
-    const canvas = await html2canvas(card, {
-      scale: 2,
-      useCORS: true,
-      windowWidth: card.scrollWidth,
-    });
-    cleanup();
-    return canvas;
+    try {
+      return await html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        windowWidth: card.scrollWidth,
+      });
+    } finally {
+      cleanup();
+    }
   };
 
   const hideForPrint = (card: HTMLElement, selectors: string[]) => {

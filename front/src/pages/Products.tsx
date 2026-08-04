@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { ProductDto } from '../types';
-import { apiFetch } from '../utils/api';
+import { apiFetch, apiUrl } from '../utils/api';
 import '../styles/Products.css';
 
 const emptyForm: ProductDto = {
@@ -36,6 +36,7 @@ const Products: React.FC = () => {
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
       const data = await res.json();
+      if (!Array.isArray(data)) throw new Error('Réponse produits invalide');
       setItems(
         data.map((p: any) => ({
           id: p._id || p.id,
@@ -55,6 +56,10 @@ const Products: React.FC = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => () => {
+    if (imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,6 +81,13 @@ const Products: React.FC = () => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    if (file && (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type))) {
+      e.target.value = '';
+      setImageFile(null);
+      setImagePreview('');
+      alert('Utilisez une image JPEG, PNG, WebP ou GIF de 5 Mo maximum.');
+      return;
+    }
     setImageFile(file);
     if (file) {
       const url = URL.createObjectURL(file);
@@ -126,7 +138,10 @@ const Products: React.FC = () => {
         },
         body: fd,
       });
-      if (!res.ok) throw new Error('Échec de la sauvegarde');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || 'Échec de la sauvegarde');
+      }
       await load();
       setForm(emptyForm);
       setImageFile(null);
@@ -152,7 +167,10 @@ const Products: React.FC = () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Échec de la suppression');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || 'Échec de la suppression');
+      }
       await load();
     } catch (e: any) {
       alert(e?.message || 'Erreur');
@@ -189,6 +207,7 @@ const Products: React.FC = () => {
                 name="code" 
                 value={form.code || ''} 
                 onChange={handleChange} 
+                maxLength={64}
                 placeholder="Code produit (optionnel)"
               />
             </div>
@@ -199,6 +218,7 @@ const Products: React.FC = () => {
                 name="name" 
                 value={form.name} 
                 onChange={handleChange} 
+                maxLength={160}
                 required 
                 placeholder="Nom du produit"
               />
@@ -209,6 +229,8 @@ const Products: React.FC = () => {
                 className="products-form__input"
                 type="number" 
                 step="0.01" 
+                min="0"
+                max="1000000000"
                 name="costPrice" 
                 value={form.costPrice} 
                 onChange={handleChange} 
@@ -222,6 +244,8 @@ const Products: React.FC = () => {
                 className="products-form__input"
                 type="number" 
                 step="0.01" 
+                min="0"
+                max="1000000000"
                 name="salePrice" 
                 value={form.salePrice} 
                 onChange={handleChange} 
@@ -234,13 +258,13 @@ const Products: React.FC = () => {
               <input 
                 className="products-form__input"
                 type="file" 
-                accept="image/*" 
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={handleImageChange} 
               />
               {(imagePreview || form.image) && (
                 <div className="products-form__image-preview">
                   <img
-                    src={imagePreview || form.image}
+                    src={imagePreview || apiUrl(form.image || '')}
                     alt={form.name || 'prévisualisation'}
                   />
                 </div>
@@ -257,6 +281,7 @@ const Products: React.FC = () => {
                         className="products-form__variant-input"
                         value={v.name} 
                         onChange={e => updateVariant(idx, 'name', e.target.value)} 
+                        maxLength={120}
                         required 
                         placeholder="ex: Rouge, Taille M"
                       />
@@ -267,6 +292,8 @@ const Products: React.FC = () => {
                         className="products-form__variant-input"
                         type="number" 
                         step="1" 
+                        min="-1000000"
+                        max="1000000"
                         value={v.quantity} 
                         onChange={e => updateVariant(idx, 'quantity', e.target.value)} 
                         required 
@@ -302,7 +329,7 @@ const Products: React.FC = () => {
                 <button 
                   type="button" 
                   className="products-button products-button--secondary"
-                  onClick={() => { setForm(emptyForm); setEditingId(null); }}
+                  onClick={() => { setForm(emptyForm); setImageFile(null); setImagePreview(''); setEditingId(null); }}
                 >
                   Annuler
                 </button>
@@ -370,7 +397,7 @@ const Products: React.FC = () => {
                         </td>
                         <td className="products-table__cell products-table__cell--image">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} />
+                            <img src={apiUrl(p.image)} alt={p.name} />
                           ) : '-'}
                         </td>
                         {canEdit && (
@@ -405,5 +432,3 @@ const Products: React.FC = () => {
 };
 
 export default Products;
-
-

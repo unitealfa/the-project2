@@ -1,39 +1,16 @@
-import axios from 'axios';
 import sheetService from './order.service';
 import Order from './order.model';
 import {
-  decrementStockForDeliveredOrder,
-  incrementStockForReturnedOrder,
-} from './orderStockUtils';
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const DEFAULT_DHD_API_BASE_URL =
-  process.env.DHD_API_URL ?? 'https://platform.dhd-dz.com';
-const DEFAULT_DHD_API_TOKEN =
-  process.env.DHD_API_TOKEN ??
-  'FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i';
-const DEFAULT_SOOK_API_BASE_URL =
-  process.env.SOOK_API_URL ?? DEFAULT_DHD_API_BASE_URL;
-const DEFAULT_SOOK_API_TOKEN =
-  process.env.SOOK_API_TOKEN ??
-  process.env.DHD_API_TOKEN ??
-  'NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D';
-
-const DHD_ORDERS_PATH = '/api/v1/get/orders';
-const OFFICIAL_SYNC_TIMEOUT_MS = 10000;
-const MAX_PAGES_TO_SCAN = 250;
-const RATE_LIMIT_DELAY_MS = Number(process.env.DHD_RATE_LIMIT_DELAY_MS ?? 1500);
-const MAX_RATE_LIMIT_RETRIES = Number(process.env.DHD_RATE_LIMIT_RETRIES ?? 3);
-
-interface RawOfficialOrderEntry {
-  tracking?: string | null;
-  reference?: string | null;
-  status?: string | null;
-  [key: string]: unknown;
-}
-
-export type DeliveryApiType = 'api_dhd' | 'api_sook';
+  chunkTrackings,
+  DeliveryApiType,
+  EcotrackClient,
+  EcotrackStatusEntry,
+} from './ecotrack.client';
+import {
+  mapCarrierStatus,
+  normalizeCarrierIdentifier,
+} from './orderStatus';
+import { reconcileOrderStock } from './orderStockReconciliation.service';
 
 export interface SyncOrderPayload {
   rowId: string;
@@ -57,6 +34,7 @@ export interface SyncOfficialStatusesResult {
     officialStatus: string;
     newStatus: string;
     previousStatus?: string;
+    changed: boolean;
   }>;
   notFound: Array<{
     rowId: string;
@@ -77,555 +55,350 @@ export interface SyncOfficialStatusesResult {
   }>;
   fetchedOrders: number;
   pagesFetched: number;
+  requestsMade: number;
 }
 
-const normalizeStatus = (status: string): string =>
-  status
-    .replace(/_/g, ' ')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const normalizeIdentifier = (value: string | undefined): string =>
-  (value ?? '')
-    .trim()
-    .replace(/\s+/g, '')
-    .toUpperCase();
-
-const normalizeStatusForComparison = (status: string | undefined): string =>
-  (status ?? '')
-    .replace(/_/g, ' ')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const toNormalizedKeywords = (values: readonly string[]) =>
-  values
-    .map((value) =>
-      value
+const normalizeStatus = (value: unknown): string =>
+  typeof value === 'string'
+    ? value
         .replace(/_/g, ' ')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
+        .replace(/\s+/g, ' ')
         .trim()
-    )
-    .filter((value) => Boolean(value));
+        .toLowerCase()
+    : '';
 
-const containsNormalizedKeyword = (
-  normalizedText: string,
-  keywords: readonly string[]
-) => keywords.some((keyword) => normalizedText.includes(keyword));
-
-const containsRawKeyword = (text: string, keywords: readonly string[]) =>
-  keywords.some((keyword) => keyword && text.includes(keyword));
-
-const DHD_SHIPPED_STATUSES = new Set<string>([
-  'vers station',
-  'en station',
-  'vers wilaya',
-  'en preparation',
-  'en prepa',
-  'en livraison',
-  'en cours de livraison',
-  'ramassage',
-  'ramasse',
-  'collecte',
-  'prise en charge',
-  'en cours',
-  'depart station',
-  'depart wilaya',
-  'pret a expedier',
-  'prete a expedier',
-]);
-
-const DHD_SHIPPED_KEYWORDS = toNormalizedKeywords([
-  ...Array.from(DHD_SHIPPED_STATUSES),
-  'livraison',
-  'en chemin',
-  'en route',
-  'ready to ship',
-  'expedition en cours',
-  'expedie',
-]);
-
-const DHD_DELIVERED_KEYWORDS = toNormalizedKeywords([
-  'livre',
-  'livree',
-  'colis livre',
-  'commande livree',
-  'livre au client',
-  'livraison reussie',
-  'delivered',
-  'delivery done',
-  'paye et archive',
-  'paye et archivee',
-  'payer et archive',
-]);
-
-const DHD_RETURNED_KEYWORDS = toNormalizedKeywords([
-  'retour',
-  'retours',
-  'retourne',
-  'retournee',
-  'retour vers expediteur',
-  'return to sender',
-  'returned',
-  'refus',
-  'refuse',
-  'client refuse',
-  'colis refuse',
-  'refusee',
-  'non livre',
-]);
-
-const DHD_CANCELLED_KEYWORDS = toNormalizedKeywords([
-  'annule',
-  'annulee',
-  'annule par client',
-  'commande annulee',
-  'cancelled',
-  'canceled',
-  'annulation',
-  'annule marchand',
-]);
-
-const DHD_SHIPPED_KEYWORDS_AR = [
-  'تم الشحن',
-  'في الطريق',
-  'في التوصيل',
-];
-
-const DHD_DELIVERED_KEYWORDS_AR = [
-  'تم التسليم',
-  'تم التوصيل',
-  'سلمت',
-  'سُلِّم',
-];
-
-const DHD_RETURNED_KEYWORDS_AR = [
-  'راجع',
-  'تم الارجاع',
-  'تم الإرجاع',
-  'مرتجع',
-  'رفض الاستلام',
-];
-
-const DHD_CANCELLED_KEYWORDS_AR = [
-  'ألغيت',
-  'تم الإلغاء',
-  'ملغاة',
-];
-
-type DeliveryApiConfig = {
-  type: DeliveryApiType;
-  label: string;
-  baseUrl: string;
-  token?: string | null;
+const statusesEqual = (left: unknown, right: unknown): boolean => {
+  const normalizedLeft = normalizeStatus(left);
+  const normalizedRight = normalizeStatus(right);
+  return Boolean(normalizedLeft && normalizedLeft === normalizedRight);
 };
 
-const DELIVERY_API_CONFIGS: Record<DeliveryApiType, DeliveryApiConfig> = {
-  api_dhd: {
-    type: 'api_dhd',
-    label: 'DHD',
-    baseUrl: DEFAULT_DHD_API_BASE_URL,
-    token: DEFAULT_DHD_API_TOKEN,
-  },
-  api_sook: {
-    type: 'api_sook',
-    label: 'Sook en ligne',
-    baseUrl: DEFAULT_SOOK_API_BASE_URL,
-    token: DEFAULT_SOOK_API_TOKEN,
-  },
-};
+const safeErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'Erreur ECOTRACK inconnue';
 
-const mapOfficialStatusToSheet = (status: unknown): string | null => {
-  if (typeof status !== 'string') return null;
-  const trimmedStatus = status.trim();
-  if (!trimmedStatus) return null;
-  const normalized = normalizeStatus(trimmedStatus);
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_RETURNED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_RETURNED_KEYWORDS_AR)
-  ) {
-    return 'retours';
-  }
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_DELIVERED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_DELIVERED_KEYWORDS_AR)
-  ) {
-    return 'livrée';
-  }
-
-  if (
-    DHD_SHIPPED_STATUSES.has(normalized) ||
-    containsNormalizedKeyword(normalized, DHD_SHIPPED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_SHIPPED_KEYWORDS_AR)
-  ) {
-    return 'SHIPPED';
-  }
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_CANCELLED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_CANCELLED_KEYWORDS_AR)
-  ) {
-    return 'abandoned';
-  }
-
-  return null;
-};
-
-const statusesEqual = (a?: string, b?: string) => {
-  if (!a || !b) {
-    return false;
-  }
-  return (
-    normalizeStatusForComparison(a) === normalizeStatusForComparison(b)
-  );
-};
-
-const sanitizeOrders = (orders: SyncOrderPayload[]): SyncOrderPayload[] =>
-  orders
+const sanitizeOrders = (orders: SyncOrderPayload[]): SyncOrderPayload[] => {
+  const seen = new Set<string>();
+  return orders
     .map((order) => ({
       rowId: String(order?.rowId ?? '').trim(),
-      tracking: order?.tracking ? String(order.tracking).trim() : undefined,
-      reference: order?.reference
-        ? String(order.reference).trim()
-        : undefined,
-      currentStatus: order?.currentStatus
-        ? String(order.currentStatus).trim()
-        : undefined,
-      deliveryType: order?.deliveryType
-        ? (String(order.deliveryType).trim().toLowerCase() as SyncOrderPayload['deliveryType'])
-        : undefined,
+      tracking:
+        typeof order?.tracking === 'string' ? order.tracking.trim() : undefined,
+      reference:
+        typeof order?.reference === 'string'
+          ? order.reference.trim()
+          : undefined,
+      currentStatus:
+        typeof order?.currentStatus === 'string'
+          ? order.currentStatus.trim()
+          : undefined,
+      deliveryType:
+        typeof order?.deliveryType === 'string'
+          ? order.deliveryType.trim().toLowerCase()
+          : undefined,
     }))
-    .filter((order) => order.rowId);
-
-const buildRequestHeaders = (config: DeliveryApiConfig) => {
-  if (!config.token) {
-    return undefined;
-  }
-  return {
-    Authorization: `Bearer ${config.token}`,
-  };
+    .filter((order) => {
+      if (
+        !order.rowId ||
+        order.rowId.length > 100 ||
+        (order.tracking?.length ?? 0) > 100 ||
+        (order.reference?.length ?? 0) > 200 ||
+        (order.currentStatus?.length ?? 0) > 100 ||
+        (typeof order.deliveryType === 'string' && order.deliveryType.length > 32) ||
+        seen.has(order.rowId)
+      ) {
+        return false;
+      }
+      seen.add(order.rowId);
+      return true;
+    });
 };
 
-const fetchOrdersPage = async (
-  config: DeliveryApiConfig,
-  page: number,
-  startDate?: string,
-  endDate?: string,
-  attempt = 0
-): Promise<{
-  data: RawOfficialOrderEntry[];
-  current_page?: number;
-  last_page?: number;
-}> => {
-  const params: Record<string, string | number> = { page };
-  if (startDate) {
-    params.start_date = startDate;
-  }
-  if (endDate) {
-    params.end_date = endDate;
-  }
+const recordSyncError = async (rowId: string, message: string) => {
+  await Order.updateOne(
+    { rowId },
+    {
+      $set: {
+        lastSyncAttemptAt: new Date(),
+        lastSyncError: message.slice(0, 500),
+      },
+    }
+  ).catch(() => undefined);
+};
 
-  try {
-    const response = await axios.get(
-      `${config.baseUrl.replace(/\/$/, '')}${DHD_ORDERS_PATH}`,
-      {
-        params,
-        headers: buildRequestHeaders(config),
-        timeout: OFFICIAL_SYNC_TIMEOUT_MS,
+const processWithConcurrency = async <T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+) => {
+  let cursor = 0;
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (cursor < items.length) {
+        const index = cursor;
+        cursor += 1;
+        await worker(items[index]);
       }
-    );
-
-    // Throttle to stay under 50 req/min (doc DHD)
-    if (RATE_LIMIT_DELAY_MS > 0) {
-      await delay(RATE_LIMIT_DELAY_MS);
     }
+  );
+  await Promise.all(runners);
+};
 
-    const payload = response.data ?? {};
-    const list = Array.isArray(payload?.data) ? payload.data : [];
-    return {
-      data: list,
-      current_page: payload?.current_page,
-      last_page: payload?.last_page,
-    };
-  } catch (error) {
-    if (
-      axios.isAxiosError(error) &&
-      error.response?.status === 429 &&
-      attempt < MAX_RATE_LIMIT_RETRIES
-    ) {
-      const retryAfterHeader = error.response.headers?.['retry-after'];
-      const retryAfterSeconds = retryAfterHeader
-        ? Number(retryAfterHeader)
-        : 5;
-      const backoffMs = (isNaN(retryAfterSeconds) ? 5 : retryAfterSeconds) * 1000;
-      await delay(backoffMs);
-      return fetchOrdersPage(config, page, startDate, endDate, attempt + 1);
-    }
-    throw error;
+const persistMatchedStatus = async (params: {
+  order: SyncOrderPayload;
+  deliveryType: DeliveryApiType;
+  carrierStatus: string;
+  sheetAlreadyUpdated?: boolean;
+}) => {
+  const { order, deliveryType, carrierStatus, sheetAlreadyUpdated } = params;
+  const mappedStatus = mapCarrierStatus(carrierStatus);
+  const existing = await Order.findOne({ rowId: order.rowId });
+  // Mongo est prioritaire sur la copie potentiellement périmée envoyée par le
+  // navigateur. Cela évite qu'un statut transporteur inconnu fasse régresser
+  // une commande déjà mise à jour par un cron plus récent.
+  const previousStatus =
+    existing?.status || order.currentStatus || 'ready_to_ship';
+  const nextStatus = mappedStatus || previousStatus;
+  const changed = !statusesEqual(previousStatus, nextStatus);
+  const now = new Date();
+
+  if (!sheetAlreadyUpdated) {
+    await sheetService.updateStatus({
+      rowId: order.rowId,
+      status: nextStatus,
+      tracking: order.tracking,
+      carrierStatus,
+      carrierType: deliveryType,
+      row: existing?.row,
+    });
   }
+
+  const savedOrder = await Order.findOneAndUpdate(
+    { rowId: order.rowId },
+    {
+      $set: {
+        rowId: order.rowId,
+        status: nextStatus,
+        tracking: order.tracking,
+        deliveryType,
+        carrierStatus,
+        carrierStatusUpdatedAt: now,
+        lastSyncAttemptAt: now,
+        lastSyncError: '',
+      },
+    },
+    { upsert: true, new: true }
+  );
+
+  if (savedOrder.row) {
+    try {
+      await reconcileOrderStock(order.rowId, nextStatus);
+    } catch (error) {
+      await Order.updateOne(
+        { rowId: order.rowId },
+        { $set: { lastSyncError: `Stock: ${safeErrorMessage(error)}` } }
+      );
+    }
+  }
+
+  return { mappedStatus, previousStatus, nextStatus, changed };
 };
 
 export const syncOfficialStatuses = async (
   params: SyncOfficialStatusesParams
 ): Promise<SyncOfficialStatusesResult> => {
   const sanitizedOrders = sanitizeOrders(params.orders ?? []);
-  if (sanitizedOrders.length === 0) {
-    return {
-      updates: [],
-      notFound: [],
-      skipped: [],
-      errors: [],
-      fetchedOrders: 0,
-      pagesFetched: 0,
-    };
-  }
+  const result: SyncOfficialStatusesResult = {
+    updates: [],
+    notFound: [],
+    skipped: [],
+    errors: [],
+    fetchedOrders: 0,
+    pagesFetched: 0,
+    requestsMade: 0,
+  };
 
-  const updates: SyncOfficialStatusesResult['updates'] = [];
-  const notFound: SyncOfficialStatusesResult['notFound'] = [];
-  const skipped: SyncOfficialStatusesResult['skipped'] = [];
-  const errors: SyncOfficialStatusesResult['errors'] = [];
-  let fetchedOrders = 0;
-  let pagesFetched = 0;
+  if (sanitizedOrders.length === 0) return result;
 
-  const groupedOrders = new Map<DeliveryApiType, SyncOrderPayload[]>();
-
+  const grouped = new Map<DeliveryApiType, SyncOrderPayload[]>();
   sanitizedOrders.forEach((order) => {
-    const deliveryTypeRaw = order.deliveryType
-      ? String(order.deliveryType).trim().toLowerCase()
-      : '';
-    if (deliveryTypeRaw === 'livreur') {
-      skipped.push({
-        rowId: order.rowId,
-        tracking: order.tracking,
-        reference: order.reference,
-        reason: 'delivery_person_order',
-      });
+    if (order.deliveryType === 'livreur') {
+      result.skipped.push({ ...order, reason: 'delivery_person_order' });
       return;
     }
-    const deliveryTypeCandidate: DeliveryApiType =
-      deliveryTypeRaw === 'api_sook' ? 'api_sook' : 'api_dhd';
-    if (!DELIVERY_API_CONFIGS[deliveryTypeCandidate]) {
-      skipped.push({
-        rowId: order.rowId,
-        tracking: order.tracking,
-        reference: order.reference,
-        reason: 'unsupported_delivery_type',
-      });
+    if (
+      order.deliveryType !== 'api_dhd' &&
+      order.deliveryType !== 'api_sook'
+    ) {
+      result.skipped.push({ ...order, reason: 'missing_or_unknown_delivery_type' });
       return;
     }
-    const bucket = groupedOrders.get(deliveryTypeCandidate) ?? [];
+    if (!normalizeCarrierIdentifier(order.tracking)) {
+      result.skipped.push({ ...order, reason: 'missing_tracking' });
+      return;
+    }
+    const type: DeliveryApiType = order.deliveryType;
+    const bucket = grouped.get(type) ?? [];
     bucket.push(order);
-    groupedOrders.set(deliveryTypeCandidate, bucket);
+    grouped.set(type, bucket);
   });
 
-  const processOrdersForConfig = async (
-    orders: SyncOrderPayload[],
-    config: DeliveryApiConfig
-  ) => {
-    const ordersByTracking = new Map<string, SyncOrderPayload[]>();
-    const ordersByReference = new Map<string, SyncOrderPayload[]>();
-
-    orders.forEach((order) => {
-      const trackingKey = normalizeIdentifier(order.tracking);
-      if (trackingKey) {
-        const bucket = ordersByTracking.get(trackingKey) ?? [];
-        bucket.push(order);
-        ordersByTracking.set(trackingKey, bucket);
+  for (const [deliveryType, orders] of grouped.entries()) {
+    let client: EcotrackClient;
+    try {
+      client = new EcotrackClient(deliveryType);
+    } catch (error) {
+      const message = safeErrorMessage(error);
+      for (const order of orders) {
+        result.errors.push({ ...order, error: message });
+        await recordSyncError(order.rowId, message);
       }
-      const referenceKey = normalizeIdentifier(order.reference);
-      if (referenceKey) {
-        const bucket = ordersByReference.get(referenceKey) ?? [];
-        bucket.push(order);
-        ordersByReference.set(referenceKey, bucket);
-      }
-    });
-
-    if (ordersByTracking.size === 0 && ordersByReference.size === 0) {
-      orders.forEach((order) =>
-        notFound.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-        })
-      );
-      return;
-    }
-
-    const matches = new Map<string, { entry: RawOfficialOrderEntry; status: string }>();
-    let page = 1;
-    let lastPage = 1;
-
-    while (page <= lastPage && page <= MAX_PAGES_TO_SCAN) {
-      const { data, last_page } = await fetchOrdersPage(
-        config,
-        page,
-        params.startDate,
-        params.endDate
-      );
-      pagesFetched += 1;
-      fetchedOrders += data.length;
-      if (typeof last_page === 'number' && last_page > 0) {
-        lastPage = last_page;
-      }
-
-      data.forEach((entry) => {
-        const trackingKey = normalizeIdentifier(
-          typeof entry?.tracking === 'string' ? entry.tracking : undefined
-        );
-        const referenceKey = normalizeIdentifier(
-          typeof entry?.reference === 'string' ? entry.reference : undefined
-        );
-        const officialStatus =
-          typeof entry?.status === 'string' ? entry.status : '';
-
-        const associatedOrders = new Set<SyncOrderPayload>();
-
-        if (trackingKey && ordersByTracking.has(trackingKey)) {
-          ordersByTracking.get(trackingKey)?.forEach((order) =>
-            associatedOrders.add(order)
-          );
-        }
-
-        if (referenceKey && ordersByReference.has(referenceKey)) {
-          ordersByReference.get(referenceKey)?.forEach((order) =>
-            associatedOrders.add(order)
-          );
-        }
-
-        associatedOrders.forEach((order) => {
-          if (!matches.has(order.rowId)) {
-            matches.set(order.rowId, {
-              entry,
-              status: officialStatus,
-            });
-          }
-        });
-      });
-
-      if (matches.size >= orders.length) {
-        break;
-      }
-
-      page += 1;
-    }
-
-    for (const order of orders) {
-      const match = matches.get(order.rowId);
-      if (!match) {
-        notFound.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-        });
-        return;
-      }
-
-      const mappedStatus = mapOfficialStatusToSheet(match.status);
-      if (!mappedStatus) {
-        skipped.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-          reason: 'unknown_status',
-        });
-        return;
-      }
-
-      if (statusesEqual(order.currentStatus, mappedStatus)) {
-        return;
-      }
-
-      try {
-        await sheetService.updateStatus({
-          rowId: order.rowId,
-          status: mappedStatus,
-          tracking: order.tracking,
-        });
-
-        updates.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-          officialStatus: match.status ?? '',
-          newStatus: mappedStatus,
-          previousStatus: order.currentStatus,
-        });
-
-        const normalizedMappedStatus = mappedStatus.toLowerCase().trim();
-        const normalizedPreviousStatus = order.currentStatus ? String(order.currentStatus).toLowerCase().trim() : '';
-        const isDelivered =
-          normalizedMappedStatus === 'delivered' ||
-          normalizedMappedStatus === 'livrée' ||
-          normalizedMappedStatus === 'livree';
-        const wasAlreadyDelivered =
-          normalizedPreviousStatus === 'delivered' ||
-          normalizedPreviousStatus === 'livrée' ||
-          normalizedPreviousStatus === 'livree';
-        const isReturned =
-          normalizedMappedStatus === 'returned' ||
-          normalizedMappedStatus === 'retour' ||
-          normalizedMappedStatus === 'retours' ||
-          normalizedMappedStatus === 'retournée' ||
-          normalizedMappedStatus === 'retournee' ||
-          normalizedMappedStatus === 'retourne';
-        const wasDeliveredBeforeReturn = wasAlreadyDelivered;
-
-        const existingOrder = await Order.findOne({ rowId: order.rowId });
-        if (isDelivered && !wasAlreadyDelivered && existingOrder?.row) {
-          decrementStockForDeliveredOrder(existingOrder.row, order.rowId).catch((error) => {
-            console.error(`Erreur lors de la décrémentation automatique du stock pour la commande ${order.rowId}:`, error);
-          });
-        }
-        if (isReturned && wasDeliveredBeforeReturn && existingOrder?.row) {
-          incrementStockForReturnedOrder(existingOrder.row, order.rowId).catch((error) => {
-            console.error(
-              `Erreur lors de la ré-incrémentation du stock (retour) pour la commande ${order.rowId}:`,
-              error
-            );
-          });
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Erreur inconnue';
-        errors.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-          error: message,
-        });
-      }
-    }
-  };
-
-  for (const [type, orders] of groupedOrders.entries()) {
-    const config = DELIVERY_API_CONFIGS[type];
-    if (!config?.token) {
-      orders.forEach((order) =>
-        skipped.push({
-          rowId: order.rowId,
-          tracking: order.tracking,
-          reference: order.reference,
-          reason: 'missing_token',
-        })
-      );
       continue;
     }
-    await processOrdersForConfig(orders, config);
+
+    const ordersByTracking = new Map<string, SyncOrderPayload[]>();
+    orders.forEach((order) => {
+      const key = normalizeCarrierIdentifier(order.tracking);
+      const bucket = ordersByTracking.get(key) ?? [];
+      bucket.push(order);
+      ordersByTracking.set(key, bucket);
+    });
+
+    const chunks = chunkTrackings(
+      Array.from(ordersByTracking.keys()),
+      100
+    );
+
+    for (const chunk of chunks) {
+      let statuses: Map<string, EcotrackStatusEntry>;
+      try {
+        statuses = await client.getStatuses(chunk);
+        result.requestsMade += 1;
+        result.pagesFetched += 1;
+        result.fetchedOrders += statuses.size;
+      } catch (error) {
+        const message = safeErrorMessage(error);
+        for (const tracking of chunk) {
+          for (const order of ordersByTracking.get(tracking) ?? []) {
+            result.errors.push({ ...order, error: message });
+            await recordSyncError(order.rowId, message);
+          }
+        }
+        continue;
+      }
+
+      const sheetPayloads: Array<{
+        rowId: string;
+        status: string;
+        tracking?: string;
+        carrierStatus: string;
+        carrierType: DeliveryApiType;
+      }> = [];
+      const matchedForPersistence: Array<{
+        order: SyncOrderPayload;
+        carrierStatus: string;
+      }> = [];
+      for (const tracking of chunk) {
+        const entry = statuses.get(tracking);
+        const carrierStatus =
+          typeof entry?.status === 'string' ? entry.status.trim() : '';
+        if (!carrierStatus) continue;
+        for (const order of ordersByTracking.get(tracking) ?? []) {
+          sheetPayloads.push({
+            rowId: order.rowId,
+            status:
+              mapCarrierStatus(carrierStatus) ||
+              order.currentStatus ||
+              'ready_to_ship',
+            tracking: order.tracking,
+            carrierStatus,
+            carrierType: deliveryType,
+          });
+        }
+      }
+
+      let sheetBatchError = '';
+      if (sheetPayloads.length > 0) {
+        try {
+          for (let index = 0; index < sheetPayloads.length; index += 100) {
+            await sheetService.updateStatuses(
+              sheetPayloads.slice(index, index + 100)
+            );
+          }
+        } catch (error) {
+          sheetBatchError = safeErrorMessage(error);
+        }
+      }
+
+      for (const tracking of chunk) {
+        const matchedOrders = ordersByTracking.get(tracking) ?? [];
+        const entry = statuses.get(tracking);
+        if (!entry) {
+          for (const order of matchedOrders) {
+            result.notFound.push({
+              rowId: order.rowId,
+              tracking: order.tracking,
+              reference: order.reference,
+            });
+            await recordSyncError(order.rowId, 'tracking_not_found');
+          }
+          continue;
+        }
+
+        const carrierStatus =
+          typeof entry.status === 'string' ? entry.status.trim() : '';
+        if (!carrierStatus) {
+          for (const order of matchedOrders) {
+            result.skipped.push({ ...order, reason: 'missing_carrier_status' });
+            await recordSyncError(order.rowId, 'missing_carrier_status');
+          }
+          continue;
+        }
+
+        for (const order of matchedOrders) {
+          if (sheetBatchError) {
+            result.errors.push({ ...order, error: sheetBatchError });
+            await recordSyncError(order.rowId, sheetBatchError);
+            continue;
+          }
+          matchedForPersistence.push({ order, carrierStatus });
+        }
+      }
+
+      await processWithConcurrency(
+        matchedForPersistence,
+        10,
+        async ({ order, carrierStatus }) => {
+          try {
+            const persisted = await persistMatchedStatus({
+              order,
+              deliveryType,
+              carrierStatus,
+              sheetAlreadyUpdated: true,
+            });
+            result.updates.push({
+              rowId: order.rowId,
+              tracking: order.tracking,
+              reference: order.reference,
+              officialStatus: carrierStatus,
+              newStatus: persisted.nextStatus,
+              previousStatus: persisted.previousStatus,
+              changed: persisted.changed,
+            });
+            if (!persisted.mappedStatus) {
+              result.skipped.push({ ...order, reason: 'unknown_status_preserved' });
+            }
+          } catch (error) {
+            const message = safeErrorMessage(error);
+            result.errors.push({ ...order, error: message });
+            await recordSyncError(order.rowId, message);
+          }
+        }
+      );
+    }
   }
 
-  return {
-    updates,
-    notFound,
-    skipped,
-    errors,
-    fetchedOrders,
-    pagesFetched,
-  };
+  return result;
 };

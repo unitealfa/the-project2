@@ -164,6 +164,7 @@ const CreateUser: React.FC = () => {
                   className="team-form__control"
                   value={form.firstName}
                   onChange={handleChange}
+                  maxLength={80}
                   autoComplete="given-name"
                   required
                 />
@@ -179,6 +180,7 @@ const CreateUser: React.FC = () => {
                   className="team-form__control"
                   value={form.lastName}
                   onChange={handleChange}
+                  maxLength={80}
                   autoComplete="family-name"
                   required
                 />
@@ -195,6 +197,7 @@ const CreateUser: React.FC = () => {
                   className="team-form__control"
                   value={form.email}
                   onChange={handleChange}
+                  maxLength={254}
                   autoComplete="email"
                   required
                 />
@@ -223,6 +226,8 @@ const CreateUser: React.FC = () => {
                     value={form.password}
                     onChange={handleChange}
                     autoComplete="new-password"
+                    minLength={12}
+                    maxLength={128}
                     placeholder="Saisissez un mot de passe sécurisé"
                     required
                   />

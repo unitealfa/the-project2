@@ -4,22 +4,77 @@ import dotenv from 'dotenv';
 import path from 'path';
 import connectDB from './config/db';
 import userRoutes from './users/user.routes';
-import User from './users/user.model';
-import Product from './products/product.model';
 import productRoutes from './products/product.routes';
 import orderRoutes from './orders/order.routes';
 import { startOrderStatusScheduler } from './orders/orderStatusScheduler';
 
-// Initial Mongo connection removed in favor of middleware
+dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+const configuredOrigins = [
+  ...(process.env.CORS_ORIGINS ?? '').split(','),
+  process.env.FRONTEND_URL ?? '',
+]
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+const developmentOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  ...(process.env.NODE_ENV === 'production' ? [] : developmentOrigins),
+]);
+
+app.use((_, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  if (origin && !allowedOrigins.has(origin.replace(/\/$/, ''))) {
+    return res.status(403).json({ success: false, message: 'Origine non autorisee' });
+  }
+  next();
+});
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      callback(null, allowedOrigins.has(origin.replace(/\/$/, '')));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    maxAge: 600,
+  })
+);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false, limit: '256kb' }));
 
 // Avoid DB work for healthcheck/favicon. This matters on Vercel when MongoDB
 // is temporarily unreachable or the deployment IP is not whitelisted yet.
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 app.get('/', (_req, res) => res.status(200).json({ status: 'ok' }));
+
+// Les images produits sont publiques et ne nécessitent pas une connexion Mongo.
+// Sur Vercel, /tmp reste éphémère : utiliser un stockage objet en production.
+const uploadsDir =
+  process.env.UPLOADS_DIR ||
+  (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads'));
+app.use('/uploads', express.static(uploadsDir, {
+  fallthrough: true,
+  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+  immutable: false,
+}), (_req, res) => {
+  res.status(404).json({ success: false, message: 'Image introuvable' });
+});
 
 // Middleware to ensure DB connection on every request
 app.use(async (req, res, next) => {
@@ -28,75 +83,26 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (error) {
-    console.error('Database Connection Failed:', error);
+    console.error('Connexion MongoDB impossible');
     res.status(500).json({ success: false, message: 'Service temporarily unavailable' });
   }
 });
-// Google Sheet update passthrough (previously in server.ts)
-app.post('/update-sheet', async (req, res) => {
-  try {
-    const sheetSyncUrl = process.env.GOOGLE_SHEET_SYNC_URL;
-    if (!sheetSyncUrl) {
-      return res
-        .status(500)
-        .json({ success: false, message: 'GOOGLE_SHEET_SYNC_URL is not configured.' });
-    }
-
-    const response = await fetch(sheetSyncUrl, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(req.body as Record<string, string>),
-    });
-
-    const text = await response.text();
-    res.status(200).send(text);
-  } catch (error) {
-    console.error('Erreur Google Sheet:', error);
-    res.status(500).json({ success: false, message: (error as Error).message });
-  }
-});
 app.use('/api/users', userRoutes);
-app.use(express.urlencoded({ extended: true }));
-// Safe fallback for products to avoid 500 if DB is unavailable in serverless
-app.get('/api/products', async (_req, res) => {
-  try {
-    const products = await Product.find().lean();
-    return res.json(products);
-  } catch (error) {
-    console.error('Erreur /api/products:', error);
-    return res.json([]);
-  }
-});
 app.use('/api/products', productRoutes);
-// Safe fallback for delivery persons to avoid 500 if DB/service fails
-app.get('/api/orders/delivery-persons', async (_req, res) => {
-  try {
-    const persons = await User.find({ role: 'livreur' }).select('_id firstName lastName email');
-    return res.json({
-      success: true,
-      deliveryPersons: persons.map((p) => ({
-        id: p._id,
-        name: `${p.firstName} ${p.lastName}`.trim(),
-        email: p.email,
-      })),
-    });
-  } catch (error) {
-    console.error('Erreur /api/orders/delivery-persons:', error);
-    return res.json({
-      success: true,
-      deliveryPersons: [],
-      message: 'Impossible de charger les livreurs pour le moment.',
-    });
-  }
-});
 app.use('/api/orders', orderRoutes);
 
-// Static serving for uploaded files (read-only on Vercel; use /tmp fallback if provided)
-const uploadsDir =
-  process.env.UPLOADS_DIR ||
-  (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads'));
-app.use('/uploads', express.static(uploadsDir));
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: 'Route introuvable' });
+});
+
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const bodyTooLarge = (error as { type?: string })?.type === 'entity.too.large';
+  console.error(bodyTooLarge ? 'Corps de requête trop volumineux' : 'Erreur HTTP non gérée');
+  res.status(bodyTooLarge ? 413 : 500).json({
+    success: false,
+    message: bodyTooLarge ? 'Corps de requête trop volumineux' : 'Erreur interne du serveur',
+  });
+});
 
 // Lancement de la synchro automatique des statuts officiels (hors environnements serverless)
 if (!process.env.VERCEL && process.env.ENABLE_OFFICIAL_STATUS_CRON !== 'false') {
@@ -104,10 +110,3 @@ if (!process.env.VERCEL && process.env.ENABLE_OFFICIAL_STATUS_CRON !== 'false') 
 }
 
 export default app;
-
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}

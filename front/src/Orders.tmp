@@ -491,16 +491,12 @@ const DEFAULT_DHD_BASE_URL = "https://platform.dhd-dz.com";
 const DHD_API_BASE_URL = (
   import.meta.env.VITE_DHD_API_URL ?? DEFAULT_DHD_BASE_URL
 ).replace(/\/$/, "");
-const DHD_API_TOKEN =
-  import.meta.env.VITE_DHD_API_TOKEN ??
-  "FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i";
+const DHD_API_TOKEN = "";
 
   const SOOK_API_BASE_URL = (
   import.meta.env.VITE_SOOK_API_URL ?? DEFAULT_DHD_BASE_URL
 ).replace(/\/$/, "");
-const SOOK_API_TOKEN =
-  import.meta.env.VITE_SOOK_API_TOKEN ??
-  "NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D";
+const SOOK_API_TOKEN = "";
   
 const DHD_CREATE_PATH = "/api/v1/create/order";
 const DHD_TRACKING_PATH = "/api/v1/get/tracking/info";
@@ -5519,4 +5515,3 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
-

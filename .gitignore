@@ -1,20 +1,29 @@
-# Node modules
+# Dependencies
 node_modules/
-front\node_modules
-back\node_modules
+**/node_modules/
 
 # Build outputs
 dist/
+**/dist/
 build/
-front/dist/
-back/dist/
-
-# TypeScript
+**/build/
 *.tsbuildinfo
 
-# VSCode
+# Local configuration and secrets
+.env
+.env.local
+.env.*.local
+back/.env
+front/.env
+!.env.example
+!**/.env.example
+
+# Editor files
 .vscode/
 
-back/.env
+# Runtime logs and local diagnostics (may contain order data)
+*.log
+debuglogs*.txt
 
+# Generated/private documentation
 docucompletededhd.html

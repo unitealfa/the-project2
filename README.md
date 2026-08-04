@@ -1,38 +1,45 @@
-# Fullstack TS + MongoDB Project
+# ECOTRACK order management
 
-## Backend
-cd backend
-npm install bcrypt
-npm install --save-dev @types/bcrypt
-npm install --save-dev @types/cors
-npm install jsonwebtoken
-npm install --save-dev @types/jsonwebtoken
-npm install express cors dotenv mongoose
-npm install --save-dev @types/express @types/cors @types/node typescript ts-node-dev
-npm install axios
-npm install node-fetch
-npm init -y
-npm install googleapis
-npm install nodemailer
-npm install --save-dev @types/nodemailer
-npm install multer
-npm install -D @types/multer
+Application interne React/Express pour gérer les commandes, les produits, les
+livreurs et la synchronisation des statuts DHD/Sook (API ECOTRACK).
 
+## Prérequis
 
+- Node.js 20.19 ou plus récent
+- MongoDB
+- un compte de service Google autorisé sur la feuille de commandes
+- les jetons ECOTRACK côté backend uniquement
 
+## Installation
 
-npm run dev
+```bash
+npm ci --prefix back
+npm ci --prefix front
+cp back/.env.example back/.env
+cp front/.env.example front/.env
+```
 
+Compléter ensuite les variables locales. Ne jamais versionner les fichiers
+`.env`. `JWT_SECRET` et `CRON_SECRET` doivent être des valeurs aléatoires
+distinctes; les jetons DHD/Sook et la clé privée Google restent exclusivement
+sur le backend.
 
-## Frontend
-cd frontend
-npm install
-npm install --save-dev @types/react @types/react-dom
-npm install react-router-dom
-npm install --save-dev @types/react-router-dom
-npm install lucide-react
-npm install chart.js
-npm install --save-dev @types/chart.js
+## Développement
 
+Dans deux terminaux :
 
-npm run dev
+```bash
+npm run dev:back
+npm run dev:front
+```
+
+## Vérifications
+
+```bash
+npm test
+npm run audit
+```
+
+Le contrat DHD utilisé par l'intégration est la collection Postman fournie
+`ECOTRACK API.postman_collection.json`. Le diagnostic, les décisions et les
+limites de déploiement sont suivis dans `DHD_ECOTRACK_FIX_REFERENCE.md`.

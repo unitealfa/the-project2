@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email:     string;
   password:  string;
   role:      'admin' | 'gestionnaire' | 'confirmateur' | 'livreur';
+  tokenVersion: number;
 }
 
 export default model<IUser>('User', UserSchema);

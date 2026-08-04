@@ -13,6 +13,7 @@ import {
   EXCEL_EPOCH,
   toDateKey,
 } from "../utils/dateHelpers";
+import { parseLocaleAmount, parsePositiveIntegerQuantity } from "../utils/numberParsing";
 import "../styles/Orders.css";
 
 const DEBUG_ORDERS = false;
@@ -95,9 +96,15 @@ interface OrderRow {
   [key: string]: string;
 }
 
-const SHEET_ID = "1Z5etRgUtjHz2QiZm0SDW9vVHPcFxHPEvw08UY9i7P9Q";
-const buildCsvUrl = () =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&cacheBust=${Date.now()}`;
+const configuredSheetEditUrl = String(
+  import.meta.env.VITE_SHEET_EDIT_URL ?? ""
+).trim();
+const SHEET_EDIT_URL = /^https:\/\/docs\.google\.com\/spreadsheets\//i.test(
+  configuredSheetEditUrl
+)
+  ? configuredSheetEditUrl
+  : "";
+const buildCsvUrl = () => `/api/orders/sheet?cacheBust=${Date.now()}`;
 
 const VARIANT_KEY_CANDIDATES = [
   "Variante",
@@ -318,15 +325,13 @@ const extractProductNameOnly = (row: OrderRow): string => {
 };
 
 const extractQuantityValue = (row: OrderRow): number => {
-  const rawQuantity = String(
-    row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-  ).replace(/[^\d]/g, "");
-  const parsed = parseInt(rawQuantity, 10);
-  return Number.isNaN(parsed) || parsed <= 0 ? 1 : parsed;
+  return parsePositiveIntegerQuantity(
+    row["Quantité"] || row["Quantite"] || row["Qte"]
+  ) ?? 1;
 };
 
 const extractProductCode = (row: OrderRow): string => {
-  const candidates = ["Code", "code", "SKU", "Sku", "Référence", "Reference"];
+  const candidates = ["Code", "code", "SKU", "Sku"];
   for (const key of candidates) {
     if (key in row) {
       const trimmed = String(row[key] ?? "").trim();
@@ -338,12 +343,34 @@ const extractProductCode = (row: OrderRow): string => {
   return "";
 };
 
+const extractReference = (row: OrderRow): string => {
+  const directCandidates = ["Référence", "Reference", "REF", "Ref"];
+  for (const key of directCandidates) {
+    const value = String(row[key] ?? "").trim();
+    if (value) return value;
+  }
+  for (const [key, rawValue] of Object.entries(row)) {
+    const normalizedKey = normalizeFieldKey(key);
+    if (
+      normalizedKey === "reference" ||
+      normalizedKey === "ref" ||
+      normalizedKey.includes("commande_reference") ||
+      normalizedKey.includes("reference_commande")
+    ) {
+      const value = String(rawValue ?? "").trim();
+      if (value) return value;
+    }
+  }
+  return "";
+};
+
 type UpdateStatusContext = {
   previousStatus?: string;
   row?: OrderRow;
   tracking?: string;
   deliveryType?: DeliveryType;
   deliveryPersonId?: string;
+  persist?: boolean;
 };
 
 type SheetStatus =
@@ -355,10 +382,7 @@ type SheetStatus =
   | "returned"
   | string;
 
-const SHEET_SYNC_ENDPOINT =
-  import.meta.env.VITE_SHEET_SYNC_ENDPOINT ?? "/api/orders/status";
-
-const OFFICIAL_STATUS_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const SHEET_SYNC_ENDPOINT = "/api/orders/status";
 
 type TimeFilter = "all" | "day" | "week" | "month";
 
@@ -406,6 +430,16 @@ const getRowStatus = (row: OrderRow): string => {
   return status || "new";
 };
 
+const getDisplayedOrderStatus = (row: OrderRow): string => {
+  const businessStatus = getRowStatus(row);
+  const carrierStatus = String(row["__carrierStatus"] ?? "").trim();
+  if (!carrierStatus) return businessStatus;
+  const readableCarrierStatus = carrierStatus.replace(/_/g, " ");
+  return readableCarrierStatus === businessStatus
+    ? readableCarrierStatus
+    : `${readableCarrierStatus} · ${businessStatus}`;
+};
+
 const PAGE_SIZE = 100;
 
 const isNetworkError = (error: unknown) => {
@@ -423,326 +457,8 @@ const isNetworkError = (error: unknown) => {
   );
 };
 
-const DEFAULT_DHD_BASE_URL = "https://platform.dhd-dz.com";
-const DHD_API_BASE_URL = (
-  import.meta.env.VITE_DHD_API_URL ?? DEFAULT_DHD_BASE_URL
-).replace(/\/$/, "");
-const DHD_API_TOKEN =
-  import.meta.env.VITE_DHD_API_TOKEN ??
-  "FmEdYRuMKmZOksnzHz2gvNhassrqr8wYNf4Lwcvn2EuOkTO9VZ1RXZb1nj4i";
-
-const SOOK_API_BASE_URL = (
-  import.meta.env.VITE_SOOK_API_URL ?? DEFAULT_DHD_BASE_URL
-).replace(/\/$/, "");
-const SOOK_API_TOKEN =
-  import.meta.env.VITE_SOOK_API_TOKEN ??
-  "NzsNGGhBJe9Pkf1RHddeS10o8j8J5iTTUlY6dBnFlWvNiYXQTokbf9lyjN6D";
-
-const DHD_CREATE_PATH = "/api/v1/create/order";
-const DHD_TRACKING_PATH = "/api/v1/get/tracking/info";
-const DHD_UPDATES_PATH = "/api/v1/get/maj";
-
 type DeliveryApiType = "api_dhd" | "api_sook";
 type DeliveryType = DeliveryApiType | "livreur";
-
-const DELIVERY_API_CONFIG: Record<
-  DeliveryApiType,
-  {
-    label: string;
-    baseUrl: string;
-    token: string | null;
-  }
-> = {
-  api_dhd: {
-    label: "BL Bébé",
-    baseUrl: DHD_API_BASE_URL,
-    token: DHD_API_TOKEN || null,
-  },
-  api_sook: {
-    label: "Sook en ligne",
-    baseUrl: SOOK_API_BASE_URL,
-    token: SOOK_API_TOKEN || null,
-  },
-};
-
-const buildDeliveryApiUrl = (baseUrl: string, path: string) =>
-  `${baseUrl}${path}`;
-
-const resolveDeliveryApiConfig = (type: DeliveryType) =>
-  type === "api_sook"
-    ? DELIVERY_API_CONFIG.api_sook
-    : DELIVERY_API_CONFIG.api_dhd;
-type DeliveryApiConfig = ReturnType<typeof resolveDeliveryApiConfig>;
-
-const normalizeStatus = (status: string) =>
-  status
-    .replace(/_/g, " ")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-
-const DHD_SHIPPED_STATUSES = new Set<string>([
-  "vers station",
-  "en station",
-  "vers wilaya",
-  "en preparation",
-  "en prepa",
-  "en livraison",
-  "en cours de livraison",
-  "ramassage",
-  "ramasse",
-  "collecte",
-  "prise en charge",
-  "en cours",
-  "depart station",
-  "depart wilaya",
-  "pret a expedier",
-  "prete a expedier",
-]);
-
-const toNormalizedKeywords = (values: readonly string[]) =>
-  values
-    .map((value) => normalizeStatus(value))
-    .filter((value) => Boolean(value)) as string[];
-
-const DHD_SHIPPED_KEYWORDS = toNormalizedKeywords([
-  ...Array.from(DHD_SHIPPED_STATUSES),
-  "livraison",
-  "prise en charge",
-  "ramassage",
-  "ramasse",
-  "collecte",
-  "en cours de livraison",
-  "en cours",
-  "en cours de traitement",
-  "en route",
-  "depart station",
-  "depart wilaya",
-  "pret a expedier",
-  "prete a expedier",
-  "ready to ship",
-  "en chemin",
-]);
-
-const DHD_DELIVERED_KEYWORDS = toNormalizedKeywords([
-  "livre",
-  "livree",
-  "colis livre",
-  "commande livree",
-  "livre au client",
-  "livraison reussie",
-  "delivered",
-  "delivery done",
-  "paye et archive",
-  "paye et archivee",
-]);
-
-const DHD_RETURNED_KEYWORDS = toNormalizedKeywords([
-  "retour",
-  "retours",
-  "retourne",
-  "retournee",
-  "retour vers expediteur",
-  "return to sender",
-  "returned",
-  "refus",
-  "refuse",
-  "client refuse",
-  "colis refuse",
-  "refusee",
-]);
-
-const DHD_CANCELLED_KEYWORDS = toNormalizedKeywords([
-  "annule",
-  "annulee",
-  "annule par client",
-  "commande annulee",
-  "cancelled",
-  "canceled",
-  "annulation",
-  "annule marchand",
-]);
-
-const DHD_DELIVERED_KEYWORDS_AR = [
-  "تم التسليم",
-  "تم التوصيل",
-  "سلمت",
-  "سُلِّم",
-];
-
-const DHD_RETURNED_KEYWORDS_AR = [
-  "راجع",
-  "تم الارجاع",
-  "تم الإرجاع",
-  "مرتجع",
-  "رفض الاستلام",
-];
-
-const DHD_SHIPPED_KEYWORDS_AR = ["تم الشحن", "في الطريق", "في التوصيل"];
-
-const DHD_CANCELLED_KEYWORDS_AR = [
-  "تم الإلغاء",
-  "تم الالغاء",
-  "ملغاة",
-  "ألغيت",
-];
-
-const containsNormalizedKeyword = (
-  normalizedText: string,
-  keywords: readonly string[]
-) => keywords.some((keyword) => normalizedText.includes(keyword));
-
-const containsRawKeyword = (text: string, keywords: readonly string[]) =>
-  keywords.some((keyword) => keyword && text.includes(keyword));
-
-const mapDhdStatusToSheet = (status: unknown): SheetStatus | null => {
-  if (typeof status !== "string") return null;
-  const trimmedStatus = status.trim();
-  if (!trimmedStatus) return null;
-  const normalized = normalizeStatus(trimmedStatus);
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_RETURNED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_RETURNED_KEYWORDS_AR)
-  ) {
-    return "retours";
-  }
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_DELIVERED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_DELIVERED_KEYWORDS_AR)
-  ) {
-    return "livrée";
-  }
-
-  if (
-    DHD_SHIPPED_STATUSES.has(normalized) ||
-    containsNormalizedKeyword(normalized, DHD_SHIPPED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_SHIPPED_KEYWORDS_AR)
-  ) {
-    return "SHIPPED";
-  }
-
-  if (
-    containsNormalizedKeyword(normalized, DHD_CANCELLED_KEYWORDS) ||
-    containsRawKeyword(trimmedStatus, DHD_CANCELLED_KEYWORDS_AR)
-  ) {
-    return "abandoned";
-  }
-
-  return trimmedStatus;
-};
-
-const extractDhdUpdates = (payload: unknown): any[] => {
-  if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === "object") {
-    const candidates = [
-      (payload as any).data,
-      (payload as any).result,
-      (payload as any).updates,
-    ];
-    for (const candidate of candidates) {
-      if (Array.isArray(candidate)) {
-        return candidate;
-      }
-    }
-  }
-  return [];
-};
-
-const parseUpdateTimestamp = (value: unknown): number => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return Number.NEGATIVE_INFINITY;
-    const isoCandidate = trimmed.replace(" ", "T");
-    const withTimezone = /\d{2}:\d{2}:\d{2}$/.test(isoCandidate)
-      ? `${isoCandidate}Z`
-      : isoCandidate;
-    const parsed = Date.parse(withTimezone);
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-    const fallback = Number(trimmed);
-    if (Number.isFinite(fallback)) {
-      return fallback;
-    }
-  }
-  return Number.NEGATIVE_INFINITY;
-};
-
-const deriveStatusFromUpdateEntry = (entry: any): SheetStatus | null => {
-  if (entry == null) {
-    return null;
-  }
-  if (typeof entry === "string") {
-    return mapDhdStatusToSheet(entry);
-  }
-  if (typeof entry !== "object") {
-    return null;
-  }
-  const candidateKeys = [
-    "remarque",
-    "remark",
-    "status",
-    "statut",
-    "message",
-    "comment",
-    "commentaire",
-    "description",
-    "etat",
-  ];
-  for (const key of candidateKeys) {
-    const value = (entry as Record<string, unknown>)[key];
-    if (typeof value === "string") {
-      const mapped = mapDhdStatusToSheet(value);
-      if (mapped) {
-        return mapped;
-      }
-    }
-  }
-  return null;
-};
-
-const deriveStatusFromUpdates = (updates: any[]): SheetStatus | null => {
-  if (!Array.isArray(updates) || updates.length === 0) {
-    return null;
-  }
-
-  const decorated = updates.map((entry, index) => ({
-    entry,
-    index,
-    timestamp: parseUpdateTimestamp(
-      entry?.created_at ??
-      entry?.createdAt ??
-      entry?.updated_at ??
-      entry?.updatedAt ??
-      entry?.date ??
-      entry?.datetime ??
-      entry?.timestamp ??
-      null
-    ),
-  }));
-
-  decorated.sort((a, b) => {
-    if (a.timestamp === b.timestamp) {
-      return b.index - a.index;
-    }
-    return b.timestamp - a.timestamp;
-  });
-
-  for (const item of decorated) {
-    const mapped = deriveStatusFromUpdateEntry(item.entry);
-    if (mapped) {
-      return mapped;
-    }
-  }
-
-  return null;
-};
 
 const normalizeFieldKey = (key: string) =>
   key
@@ -879,118 +595,6 @@ const getDeliveryModeFromRow = (row: OrderRow): CustomerDeliveryMode => {
   return "a_domicile";
 };
 
-const INVALID_TRACKING_VALUES = new Set([
-  "N/A",
-  "NA",
-  "N A",
-  "NONE",
-  "0",
-  "000",
-  "0000",
-  "00000",
-]);
-
-const isLikelyTrackingValue = (value: string): boolean => {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (INVALID_TRACKING_VALUES.has(trimmed.toUpperCase())) return false;
-  if (/^\d{1,3}$/.test(trimmed)) return false;
-  return true;
-};
-
-const extractValueWithPredicate = (
-  row: OrderRow,
-  predicate: (normalizedKey: string, tokens: string[]) => boolean
-): string => {
-  for (const [key, rawValue] of Object.entries(row)) {
-    if (rawValue === undefined || rawValue === null) continue;
-    const normalizedKey = normalizeFieldKey(key);
-    if (!normalizedKey) continue;
-    const tokens = normalizedKey
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (!predicate(normalizedKey, tokens)) continue;
-    const trimmed = String(rawValue ?? "").trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-  return "";
-};
-
-const extractTrackingValue = (row: OrderRow): string => {
-  const directCandidates = [
-    row["Tracking"],
-    row["tracking"],
-    row["Tracking number"],
-    row["Numéro de suivi"],
-    row["Numero de suivi"],
-    row["Num de suivi"],
-    row["AWB"],
-  ];
-  for (const candidate of directCandidates) {
-    const trimmed = String(candidate ?? "").trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-  return extractValueWithPredicate(row, (normalizedKey, tokens) => {
-    if (tokens.some((token) => token === "tracking")) return true;
-    if (tokens.some((token) => token === "suivi")) return true;
-    if (tokens.some((token) => token === "awb")) return true;
-    return (
-      normalizedKey.includes("tracking") ||
-      normalizedKey.includes("suivi") ||
-      normalizedKey.includes("awb")
-    );
-  });
-};
-
-const extractReferenceValue = (row: OrderRow): string => {
-  const directCandidates = [
-    row["Référence"],
-    row["Reference"],
-    row["REF"],
-    row["Ref"],
-  ];
-  for (const candidate of directCandidates) {
-    const trimmed = String(candidate ?? "").trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-  return extractValueWithPredicate(row, (normalizedKey, tokens) => {
-    if (tokens.some((token) => token === "reference")) return true;
-    if (tokens.some((token) => token === "ref")) return true;
-    return (
-      normalizedKey.includes("reference") ||
-      normalizedKey === "ref" ||
-      normalizedKey.includes("commande_ref")
-    );
-  });
-};
-
-type OfficialStatusOrderPayload = {
-  rowId: string;
-  tracking: string;
-  reference?: string;
-  currentStatus?: string;
-  deliveryType?: DeliveryType;
-};
-
-const extractTrackingStatus = (payload: any): string | null => {
-  if (!payload || typeof payload !== "object") return null;
-  if (typeof payload.status === "string") return payload.status;
-  if (payload.data && typeof payload.data.status === "string")
-    return payload.data.status;
-  if (payload.order && typeof payload.order.status === "string")
-    return payload.order.status;
-  if (payload.tracking && typeof payload.tracking.status === "string")
-    return payload.tracking.status;
-  return null;
-};
 
 const Orders: React.FC = () => {
   const { token, user } = useContext(AuthContext);
@@ -1000,13 +604,6 @@ const Orders: React.FC = () => {
   const [statusSyncDisabled, setStatusSyncDisabled] =
     React.useState<boolean>(false);
   const syncDisabledRef = React.useRef<boolean>(false);
-  const officialStatusSyncRef = React.useRef<{
-    lastSync: number;
-    pending: boolean;
-  }>({
-    lastSync: 0,
-    pending: false,
-  });
   // Adresse saisie par l'utilisateur pour chaque commande (indexée par idx)
 
   // Composant optimisé pour une ligne de commande
@@ -1263,17 +860,6 @@ const Orders: React.FC = () => {
 
   // Fonction pour extraire le total depuis le sheet
   const extractTotal = (row: OrderRow): string => {
-    const parseAmount = (value: unknown): number | null => {
-      if (value === undefined || value === null) return null;
-      const cleaned = String(value)
-        .replace(/\s+/g, "")
-        .replace(/[^\d,.-]/g, "")
-        .replace(/,/g, ".");
-      if (!cleaned) return null;
-      const parsed = parseFloat(cleaned);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-
     // Rechercher le champ "total" (en priorité)
     const candidates = [
       "total",
@@ -1286,7 +872,7 @@ const Orders: React.FC = () => {
 
     for (const key of candidates) {
       if (key in row) {
-        const parsed = parseAmount(row[key]);
+        const parsed = parseLocaleAmount(row[key]);
         if (parsed !== null) {
           // Formater avec séparateur de milliers
           return (
@@ -1301,12 +887,9 @@ const Orders: React.FC = () => {
 
     // Si pas trouvé, essayer de calculer depuis prix unitaire * quantité
     const quantityForTotal = (() => {
-      const raw = String(
-        row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-      );
-      const sanitized = raw.replace(/[^\d]/g, "");
-      const n = parseInt(sanitized, 10);
-      return Number.isNaN(n) || n <= 0 ? 1 : n;
+      return parsePositiveIntegerQuantity(
+        row["Quantité"] || row["Quantite"] || row["Qte"]
+      ) ?? 1;
     })();
 
     const unitPriceForTotal = (() => {
@@ -1319,7 +902,7 @@ const Orders: React.FC = () => {
       ];
       for (const key of priceCandidates) {
         if (key in row) {
-          const parsed = parseAmount(row[key]);
+          const parsed = parseLocaleAmount(row[key]);
           if (parsed !== null) return parsed;
         }
       }
@@ -1366,8 +949,6 @@ const Orders: React.FC = () => {
     row,
     summary,
     onUpdateStatus,
-    onDelivered,
-    onRestoreStock,
     variant = "table",
     commentKey,
     commentValue = "",
@@ -1381,21 +962,6 @@ const Orders: React.FC = () => {
       status: SheetStatus,
       context?: UpdateStatusContext
     ) => Promise<void>;
-    onDelivered: (
-      payload: {
-        code?: string;
-        name?: string;
-        variant: string;
-        quantity: number;
-      },
-      rowId: string
-    ) => Promise<void>;
-    onRestoreStock?: (payload: {
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-    }) => Promise<void>;
     variant?: "table" | "modal";
     commentKey?: string;
     commentValue?: string;
@@ -1437,31 +1003,17 @@ const Orders: React.FC = () => {
     })();
 
     const totalForApi = (() => {
-      const parseAmount = (value: unknown): number | null => {
-        if (value === undefined || value === null) return null;
-        const cleaned = String(value)
-          .replace(/\s+/g, "")
-          .replace(/[^\d,.-]/g, "")
-          .replace(/,/g, ".");
-        if (!cleaned) return null;
-        const parsed = parseFloat(cleaned);
-        return Number.isFinite(parsed) ? parsed : null;
-      };
-
       const quantityForTotal = (() => {
-        const raw = String(
-          row["Quantité"] || row["Quantite"] || row["Qte"] || "1"
-        );
-        const sanitized = raw.replace(/[^\d]/g, "");
-        const n = parseInt(sanitized, 10);
-        return Number.isNaN(n) || n <= 0 ? 1 : n;
+        return parsePositiveIntegerQuantity(
+          row["Quantité"] || row["Quantite"] || row["Qte"]
+        ) ?? 1;
       })();
 
       const unitPriceForTotal = (() => {
         const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
         for (const key of candidates) {
           if (key in row) {
-            const parsed = parseAmount(row[key]);
+            const parsed = parseLocaleAmount(row[key]);
             if (parsed !== null) return parsed;
           }
         }
@@ -1478,7 +1030,7 @@ const Orders: React.FC = () => {
         ];
         for (const key of candidates) {
           if (key in row) {
-            const parsed = parseAmount(row[key]);
+            const parsed = parseLocaleAmount(row[key]);
             if (parsed !== null) return parsed;
           }
         }
@@ -1502,6 +1054,15 @@ const Orders: React.FC = () => {
       string | null
     >(null);
 
+    React.useEffect(() => {
+      if (variant !== "modal") return;
+      const currentRowId = String(row["id-sheet"] || row["ID"] || "");
+      const persisted = orderDeliverySettings[currentRowId];
+      if (!persisted) return;
+      setDeliveryType(persisted.deliveryType);
+      setDeliveryPersonId(persisted.deliveryPersonId);
+    }, [orderDeliverySettings, row, variant]);
+
     const [correctionModalOpen, setCorrectionModalOpen] = React.useState(false);
     const [initialCorrectionData, setInitialCorrectionData] = React.useState<{
       commune: string;
@@ -1521,12 +1082,18 @@ const Orders: React.FC = () => {
 
     const resolveDeliverySettings = React.useCallback(() => {
       const currentRowId = String(row["id-sheet"] || row["ID"] || "");
+      if (variant === "modal") {
+        return {
+          currentRowId,
+          deliverySettings: { deliveryType, deliveryPersonId },
+        };
+      }
       const deliverySettings = orderDeliverySettings[currentRowId] || {
         deliveryType: "api_dhd" as DeliveryType,
         deliveryPersonId: null,
       };
       return { currentRowId, deliverySettings };
-    }, [orderDeliverySettings, row]);
+    }, [deliveryPersonId, deliveryType, orderDeliverySettings, row, variant]);
 
     const handleSendToApi = React.useCallback(async (manualCommune?: string, manualWilaya?: number) => {
       // Récupérer les paramètres de livraison pour cette commande
@@ -1667,52 +1234,12 @@ const Orders: React.FC = () => {
 
       setSubmitting(true);
 
-      const adr = ".";
+      const adr = String(
+        row["Adresse"] ?? row["adresse"] ?? row["Address"] ?? ""
+      ).trim() || `${commune}, ${String(row["Wilaya"] ?? "").trim()}`;
       const rawProductLabel =
         extractProductLabel(row) || String(row["Produit"] ?? "").trim();
-      const { baseName: productNameForStock, variant: variantFromLabel } =
-        splitProductLabel(rawProductLabel);
-      const variantFromRow = extractVariantValue(row);
-      const variantForStock =
-        variantFromRow === "default" && variantFromLabel
-          ? variantFromLabel
-          : variantFromRow;
-      const quantityForStock = extractQuantityValue(row);
-      const productCode = extractProductCode(row);
-      const stockPayload = {
-        code: productCode || undefined,
-        name: productNameForStock || rawProductLabel || undefined,
-        variant: variantForStock,
-        quantity: quantityForStock,
-      };
       const produit = rawProductLabel;
-      let stockDecremented = false;
-      const ensureStockDecremented = async () => {
-        if (stockDecremented) {
-          return;
-        }
-        await onDelivered(stockPayload, rowId);
-        stockDecremented = true;
-      };
-      const revertStockIfNeeded = async () => {
-        if (!stockDecremented) {
-          return;
-        }
-        if (!onRestoreStock) {
-          stockDecremented = false;
-          return;
-        }
-        try {
-          await onRestoreStock(stockPayload);
-        } catch (rollbackError) {
-          console.error(
-            "Erreur lors du rétablissement du stock après échec d'envoi:",
-            rollbackError
-          );
-        } finally {
-          stockDecremented = false;
-        }
-      };
       const remarkFromSheet = (() => {
         const remarkKeys = [
           "Remarque",
@@ -1743,9 +1270,10 @@ const Orders: React.FC = () => {
       const resolvedWilayaCode = manualWilaya ?? getWilayaIdByCommune(commune, codeW);
 
       const realClientData = {
-        nom_client: nom_client || "CLIENT_INCONNU",
-        telephone: telephone || "0000000000",
-        telephone_2: telephone_2 || "0000000000",
+        reference: extractReference(row) || rowId,
+        nom_client,
+        telephone,
+        telephone_2,
         adresse: adr,
         code_wilaya: resolvedWilayaCode,
         montant: String(Math.round(totalForApi)),
@@ -1787,7 +1315,8 @@ const Orders: React.FC = () => {
 
       const applyStatusUpdate = async (
         nextStatus: SheetStatus,
-        trackingValue: string
+        trackingValue: string,
+        persist = true
       ) => {
         await onUpdateStatus(rowId, nextStatus, {
           previousStatus: currentStatus,
@@ -1795,153 +1324,12 @@ const Orders: React.FC = () => {
           tracking: trackingValue || undefined,
           deliveryType: selectedDeliveryType,
           deliveryPersonId: deliveryPersonId || undefined,
+          persist,
         });
         currentStatus = nextStatus;
       };
 
-      const syncTrackingStatus = async (
-        trackingValue: string,
-        config: DeliveryApiConfig
-      ) => {
-        if (!trackingValue) return;
-
-        const updatesUrl = `${buildDeliveryApiUrl(
-          config.baseUrl,
-          DHD_UPDATES_PATH
-        )}?tracking=${encodeURIComponent(trackingValue)}`;
-        const controllerUpdates = new AbortController();
-        const timeoutUpdates = setTimeout(
-          () => controllerUpdates.abort(),
-          10000
-        );
-
-        try {
-          const respUpdates = await fetch(updatesUrl, {
-            method: "GET",
-            headers: {
-              ...(config.token
-                ? { Authorization: `Bearer ${config.token}` }
-                : {}),
-            },
-            signal: controllerUpdates.signal,
-          });
-          const textUpdates = await respUpdates.text();
-          let dataUpdates: any;
-          try {
-            dataUpdates = JSON.parse(textUpdates);
-          } catch {
-            dataUpdates = textUpdates;
-          }
-
-          if (respUpdates.ok) {
-            const updatesList = extractDhdUpdates(dataUpdates);
-            const statusFromUpdates = deriveStatusFromUpdates(updatesList);
-            if (statusFromUpdates && statusFromUpdates !== currentStatus) {
-              await applyStatusUpdate(statusFromUpdates, trackingValue);
-              return;
-            }
-          } else {
-            console.warn(
-              `HTTP ${respUpdates.status} lors de la récupération des mises à jour ${config.label}`,
-              dataUpdates
-            );
-          }
-        } catch (updatesError) {
-          if (!isNetworkError(updatesError)) {
-            console.error(
-              `Erreur lors de la récupération des mises à jour ${config.label}`,
-              updatesError
-            );
-          }
-        } finally {
-          clearTimeout(timeoutUpdates);
-        }
-
-        const trackingUrl = `${buildDeliveryApiUrl(
-          config.baseUrl,
-          DHD_TRACKING_PATH
-        )}?tracking=${encodeURIComponent(trackingValue)}`;
-        const controllerTracking = new AbortController();
-        const timeoutTracking = setTimeout(
-          () => controllerTracking.abort(),
-          10000
-        );
-        try {
-          const respTracking = await fetch(trackingUrl, {
-            method: "GET",
-            headers: {
-              ...(config.token
-                ? { Authorization: `Bearer ${config.token}` }
-                : {}),
-            },
-            signal: controllerTracking.signal,
-          });
-          const textTracking = await respTracking.text();
-          let dataTracking: any;
-          try {
-            dataTracking = JSON.parse(textTracking);
-          } catch {
-            dataTracking = textTracking;
-          }
-          if (!respTracking.ok) {
-            throw new Error(
-              `HTTP ${respTracking.status} - ${typeof dataTracking === "string"
-                ? dataTracking
-                : JSON.stringify(dataTracking)
-              }`
-            );
-          }
-          const mappedStatus = mapDhdStatusToSheet(
-            extractTrackingStatus(dataTracking)
-          );
-          if (mappedStatus && mappedStatus !== currentStatus) {
-            await applyStatusUpdate(mappedStatus, trackingValue);
-          }
-        } catch (trackingError) {
-          if (!isNetworkError(trackingError)) {
-            console.error(
-              `Erreur lors de la récupération du statut ${config.label}`,
-              trackingError
-            );
-          }
-        } finally {
-          clearTimeout(timeoutTracking);
-        }
-      };
-
-      const resolveTracking = (payload: any): string => {
-        if (!payload || typeof payload !== "object") return "";
-        if (typeof payload.tracking === "string") return payload.tracking;
-        if (payload.data && typeof payload.data.tracking === "string")
-          return payload.data.tracking;
-        if (payload.order && typeof payload.order.tracking === "string")
-          return payload.order.tracking;
-        return "";
-      };
-      let deliveryApiConfig: DeliveryApiConfig | null = null;
-
       try {
-        let stockUpdateFailedMessage: string | null = null;
-        try {
-          await ensureStockDecremented();
-        } catch (stockError) {
-          stockUpdateFailedMessage =
-            stockError instanceof Error
-              ? stockError.message
-              : String(stockError);
-          console.error(
-            "Échec de la décrémentation du stock avant envoi de commande:",
-            stockError
-          );
-          const productLabel =
-            stockPayload.name || stockPayload.code || "ce produit";
-          showToast(
-            `⚠️ Stock non mis à jour pour ${productLabel}. La commande sera envoyée quand même.\n(${stockUpdateFailedMessage})`,
-            "warning",
-            6000
-          );
-        }
-
         if (selectedDeliveryType === "livreur") {
           try {
             await applyStatusUpdate("Assigné", "");
@@ -1950,20 +1338,10 @@ const Orders: React.FC = () => {
               "success",
               3200
             );
-            if (stockUpdateFailedMessage) {
-              showToast(
-                `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"
-                }.`,
-                "warning",
-                6000
-              );
-              stockUpdateFailedMessage = null;
-            }
             if (trimmedComment) {
               updateComment("");
             }
           } catch (assignError) {
-            await revertStockIfNeeded();
             console.error(
               "Erreur lors de l'assignation au livreur:",
               assignError
@@ -1979,102 +1357,67 @@ const Orders: React.FC = () => {
           return;
         }
 
-        const currentDeliveryApiConfig =
-          resolveDeliveryApiConfig(selectedDeliveryType);
-        deliveryApiConfig = currentDeliveryApiConfig;
+        if (DEBUG_ORDERS) {
+          console.log("Envoi securise via le backend:", finalData);
+        }
 
-        const url = buildDeliveryApiUrl(
-          currentDeliveryApiConfig.baseUrl,
-          DHD_CREATE_PATH
-        );
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await apiFetch("/api/orders/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rowId,
+            deliveryType: selectedDeliveryType,
+            order: finalData,
+            row,
+            validate: true,
+            askCollection: 0,
+          }),
+        });
+        const responseData = await response.json().catch(() => ({}));
 
         if (DEBUG_ORDERS) {
-          console.log(
-            `Envoi vers ${currentDeliveryApiConfig.label} (POST JSON):`,
-            url
-          );
-          console.log("Données:", finalData);
-        }
-
-        const doPost = async (payload: any) => {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(currentDeliveryApiConfig.token
-                ? { Authorization: `Bearer ${currentDeliveryApiConfig.token}` }
-                : {}),
-            },
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          });
-          const text = await resp.text();
-          let data: any;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            data = text;
-          }
-          return { resp, data };
-        };
-
-        let response: Response | undefined;
-        let responseData: any;
-        try {
-          ({ resp: response, data: responseData } = await doPost(finalData));
-        } finally {
-          clearTimeout(timeoutId);
-        }
-
-        if (!response) {
-          throw new Error("Réponse API vide");
-        }
-
-        if (DEBUG_ORDERS) {
-          console.log(`Réponse ${currentDeliveryApiConfig.label}:`, response);
-          console.log("Données de réponse:", responseData);
+          console.log("Réponse backend:", response.status, responseData);
         }
 
         if (
           response.ok &&
-          (response.status === 200 || response.status === 201)
+          responseData?.success === true &&
+          typeof responseData?.tracking === "string" &&
+          responseData.tracking.trim()
         ) {
-          const trackingValue = resolveTracking(responseData) || "N/A";
+          const trackingValue = responseData.tracking.trim();
+          const carrierLabel =
+            selectedDeliveryType === "api_sook" ? "Sook en ligne" : "BL Bébé";
 
           showToast(
-            `✅ Commande envoyée avec succès (${nom_client}) via ${currentDeliveryApiConfig.label}`,
+            `✅ Commande envoyée avec succès (${nom_client}) via ${carrierLabel}`,
             "success",
             3200
           );
-          if (stockUpdateFailedMessage) {
+          if (responseData.warning) {
             showToast(
-              `⚠️ Pensez à ajuster manuellement le stock pour ${stockPayload.name || stockPayload.code || "ce produit"
-              }.`,
+              String(responseData.warning),
               "warning",
               6000
             );
-            stockUpdateFailedMessage = null;
           }
 
-          await applyStatusUpdate("ready_to_ship", trackingValue);
-          await syncTrackingStatus(
-            trackingValue === "N/A" ? "" : trackingValue,
-            currentDeliveryApiConfig
+          // Le backend a deja persiste MongoDB + Google Sheets + le stock.
+          await applyStatusUpdate(
+            typeof responseData.status === "string"
+              ? responseData.status
+              : "ready_to_ship",
+            trackingValue,
+            false
           );
           if (trimmedComment) {
             updateComment("");
           }
         } else if (response.status === 429) {
-          await revertStockIfNeeded();
           alert(
             `⚠️ Trop de requêtes (429)\n\nClient: ${nom_client}\n\nVeuillez réessayer plus tard.`
           );
         } else {
-          await revertStockIfNeeded();
-          await revertStockIfNeeded();
-
           // Check for 422 errors related to Commune/Wilaya
           if (response.status === 422) {
             const errorMsg = JSON.stringify(responseData).toLowerCase();
@@ -2098,9 +1441,7 @@ const Orders: React.FC = () => {
           );
         }
       } catch (error) {
-        await revertStockIfNeeded();
-        const apiLabel = deliveryApiConfig?.label ?? "inconnue";
-        console.error(`Erreur lors de l'appel API ${apiLabel}:`, error);
+        console.error("Erreur lors de l'appel au backend de livraison:", error);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         alert(
@@ -2121,8 +1462,6 @@ const Orders: React.FC = () => {
       stopDeskFlag,
       row,
       onUpdateStatus,
-      onDelivered,
-      onRestoreStock,
       initialSheetStatus,
       rowId,
       currentComment,
@@ -2177,41 +1516,7 @@ const Orders: React.FC = () => {
           selectedDeliveryType === "livreur" && deliveryPersonId
             ? deliveryPersonId
             : undefined;
-        const quantity = extractQuantityValue(row);
-        const rawProductLabel =
-          extractProductLabel(row) || String(row["Produit"] ?? "").trim();
-        const { baseName: productNameForStock, variant: variantFromLabel } =
-          splitProductLabel(rawProductLabel);
-        const variantFromRow = extractVariantValue(row);
-        const variant =
-          variantFromRow === "default" && variantFromLabel
-            ? variantFromLabel
-            : variantFromRow;
-        const code = extractProductCode(row);
-        // Essayer de décrémenter le stock (mais ne pas bloquer si ça échoue)
-        // Le backend le fera automatiquement quand le statut passe à "delivered"
-        try {
-          await onDelivered(
-            {
-              code: code || undefined,
-              name: productNameForStock || rawProductLabel || undefined,
-              variant,
-              quantity,
-            },
-            rowId
-          );
-        } catch (e: any) {
-          // Ne pas afficher d'erreur si la décrémentation échoue
-          // Le backend le fera automatiquement
-          if (DEBUG_ORDERS) {
-            console.log(
-              "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
-              e?.message
-            );
-          }
-        }
-
-        // Mettre à jour le statut à "delivered" (cela déclenchera aussi la décrémentation automatique dans le backend)
+        // La mise a jour du statut declenche l'unique reconciliation de stock cote backend.
         await onUpdateStatus(rowId, "delivered", {
           previousStatus: initialSheetStatus,
           row: { ...row, etat: "delivered" },
@@ -2219,28 +1524,13 @@ const Orders: React.FC = () => {
           deliveryPersonId: resolvedDeliveryPersonId,
         });
       } catch (e: any) {
-        // Afficher une erreur seulement si c'est un problème de mise à jour du statut
-        // Pas pour les erreurs de décrémentation
         const errorMessage = e?.message || "Erreur lors de la livraison";
-        if (
-          !errorMessage.includes("Produit introuvable") &&
-          !errorMessage.includes("introuvable")
-        ) {
-          alert(errorMessage);
-        } else {
-          if (DEBUG_ORDERS) {
-            console.log(
-              "ℹ️ Produit introuvable pour la décrémentation, le backend le fera automatiquement:",
-              errorMessage
-            );
-          }
-        }
+        alert(errorMessage);
       } finally {
         setDelivering(false);
       }
     }, [
       initialSheetStatus,
-      onDelivered,
       onUpdateStatus,
       resolveDeliverySettings,
       row,
@@ -2272,6 +1562,7 @@ const Orders: React.FC = () => {
               placeholder="Ajouter une remarque pour la livraison"
               value={currentComment}
               onChange={(event) => updateComment(event.target.value)}
+              maxLength={255}
               rows={3}
             />
             <p className="orders-modal__comment-hint">
@@ -2376,8 +1667,6 @@ const Orders: React.FC = () => {
     headers,
     summary,
     onUpdateStatus,
-    onDelivered,
-    onRestoreStock,
     onVariantClick,
     onDeliveryTypeChange,
     onWilayaCommuneChange,
@@ -2396,21 +1685,6 @@ const Orders: React.FC = () => {
       status: SheetStatus,
       context?: UpdateStatusContext
     ) => Promise<void>;
-    onDelivered: (
-      payload: {
-        code?: string;
-        name?: string;
-        variant: string;
-        quantity: number;
-      },
-      rowId: string
-    ) => Promise<void>;
-    onRestoreStock?: (payload: {
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-    }) => Promise<void>;
     onVariantClick: (row: OrderRow) => void;
     onDeliveryTypeChange: (
       row: OrderRow,
@@ -3037,8 +2311,6 @@ Zm0 14H8V7h9v12Z"
             row={row}
             summary={summary}
             onUpdateStatus={onUpdateStatus}
-            onDelivered={onDelivered}
-            onRestoreStock={onRestoreStock}
             commentKey={commentKey}
             commentValue={commentValue}
             onCommentChange={onCommentChange}
@@ -3047,13 +2319,13 @@ Zm0 14H8V7h9v12Z"
         </td>
         <td className="orders-table__cell orders-table__cell--status">
           <span className="orders-status">
-            {(() => {
-              const fromSheet = String(
-                row["etat"] ?? row["État"] ?? row["Etat"] ?? ""
-              ).trim();
-              return fromSheet ? fromSheet : "new";
-            })()}
+            {getDisplayedOrderStatus(row)}
           </span>
+          {String(row["__lastSyncError"] ?? "").trim() && (
+            <small title={String(row["__lastSyncError"])}>
+              Synchronisation en erreur
+            </small>
+          )}
         </td>
       </tr>
     );
@@ -3130,12 +2402,13 @@ Zm0 14H8V7h9v12Z"
     });
   }, [runWithScrollLock]);
 
-  // Charger les commentaires depuis localStorage au démarrage
+  // Les brouillons restent limités à l'onglet courant et sont effacés à la déconnexion.
   const [orderComments, setOrderComments] = React.useState<
     Record<string, string>
   >(() => {
     try {
-      const saved = localStorage.getItem("order-comments");
+      const saved = sessionStorage.getItem("order-comments") || localStorage.getItem("order-comments");
+      localStorage.removeItem("order-comments");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed === "object" && parsed !== null) {
@@ -3143,7 +2416,7 @@ Zm0 14H8V7h9v12Z"
         }
       }
     } catch (error) {
-      console.warn("Erreur lors du chargement des commentaires depuis localStorage:", error);
+      console.warn("Erreur lors du chargement des brouillons de commentaires");
     }
     return {};
   });
@@ -3172,15 +2445,15 @@ Zm0 14H8V7h9v12Z"
 
   // Sauvegarde debouncée pour éviter les lags pendant la saisie
   React.useEffect(() => {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") {
+    if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
       try {
-        localStorage.setItem("order-comments", JSON.stringify(orderComments));
-      } catch (error) {
-        console.warn("Erreur lors de la sauvegarde des commentaires dans localStorage:", error);
+        sessionStorage.setItem("order-comments", JSON.stringify(orderComments));
+      } catch {
+        console.warn("Erreur lors de la sauvegarde des brouillons de commentaires");
       }
     }, 300);
 
@@ -3216,7 +2489,7 @@ Zm0 14H8V7h9v12Z"
 
   // État pour gérer la liste des livreurs
   const [deliveryPersons, setDeliveryPersons] = React.useState<
-    Array<{ id: string; name: string; email: string }>
+    Array<{ id: string; name: string }>
   >([]);
 
   // Charger la liste des livreurs une seule fois
@@ -3936,10 +3209,9 @@ Zm0 14H8V7h9v12Z"
       context?: UpdateStatusContext
     ) => {
       if (syncDisabledRef.current) {
-        return Promise.resolve();
-      }
-      if (syncDisabledRef.current) {
-        return;
+        throw new Error(
+          "La synchronisation est indisponible. Rechargez la page avant de modifier une commande."
+        );
       }
       if (!rowId) {
         throw new Error(
@@ -3968,7 +3240,18 @@ Zm0 14H8V7h9v12Z"
         } catch {
           data = text;
         }
-        if (!res.ok) {
+        if (
+          data &&
+          typeof data === "object" &&
+          data.partialSuccess === true
+        ) {
+          window.alert(
+            data.message ||
+            "La commande est sauvegardée, mais une synchronisation secondaire a échoué."
+          );
+          return data;
+        }
+        if (!res.ok || (data && typeof data === "object" && data.success === false)) {
           const message = typeof data === "string" ? data : data?.message;
           throw new Error(message || `HTTP ${res.status}`);
         }
@@ -3980,7 +3263,6 @@ Zm0 14H8V7h9v12Z"
         );
         if (isNetworkError(error)) {
           disableStatusSync(error);
-          return;
         }
         throw error;
       }
@@ -4000,7 +3282,7 @@ Zm0 14H8V7h9v12Z"
     setError(null);
 
     try {
-      const res = await fetch(buildCsvUrl(), { mode: "cors" });
+      const res = await apiFetch(buildCsvUrl(), { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const grid = parseCsv(text);
@@ -4282,7 +3564,69 @@ Zm0 14H8V7h9v12Z"
             return obj;
           })
           .filter((row): row is OrderRow => row !== null);
-        setRows(mapped);
+        let hydratedRows = mapped;
+        try {
+          const rowIds = mapped
+            .map((row) => String(row["id-sheet"] ?? row["ID"] ?? "").trim())
+            .filter(Boolean);
+          if (rowIds.length > 0) {
+            const metadataResponse = await apiFetch("/api/orders/metadata", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rowIds }),
+            });
+            const metadataPayload = await metadataResponse.json().catch(() => ({}));
+            if (metadataResponse.ok && metadataPayload?.success === true) {
+              const metadataByRowId = new Map<string, any>();
+              const persistedSettings: Record<
+                string,
+                { deliveryType: DeliveryType; deliveryPersonId: string | null }
+              > = {};
+              (Array.isArray(metadataPayload.orders)
+                ? metadataPayload.orders
+                : []
+              ).forEach((metadata: any) => {
+                const metadataRowId = String(metadata?.rowId ?? "").trim();
+                if (!metadataRowId) return;
+                metadataByRowId.set(metadataRowId, metadata);
+                const persistedType: DeliveryType =
+                  metadata.deliveryType === "api_sook" ||
+                  metadata.deliveryType === "livreur"
+                    ? metadata.deliveryType
+                    : "api_dhd";
+                persistedSettings[metadataRowId] = {
+                  deliveryType: persistedType,
+                  deliveryPersonId:
+                    persistedType === "livreur" && metadata.deliveryPersonId
+                      ? String(metadata.deliveryPersonId)
+                      : null,
+                };
+              });
+              setOrderDeliverySettings((previous) => ({
+                ...previous,
+                ...persistedSettings,
+              }));
+              hydratedRows = mapped.map((row) => {
+                const metadata = metadataByRowId.get(
+                  String(row["id-sheet"] ?? row["ID"] ?? "").trim()
+                );
+                if (!metadata) return row;
+                return {
+                  ...row,
+                  __carrierStatus: metadata.carrierStatus ?? "",
+                  __carrierStatusUpdatedAt:
+                    metadata.carrierStatusUpdatedAt ?? "",
+                  __lastSyncError: metadata.lastSyncError ?? "",
+                  Tracking: metadata.tracking || row["Tracking"] || "",
+                  etat: metadata.status || row["etat"] || "new",
+                };
+              });
+            }
+          }
+        } catch (metadataError) {
+          console.warn("Metadonnees de livraison indisponibles:", metadataError);
+        }
+        setRows(hydratedRows);
       }
     } catch (e: any) {
       if (!cancelledRef.current) setError(e?.message || "Erreur inconnue");
@@ -4319,119 +3663,6 @@ Zm0 14H8V7h9v12Z"
     };
   }, [loadSheetData]);
 
-  React.useEffect(() => {
-    if (!rows.length) return;
-    if (syncDisabledRef.current) return;
-
-    const now = Date.now();
-    if (officialStatusSyncRef.current.pending) return;
-    if (
-      now - officialStatusSyncRef.current.lastSync <
-      OFFICIAL_STATUS_SYNC_INTERVAL_MS
-    ) {
-      return;
-    }
-
-    const payloadMap = new Map<string, OfficialStatusOrderPayload>();
-
-    rows.forEach((row) => {
-      const summary = extractOrderSummary(row);
-      const rowId = summary.rowId.trim();
-      if (!rowId) return;
-      const settings = orderDeliverySettings[rowId] || {
-        deliveryType: "api_dhd" as DeliveryType,
-        deliveryPersonId: null,
-      };
-      if (settings.deliveryType === "livreur") return;
-      const trackingRaw = extractTrackingValue(row);
-      if (!trackingRaw) return;
-      if (!isLikelyTrackingValue(trackingRaw)) return;
-      const tracking = trackingRaw.trim();
-      if (!tracking) return;
-      if (!payloadMap.has(rowId)) {
-        const referenceValue = extractReferenceValue(row).trim();
-        payloadMap.set(rowId, {
-          rowId,
-          tracking,
-          reference: referenceValue ? referenceValue : undefined,
-          currentStatus: summary.status,
-          deliveryType: settings.deliveryType,
-        });
-      }
-    });
-
-    if (payloadMap.size === 0) {
-      return;
-    }
-
-    officialStatusSyncRef.current.pending = true;
-
-    (async () => {
-      try {
-        const res = await apiFetch("/api/orders/sync-statuses", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            orders: Array.from(payloadMap.values()),
-          }),
-        });
-        const text = await res.text();
-        let data: any;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = text;
-        }
-        if (!res.ok) {
-          const message = typeof data === "string" ? data : data?.message ?? "";
-          throw new Error(message || `HTTP ${res.status}`);
-        }
-
-        const updates = Array.isArray(data?.updates) ? data.updates : [];
-        if (updates.length > 0) {
-          const updatesMap = new Map<string, string>();
-          updates.forEach((update: any) => {
-            const updateRowId =
-              typeof update?.rowId === "string" ? update.rowId.trim() : "";
-            const newStatus =
-              typeof update?.newStatus === "string" ? update.newStatus : "";
-            if (updateRowId && newStatus) {
-              updatesMap.set(updateRowId, newStatus);
-            }
-          });
-
-          if (updatesMap.size > 0) {
-            setRows((prevRows) =>
-              prevRows.map((row) => {
-                const sheetRowId = String(row["id-sheet"] ?? "").trim();
-                const fallbackRowId = String(row["ID"] ?? "").trim();
-                const candidateIds = [sheetRowId, fallbackRowId].filter(
-                  (value) => Boolean(value)
-                );
-                for (const id of candidateIds) {
-                  const nextStatus = updatesMap.get(id);
-                  if (nextStatus) {
-                    return { ...row, etat: nextStatus };
-                  }
-                }
-                return row;
-              })
-            );
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Erreur lors de la synchronisation des statuts officiels",
-          error
-        );
-      } finally {
-        officialStatusSyncRef.current.pending = false;
-        officialStatusSyncRef.current.lastSync = Date.now();
-      }
-    })();
-  }, [rows]);
 
   const handleUpdateRowStatus = useCallback(
     async (
@@ -4468,7 +3699,9 @@ Zm0 14H8V7h9v12Z"
         (context.previousStatus as SheetStatus) ?? recordedPrevious ?? "new";
 
       try {
-        await syncStatus(rowId, status, context);
+        if (context.persist !== false) {
+          await syncStatus(rowId, status, context);
+        }
       } catch (error) {
         setRows((prevRows) =>
           prevRows.map((r) =>
@@ -4481,195 +3714,6 @@ Zm0 14H8V7h9v12Z"
     [syncStatus]
   );
 
-  const handleDelivered = useCallback(
-    async (
-      payload: {
-        code?: string;
-        name?: string;
-        variant: string;
-        quantity: number;
-      },
-      rowId: string
-    ) => {
-      const resolvedPayload = await resolveProductForStockPayload(payload);
-      payload.code = resolvedPayload.code;
-      payload.name = resolvedPayload.name;
-      payload.variant = resolvedPayload.variant;
-      payload.quantity = resolvedPayload.quantity;
-      // Appelle l'API backend pour décrémenter le stock (permet stock négatif)
-      // Note: La décrémentation se fait aussi automatiquement dans le backend quand le statut passe à "delivered"
-      // On essaie quand même de décrémenter ici pour mettre à jour le cache, mais on n'affiche pas d'erreur si ça échoue
-      try {
-        const res = await apiFetch(
-          "/api/products/decrement-bulk-allow-negative",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ items: [resolvedPayload] }),
-          }
-        );
-        const data = await res.json();
-
-        // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
-        // On continue silencieusement
-        if (!res.ok) {
-          if (DEBUG_ORDERS) {
-            console.log(
-              "ℹ️ Décrémentation manuelle échouée, le backend le fera automatiquement:",
-              data?.message || "Échec décrémentation"
-            );
-          }
-          return; // Sortir silencieusement sans erreur
-        }
-
-        const failures = Array.isArray(data?.results)
-          ? data.results.filter((r: any) => !r.ok)
-          : [];
-        if (failures.length) {
-          // Ne pas lancer d'erreur, juste logger
-          if (DEBUG_ORDERS) {
-            console.log(
-              "ℹ️ Décrémentation partielle, le backend le fera automatiquement:",
-              failures
-                .map(
-                  (f: any) =>
-                    `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
-                )
-                .join(", ")
-            );
-          }
-          return; // Sortir silencieusement sans erreur
-        }
-
-        const results = Array.isArray(data?.results) ? data.results : [];
-        results.forEach((result: any) => {
-          if (!result || !result.ok) return;
-          const finalStockValue =
-            typeof result.finalStock === "number"
-              ? Number(result.finalStock)
-              : undefined;
-          applyStockUpdateToCache({
-            code: resolvedPayload.code,
-            name: resolvedPayload.name,
-            variant: resolvedPayload.variant,
-            finalQuantity: finalStockValue,
-            decrementBy:
-              finalStockValue === undefined
-                ? resolvedPayload.quantity
-                : undefined,
-          });
-        });
-
-        // Vérifier si le stock final est négatif ou à 0 et afficher un avertissement
-        const lowStockItems = results.filter(
-          (r: any) => r.ok && r.finalStock <= 0
-        );
-        if (lowStockItems.length > 0) {
-          const lowStockNames = lowStockItems
-            .map((item: any) => {
-              const stockStatus = item.finalStock < 0 ? "négatif" : "épuisé";
-              return `${item.name || item.code || ""} (${item.variant
-                }) - Stock ${stockStatus}: ${item.finalStock}`;
-            })
-            .join(", ");
-
-          // Afficher un toast d'avertissement pour le stock faible/négatif
-          const toast = document.createElement("div");
-          toast.textContent = `⚠️ Stock faible/négatif pour: ${lowStockNames}`;
-          Object.assign(toast.style, {
-            position: "fixed",
-            bottom: "24px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-            color: "#fff",
-            padding: "12px 18px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(245,158,11,0.3)",
-            fontSize: "0.9rem",
-            fontWeight: "600",
-            zIndex: "2000",
-            opacity: "0",
-            transition: "opacity 0.3s ease",
-          });
-          document.body.appendChild(toast);
-          setTimeout(() => (toast.style.opacity = "1"), 50);
-          setTimeout(() => {
-            toast.style.opacity = "0";
-            setTimeout(() => toast.remove(), 400);
-          }, 5000);
-        }
-      } catch (e) {
-        // Ne pas lancer d'erreur si la décrémentation échoue (le backend le fera automatiquement)
-        // On continue silencieusement
-        if (DEBUG_ORDERS) {
-          console.log(
-            "ℹ️ Erreur lors de la décrémentation manuelle, le backend le fera automatiquement:",
-            e
-          );
-        }
-        // Ne pas throw, continuer silencieusement
-      }
-    },
-    [applyStockUpdateToCache, resolveProductForStockPayload, token]
-  );
-
-  const handleRestoreStock = useCallback(
-    async (payload: {
-      code?: string;
-      name?: string;
-      variant: string;
-      quantity: number;
-    }) => {
-      try {
-        const res = await apiFetch("/api/products/increment-bulk", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ items: [payload] }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Échec rétablissement");
-        const failures = Array.isArray(data?.results)
-          ? data.results.filter((r: any) => !r.ok)
-          : [];
-        if (failures.length) {
-          const msg = failures
-            .map(
-              (f: any) => `${f.name || f.code || ""} / ${f.variant}: ${f.error}`
-            )
-            .join("\n");
-          throw new Error(msg || "Échec partiel");
-        }
-
-        const results = Array.isArray(data?.results) ? data.results : [];
-        results.forEach((result: any) => {
-          if (!result || !result.ok) return;
-          const finalStockValue =
-            typeof result.finalStock === "number"
-              ? Number(result.finalStock)
-              : undefined;
-          applyStockUpdateToCache({
-            code: result.code ?? payload.code,
-            name: result.name ?? payload.name,
-            variant: result.variant ?? payload.variant,
-            finalQuantity: finalStockValue,
-            decrementBy:
-              finalStockValue === undefined ? -payload.quantity : undefined,
-          });
-        });
-      } catch (error) {
-        console.error("Erreur lors du rétablissement du stock:", error);
-        throw error instanceof Error ? error : new Error(String(error));
-      }
-    },
-    [applyStockUpdateToCache, token]
-  );
 
   const handleVariantClick = useCallback(
     async (row: OrderRow) => {
@@ -5264,14 +4308,16 @@ Zm0 14H8V7h9v12Z"
               placeholder="Rechercher (client, wilaya, produit, …)"
               className="orders-input"
             />
-            <a
-              href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
-              target="_blank"
-              rel="noreferrer"
-              className="orders-link"
-            >
-              Ouvrir la feuille Google
-            </a>
+            {SHEET_EDIT_URL && (
+              <a
+                href={SHEET_EDIT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="orders-link"
+              >
+                Ouvrir la feuille Google
+              </a>
+            )}
           </div>
 
           <div className="orders-toolbar__row orders-toolbar__row--filters">
@@ -5365,7 +4411,7 @@ Zm0 14H8V7h9v12Z"
                 const summary = extractOrderSummary(row);
                 const displayName =
                   summary.rawName || summary.name || "Sans nom";
-                const statusLabel = summary.status || "Sans statut";
+                const statusLabel = getDisplayedOrderStatus(row) || "Sans statut";
                 const phoneHref = summary.phoneDial
                   ? `tel:${summary.phoneDial}`
                   : summary.displayPhone
@@ -5482,34 +4528,13 @@ Zm0 14H8V7h9v12Z"
                               });
                               continue;
                             }
-                            const apiCfg = resolveDeliveryApiConfig(
-                              settings.deliveryType
-                            );
-                            const url = `${apiCfg.baseUrl}${DHD_CREATE_PATH}`;
                             // Calcul montant similaire au flux individuel
-                            const parseAmount = (
-                              value: unknown
-                            ): number | null => {
-                              if (value === undefined || value === null)
-                                return null;
-                              const cleaned = String(value)
-                                .replace(/\s+/g, "")
-                                .replace(/[^\d,.-]/g, "")
-                                .replace(/,/g, ".");
-                              if (!cleaned) return null;
-                              const parsed = parseFloat(cleaned);
-                              return Number.isFinite(parsed) ? parsed : null;
-                            };
                             const quantityForTotal = (() => {
-                              const raw = String(
+                              return parsePositiveIntegerQuantity(
                                 row["Quantité"] ||
                                 row["Quantite"] ||
-                                row["Qte"] ||
-                                "1"
-                              );
-                              const sanitized = raw.replace(/[^\d]/g, "");
-                              const n = parseInt(sanitized, 10);
-                              return Number.isNaN(n) || n <= 0 ? 1 : n;
+                                row["Qte"]
+                              ) ?? 1;
                             })();
                             const unitPriceForTotal = (() => {
                               const candidates = [
@@ -5521,7 +4546,7 @@ Zm0 14H8V7h9v12Z"
                               ];
                               for (const key of candidates) {
                                 if (key in row) {
-                                  const parsed = parseAmount(row[key]);
+                                  const parsed = parseLocaleAmount(row[key]);
                                   if (parsed !== null) return parsed;
                                 }
                               }
@@ -5537,7 +4562,7 @@ Zm0 14H8V7h9v12Z"
                               ];
                               for (const key of candidates) {
                                 if (key in row) {
-                                  const parsed = parseAmount(row[key]);
+                                  const parsed = parseLocaleAmount(row[key]);
                                   if (parsed !== null) return parsed;
                                 }
                               }
@@ -5589,10 +4614,18 @@ Zm0 14H8V7h9v12Z"
                                 ] || ""
                               ).trim() || remarkFromSheet;
                             const payload = {
-                              nom_client: s.name || s.rawName || "CLIENT",
+                              reference: extractReference(row) || s.rowId,
+                              nom_client: s.name || s.rawName || "",
                               telephone: s.phoneDial || "",
                               telephone_2: s.phoneDial || "",
-                              adresse: ".",
+                              adresse:
+                                String(
+                                  row["Adresse"] ??
+                                  row["adresse"] ??
+                                  row["Address"] ??
+                                  ""
+                                ).trim() ||
+                                `${communeResolved || "alger"}, ${String(row["Wilaya"] ?? "").trim()}`,
                               code_wilaya: wilayaCode,
                               montant: String(Math.round(montantNumber)),
                               type: "1",
@@ -5602,49 +4635,51 @@ Zm0 14H8V7h9v12Z"
                                   : 0,
                               stock: "0",
                               fragile: "0",
-                            produit:
-                              extractProductLabel(row) ||
-                              (row["Produit"] as any) ||
-                              "",
+                              produit:
+                                extractProductLabel(row) ||
+                                (row["Produit"] as any) ||
+                                "",
                               commune: communeResolved || "alger",
                               remarque: finalRemark,
                               Remarque: finalRemark,
                             };
                             if (DEBUG_ORDERS) {
-                              console.log("[BULK] POST", url, payload);
+                              console.log("[BULK] Envoi securise", payload);
                             }
-                            const controller = new AbortController();
-                            const timeoutId = setTimeout(
-                              () => controller.abort(),
-                              15000
-                            );
-                            const resp = await fetch(url, {
+                            const resp = await apiFetch("/api/orders/send", {
                               method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                ...(apiCfg.token
-                                  ? { Authorization: `Bearer ${apiCfg.token}` }
-                                  : {}),
-                              },
-                              body: JSON.stringify(payload),
-                              signal: controller.signal,
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                rowId: s.rowId,
+                                deliveryType: settings.deliveryType,
+                                order: payload,
+                                row,
+                                validate: true,
+                                askCollection: 0,
+                              }),
                             });
-                            clearTimeout(timeoutId);
-                            const text = await resp.text();
-                            let data: any;
-                            try {
-                              data = JSON.parse(text);
-                            } catch {
-                              data = text;
-                            }
+                            const data = await resp.json().catch(() => ({}));
                             if (DEBUG_ORDERS) {
                               console.log("[BULK] Response", resp.status, data);
                             }
-                            if (resp.ok) {
+                            if (
+                              resp.ok &&
+                              data?.success === true &&
+                              typeof data?.tracking === "string" &&
+                              data.tracking.trim()
+                            ) {
                               await handleUpdateRowStatus(
                                 s.rowId,
-                                "ready_to_ship",
-                                { previousStatus: s.status, row }
+                                typeof data.status === "string"
+                                  ? data.status
+                                  : "ready_to_ship",
+                                {
+                                  previousStatus: s.status,
+                                  row,
+                                  tracking: data.tracking.trim(),
+                                  deliveryType: settings.deliveryType,
+                                  persist: false,
+                                }
                               );
                             } else {
                               console.error(
@@ -5657,6 +4692,9 @@ Zm0 14H8V7h9v12Z"
                                 }: ${typeof data === "string"
                                   ? data
                                   : data?.message || ""
+                                }${data?.partialSuccess && data?.tracking
+                                  ? `\nTracking cree: ${data.tracking}\nNe renvoyez pas avant verification.`
+                                  : ""
                                 }`
                               );
                             }
@@ -5759,8 +4797,6 @@ Zm0 14H8V7h9v12Z"
                         headers={headers}
                         summary={summary}
                         onUpdateStatus={handleUpdateRowStatus}
-                        onRestoreStock={handleRestoreStock}
-                        onDelivered={handleDelivered}
                         onVariantClick={handleVariantClick}
                         onDeliveryTypeChange={handleDeliveryTypeChange}
                         onWilayaCommuneChange={handleWilayaCommuneChange}
@@ -5891,6 +4927,7 @@ Zm0 14H8V7h9v12Z"
                 placeholder="Ajouter une remarque pour la livraison"
                 defaultValue={commentEditor.value}
                 onChange={handleCommentModalChange}
+                maxLength={255}
                 rows={4}
               />
               <p className="orders-modal__comment-hint">
@@ -5970,7 +5007,7 @@ Zm0 14H8V7h9v12Z"
                 </span>
               )}
               <span className="orders-status">
-                {selectedSummary.status || "Sans statut"}
+                {getDisplayedOrderStatus(selectedOrder) || "Sans statut"}
               </span>
             </div>
 
@@ -5978,7 +5015,6 @@ Zm0 14H8V7h9v12Z"
               row={selectedOrder}
               summary={selectedSummary}
               onUpdateStatus={handleUpdateRowStatus}
-              onDelivered={handleDelivered}
               variant="modal"
               commentKey={selectedOrderCommentKey}
               commentValue={selectedOrderCommentValue}
@@ -6223,6 +5259,3 @@ Zm0 14H8V7h9v12Z"
 };
 
 export default Orders;
-
-
-

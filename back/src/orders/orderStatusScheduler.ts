@@ -1,10 +1,42 @@
 import connectDB from '../config/db';
 import Order from './order.model';
+import OrderSyncLock from './orderSyncLock.model';
 import { syncOfficialStatuses } from './orderStatusSync.service';
 
-const DEFAULT_INTERVAL_MS = Number(
-  process.env.OFFICIAL_STATUS_SYNC_INTERVAL_MS ?? 10 * 60 * 1000
-);
+const getIntervalMs = (): number => {
+  const configuredInterval = Number(process.env.OFFICIAL_STATUS_SYNC_INTERVAL_MS);
+  return Number.isFinite(configuredInterval) && configuredInterval >= 60_000
+    ? Math.min(configuredInterval, 24 * 60 * 60 * 1000)
+    : 5 * 60 * 1000;
+};
+
+const acquireSyncLock = async (): Promise<boolean> => {
+  const now = new Date();
+  try {
+    const lock = await OrderSyncLock.findOneAndUpdate(
+      {
+        _id: 'ecotrack-status-sync',
+        $or: [
+          { lockedUntil: { $lte: now } },
+          { lockedUntil: { $exists: false } },
+        ],
+      },
+      { $set: { lockedUntil: new Date(now.getTime() + 4 * 60_000) } },
+      { upsert: true, new: true }
+    );
+    return Boolean(lock);
+  } catch (error) {
+    if ((error as { code?: number })?.code === 11000) return false;
+    throw error;
+  }
+};
+
+const releaseSyncLock = async (): Promise<void> => {
+  await OrderSyncLock.updateOne(
+    { _id: 'ecotrack-status-sync' },
+    { $set: { lockedUntil: new Date(0) } }
+  );
+};
 
 const FINAL_STATUSES = new Set([
   'delivered',
@@ -30,19 +62,23 @@ export const startOrderStatusScheduler = () => {
   const tick = async () => {
     if (running) return;
     running = true;
+    let lockAcquired = false;
     try {
       await connectDB();
+      lockAcquired = await acquireSyncLock();
+      if (!lockAcquired) return;
 
       const candidates = await Order.find({
-        deliveryType: { $ne: 'livreur' },
-        tracking: { $exists: true, $ne: '' },
+        deliveryType: { $in: ['api_dhd', 'api_sook'] },
+        tracking: { $type: 'string', $regex: /\S{5}/, $nin: ['', 'N/A'] },
         status: { $nin: Array.from(FINAL_STATUSES) },
       })
         .select('rowId tracking status deliveryType row')
+        .sort({ lastSyncAttemptAt: 1, updatedAt: 1 })
+        .limit(100)
         .lean();
 
       if (!candidates.length) {
-        running = false;
         return;
       }
 
@@ -65,20 +101,25 @@ export const startOrderStatusScheduler = () => {
         orders,
       });
     } catch (error) {
-      console.error('[DHD sync] Erreur lors de la synchro planifiée:', error);
+      console.error('[DHD sync] Erreur lors de la synchro planifiée');
     } finally {
+      if (lockAcquired) {
+        await releaseSyncLock().catch(() => undefined);
+      }
       running = false;
     }
   };
 
   // Premier passage immédiat
-  tick().catch((err) =>
-    console.error('[DHD sync] Erreur initiale dans le cron:', err)
+  tick().catch(() =>
+    console.error('[DHD sync] Erreur initiale dans le cron')
   );
 
-  setInterval(tick, DEFAULT_INTERVAL_MS);
+  const intervalMs = getIntervalMs();
+  const timer = setInterval(tick, intervalMs);
+  timer.unref();
   console.log(
-    `[DHD sync] Cron initialisé (intervalle=${DEFAULT_INTERVAL_MS / 1000}s)`
+    `[DHD sync] Cron initialisé (intervalle=${intervalMs / 1000}s)`
   );
 };
 

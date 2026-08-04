@@ -10,7 +10,7 @@ interface DeliveryCellProps {
     deliveryType: 'api_dhd' | 'api_sook' | 'livreur';
     deliveryPersonId: string | null;
   }>>>;
-  deliveryPersons: Array<{ id: string; name: string; email: string }>;
+  deliveryPersons: Array<{ id: string; name: string }>;
   preserveScroll: (action: () => void | Promise<unknown>) => void;
   debugLog?: (...args: any[]) => void;
 }

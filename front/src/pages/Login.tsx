@@ -15,6 +15,8 @@ const Login: React.FC = () => {
   const [requiresVerification, setRequiresVerification] = useState(false);
   const [maskedAdminEmail, setMaskedAdminEmail]         = useState('');
   const [verificationCode, setVerificationCode]         = useState('');
+  const [newPassword, setNewPassword]                   = useState('');
+  const [confirmPassword, setConfirmPassword]           = useState('');
   const [isSending, setIsSending]                       = useState(false);
   const [isVerifying, setIsVerifying]                   = useState(false);
   const [verificationMessage, setVerificationMessage]   = useState('');
@@ -54,8 +56,8 @@ const Login: React.FC = () => {
     if (!text) return null;
     try {
       return JSON.parse(text) as T;
-    } catch (error) {
-      console.error('Réponse JSON invalide reçue:', error, text);
+    } catch {
+      console.error('Réponse JSON invalide reçue');
       return null;
     }
   }
@@ -111,6 +113,8 @@ const Login: React.FC = () => {
     setVerificationMessage('');
     setVerificationCompleted(false);
     setVerificationCode('');
+    setNewPassword('');
+    setConfirmPassword('');
     try {
       const res = await apiFetch('/api/users/forgot-password', {
         method: 'POST',
@@ -151,6 +155,8 @@ const Login: React.FC = () => {
     setForgotMessage('');
     setErrorMessage('');
     setVerificationCode('');
+    setNewPassword('');
+    setConfirmPassword('');
     setVerificationMessage('');
     setMaskedAdminEmail('');
     setRequiresVerification(false);
@@ -164,6 +170,14 @@ const Login: React.FC = () => {
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newPassword.length < 12 || newPassword.length > 128) {
+      setErrorMessage('Le nouveau mot de passe doit contenir entre 12 et 128 caractères.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMessage('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
     setIsVerifying(true);
     setErrorMessage('');
     setVerificationMessage('');
@@ -171,7 +185,7 @@ const Login: React.FC = () => {
       const res = await apiFetch('/api/users/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: verificationCode }),
+        body: JSON.stringify({ code: verificationCode, newPassword }),
       });
       const data = await parseJsonSafe<{ message?: string }>(res);
 
@@ -180,7 +194,7 @@ const Login: React.FC = () => {
       }
 
       setVerificationMessage(
-        "Le mot de passe est \"adminadmin\" et l'email est votre adresse utilisateur."
+        data?.message || 'Le mot de passe a été réinitialisé.'
       );
       setVerificationCompleted(true);
     } catch (err: any) {
@@ -424,6 +438,7 @@ const Login: React.FC = () => {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              maxLength={254}
               required
               style={inputStyle}
               onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
@@ -438,6 +453,7 @@ const Login: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                maxLength={128}
                 required
                 style={{ ...inputStyle, paddingRight: '2.75rem' }}
                 onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
@@ -588,6 +604,34 @@ const Login: React.FC = () => {
                     style={modalInputStyle}
                     onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,0,0,0.08)')}
                     onBlur={e => (e.currentTarget.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)')}
+                  />
+                  <label htmlFor="new-password" style={{ ...labelStyle, marginTop: '1rem' }}>
+                    Nouveau mot de passe
+                  </label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    minLength={12}
+                    maxLength={128}
+                    autoComplete="new-password"
+                    required
+                    style={modalInputStyle}
+                  />
+                  <label htmlFor="confirm-password" style={{ ...labelStyle, marginTop: '1rem' }}>
+                    Confirmer le mot de passe
+                  </label>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    minLength={12}
+                    maxLength={128}
+                    autoComplete="new-password"
+                    required
+                    style={modalInputStyle}
                   />
                   <button
                     type="submit"

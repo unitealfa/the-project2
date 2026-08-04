@@ -43,18 +43,33 @@ const ensureAdminExists = async () => {
     try {
         const adminExists = await User.exists({ role: 'admin' });
         if (!adminExists) {
-            const passwordHash = await bcrypt.hash('adminadmin', 12);
+            const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+            const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+            if (
+                !email ||
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+                email.length > 254 ||
+                !password ||
+                password.length < 12 ||
+                password.length > 128
+            ) {
+                console.warn(
+                    'Aucun administrateur: configurez BOOTSTRAP_ADMIN_EMAIL et un BOOTSTRAP_ADMIN_PASSWORD de 12 caracteres minimum.'
+                );
+                return;
+            }
+            const passwordHash = await bcrypt.hash(password, 12);
             await User.create({
                 firstName: 'admin',
                 lastName: 'admin',
-                email: 'admin@gmail.com',
+                email,
                 password: passwordHash,
                 role: 'admin',
             });
-            console.log('Default admin user created');
+            console.log('Compte administrateur initial créé');
         }
     } catch (error) {
-        console.error("Error creating default admin:", error);
+        console.error('Création du compte administrateur initial impossible');
     }
 };
 
@@ -64,14 +79,20 @@ const connectDB = async () => {
     }
 
     if (!cached.promise) {
-        const connectionUri =
-            process.env.MONGO_URI ||
-            process.env.MONGODB_URI ||
-            'mongodb://127.0.0.1:27017';
+        const configuredUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+        if (!configuredUri && process.env.NODE_ENV === 'production') {
+            throw new Error('MONGO_URI doit être configuré en production');
+        }
+        const connectionUri = configuredUri || 'mongodb://127.0.0.1:27017';
+
+        const configuredTimeout = Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS);
+        const serverSelectionTimeoutMS = Number.isFinite(configuredTimeout)
+            ? Math.min(Math.max(configuredTimeout, 1_000), 60_000)
+            : 10_000;
 
         const connectionOptions: mongoose.ConnectOptions = {
             bufferCommands: false, // Don't buffer commands if not connected, fail fast
-            serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS ?? 10000),
+            serverSelectionTimeoutMS,
         };
 
         if (shouldUseDefaultDatabase(connectionUri)) {

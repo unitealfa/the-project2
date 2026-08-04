@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Header.css';
@@ -82,15 +82,15 @@ const Header: React.FC = () => {
 
   if (!user) return null;
 
-  const homePath = useMemo(() => {
+  const homePath = (() => {
     if (user.role === 'admin') return `/admin/${user.id}`;
     if (user.role === 'gestionnaire') return `/gestionnaire/${user.id}`;
     if (user.role === 'confirmateur') return `/confirmateur/${user.id}`;
     if (user.role === 'livreur') return `/livreur/${user.id}`;
     return '/';
-  }, [user.id, user.role]);
+  })();
 
-  const navItems: NavItem[] = useMemo(() => {
+  const navItems: NavItem[] = (() => {
     switch (user.role) {
       case 'admin':
         return [
@@ -116,7 +116,7 @@ const Header: React.FC = () => {
       default:
         return [{ label: 'Accueil', to: homePath }];
     }
-  }, [homePath, user.id, user.role]);
+  })();
 
   const profileLabel = roleLabels[user.role] ?? user.role;
 

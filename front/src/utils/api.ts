@@ -12,6 +12,24 @@ export const apiUrl = (path: string) => {
   return `${normalizedBase}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
-export const apiFetch = (path: string, init?: RequestInit) => {
-  return fetch(apiUrl(path), init);
+export const apiFetch = async (path: string, init: RequestInit = {}) => {
+  if (/^https?:\/\//i.test(path)) {
+    throw new Error('apiFetch accepte uniquement les routes internes de l’application.');
+  }
+  const headers = new Headers(init.headers);
+  if (typeof window !== 'undefined' && !headers.has('Authorization')) {
+    const token = window.localStorage.getItem('token')?.trim();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+  const response = await fetch(apiUrl(path), { ...init, headers });
+  if (
+    response.status === 401 &&
+    typeof window !== 'undefined' &&
+    !path.endsWith('/login')
+  ) {
+    window.localStorage.removeItem('user');
+    window.localStorage.removeItem('token');
+    window.dispatchEvent(new Event('auth:unauthorized'));
+  }
+  return response;
 };

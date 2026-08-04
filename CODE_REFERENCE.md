@@ -1,5 +1,11 @@
 # Reference technique du projet
 
+> **Archive de l'audit initial.** Ce document décrit le code avant les
+> correctifs du 2026-08-04 et n'est plus la source de vérité de l'état actif.
+> Utiliser `DHD_ECOTRACK_FIX_REFERENCE.md`, le code compilé et les tests. Les
+> secrets frontend, le reset statique et la lecture publique du Sheet évoqués
+> plus bas ont notamment été retirés.
+
 Derniere analyse locale: 2026-07-06.
 
 Ce fichier sert de reference pour eviter d'inventer des modules, endpoints ou comportements. Il decrit ce qui existe dans le code du depot, pas ce qui devrait idealement exister.
@@ -65,7 +71,7 @@ Fichier: `back/src/config/db.ts`.
 - `bufferCommands: false`.
 - A la connexion, `ensureAdminExists()` cree un admin par defaut si aucun user `role: "admin"` n'existe:
   - email `admin@gmail.com`
-  - mot de passe initial `adminadmin`
+  - creation initiale uniquement via `BOOTSTRAP_ADMIN_EMAIL` et `BOOTSTRAP_ADMIN_PASSWORD` cote serveur
   - role `admin`
 
 ### Auth et roles
@@ -101,7 +107,7 @@ DTO backend `CreateUserDto`:
 Endpoints:
 - `POST /api/users/login`: public. Retourne les infos user sans password + `id` + `token`.
 - `POST /api/users/forgot-password`: public. Cree un code de verification pour l'admin.
-- `POST /api/users/verify-code`: public. Si code valide, reset le mot de passe admin a `adminadmin`.
+- `POST /api/users/verify-code`: public. Si le code valide est fourni, applique le mot de passe temporaire configure par `ADMIN_RESET_PASSWORD` cote serveur.
 - `POST /api/users/create`: JWT + admin.
 - `GET /api/users`: JWT + admin.
 - `GET /api/users/:id`: JWT, autorise admin ou soi-meme.

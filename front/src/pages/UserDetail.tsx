@@ -11,10 +11,11 @@ const roleLabels: Partial<Record<User['role'], string>> = {
   admin: 'Administrateur',
   gestionnaire: 'Gestionnaire',
   confirmateur: 'Confirmateur',
+  livreur: 'Livreur',
 };
 
-const isKnownRole = (role: User['role']): role is 'admin' | 'gestionnaire' | 'confirmateur' =>
-  role === 'admin' || role === 'gestionnaire' || role === 'confirmateur';
+const isKnownRole = (role: User['role']): role is User['role'] =>
+  role === 'admin' || role === 'gestionnaire' || role === 'confirmateur' || role === 'livreur';
 
 const UserDetail: React.FC = () => {
   const params = useParams<{ id: string; userId: string }>();

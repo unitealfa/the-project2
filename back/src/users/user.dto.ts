@@ -8,9 +8,10 @@ export interface CreateUserDto {
   lastName:  string;
   email:     string;
   password:  string;
-  role:      'gestionnaire' | 'confirmateur';
+  role:      'gestionnaire' | 'confirmateur' | 'livreur';
 }
 
 export interface VerifyCodeDto {
   code: string;
+  newPassword: string;
 }

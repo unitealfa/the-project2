@@ -188,6 +188,7 @@ const EditUser: React.FC = () => {
               className="team-form__control"
               value={form.firstName}
               onChange={handleChange}
+              maxLength={80}
               autoComplete="given-name"
               required
             />
@@ -203,6 +204,7 @@ const EditUser: React.FC = () => {
               className="team-form__control"
               value={form.lastName}
               onChange={handleChange}
+              maxLength={80}
               autoComplete="family-name"
               required
             />
@@ -219,6 +221,7 @@ const EditUser: React.FC = () => {
               className="team-form__control"
               value={form.email}
               onChange={handleChange}
+              maxLength={254}
               autoComplete="email"
               required
             />
@@ -238,6 +241,8 @@ const EditUser: React.FC = () => {
                 onChange={handleChange}
                 placeholder="Laisser vide pour conserver"
                 autoComplete="new-password"
+                minLength={12}
+                maxLength={128}
               />
               <button
                 type="button"
@@ -263,9 +268,14 @@ const EditUser: React.FC = () => {
               onChange={handleChange}
               required
             >
-              <option value="admin">Administrateur</option>
-              <option value="gestionnaire">Gestionnaire</option>
-              <option value="confirmateur">Confirmateur</option>
+              {form.role === 'admin' && <option value="admin">Administrateur</option>}
+              {form.role !== 'admin' && (
+                <>
+                  <option value="gestionnaire">Gestionnaire</option>
+                  <option value="confirmateur">Confirmateur</option>
+                  <option value="livreur">Livreur</option>
+                </>
+              )}
             </select>
           </div>
 
