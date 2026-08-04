@@ -136,16 +136,6 @@ export const shouldContinueOfficialStatusSync = (status: unknown): boolean =>
   typeof status !== 'string' ||
   !OFFICIAL_SYNC_TERMINAL_STATUS_SET.has(normalize(status));
 
-export const businessStatusesEqual = (
-  left: unknown,
-  right: unknown
-): boolean => {
-  if (typeof left !== 'string' || typeof right !== 'string') return false;
-  const normalizedLeft = mapCarrierStatus(left) ?? normalize(left);
-  const normalizedRight = mapCarrierStatus(right) ?? normalize(right);
-  return Boolean(normalizedLeft && normalizedLeft === normalizedRight);
-};
-
 export const normalizeCarrierIdentifier = (value: unknown): string =>
   typeof value === 'string'
     ? value.trim().replace(/\s+/g, '').toUpperCase()

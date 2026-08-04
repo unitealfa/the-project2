@@ -14,10 +14,7 @@ import {
   releaseStatusSyncLock,
 } from './orderApi.controller';
 import { classifyGoogleSheetError } from './googleSheetError';
-import {
-  businessStatusesEqual,
-  normalizeCarrierIdentifier,
-} from './orderStatus';
+import { normalizeCarrierIdentifier } from './orderStatus';
 
 const debugLog = (...args: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
@@ -330,18 +327,6 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const existingIsApiOrder =
       existingOrder?.deliveryType === 'api_dhd' ||
       existingOrder?.deliveryType === 'api_sook';
-    if (
-      hasExistingTracking &&
-      existingIsApiOrder &&
-      !businessStatusesEqual(existingOrder?.status, normalizedStatus)
-    ) {
-      return res.status(409).json({
-        success: false,
-        message:
-          'Le statut d’une commande DHD/Sook suivie ne peut être modifié que par la synchronisation officielle du transporteur.',
-      });
-    }
-
     // Si c'est un envoi vers un livreur, vérifier que le livreur existe
     let resolvedDeliveryPersonId: string | undefined;
     let deliveryPersonName: string | undefined;

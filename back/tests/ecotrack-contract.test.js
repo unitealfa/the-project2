@@ -10,7 +10,6 @@ const {
   parseTrackingActivity,
 } = require('../dist/src/orders/ecotrack.client.js');
 const {
-  businessStatusesEqual,
   isFinalBusinessStatus,
   mapCarrierStatus,
   shouldContinueOfficialStatusSync,
@@ -211,10 +210,22 @@ test('une livraison DHD reste synchronisee pour detecter un retour ulterieur', (
   assert.equal(shouldContinueOfficialStatusSync('abandoned'), false);
 });
 
-test('les alias metier equivalentes ne permettent pas un faux changement manuel', () => {
-  assert.equal(businessStatusesEqual('livrée', 'delivered'), true);
-  assert.equal(businessStatusesEqual('retours', 'returned'), true);
-  assert.equal(businessStatusesEqual('ready_to_ship', 'delivered'), false);
+test('les actions manuelles livree et abandonnee restent disponibles', () => {
+  const ordersPage = fs.readFileSync(
+    path.resolve(__dirname, '../../front/src/pages/Orders.tsx'),
+    'utf8'
+  );
+  const orderController = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/order.controller.ts'),
+    'utf8'
+  );
+  assert.match(ordersPage, /Marquer livrée/);
+  assert.match(ordersPage, /Abandonnée/);
+  assert.doesNotMatch(ordersPage, /manualStatusAllowed/);
+  assert.doesNotMatch(
+    orderController,
+    /ne peut être modifié que par la synchronisation officielle/
+  );
 });
 
 test('create/order et valid/order precedent toute ecriture du Sheet et du stock', () => {

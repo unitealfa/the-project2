@@ -66,6 +66,11 @@ Dans la collection fournie, aucun webhook de statut n'est documente. Le terme
 « temps reel » signifie donc une synchronisation periodique courte et fiable.
 Ne pas inventer un webhook sans documentation DHD supplementaire.
 
+Decision utilisateur du 2026-08-04 : les actions manuelles « Marquer livree »
+et « Abandonnee » restent disponibles comme derogations explicites. Elles
+modifient le statut metier local/Sheet, jamais `carrierStatus`, qui continue de
+representer uniquement la derniere valeur exacte lue chez DHD/Sook.
+
 ## 3. Architecture actuelle verifiee
 
 ```text
@@ -257,7 +262,7 @@ tests de table avant son utilisation en production.
 
 ### B-009 — Haute — Mapping incomplet et perte du statut exact
 
-- Etat : `[x] table exhaustive testee; statut exact conserve dans Mongo/UI et colonne Sheet optionnelle`
+- Etat : `[x] table exhaustive testee; statut exact conserve separement meme lors d'une derogation manuelle`
 - Fichiers : frontend, backend, modele Mongo, Sheet/UI.
 - Correction : stocker le statut exact et mapper via une table testee.
 - Validation : chaque statut officiel documente possede un comportement
@@ -424,6 +429,7 @@ tests de table avant son utilisation en production.
 | Retour intermediaire | Pas de retour final premature | `[x] table testee` |
 | Retour final | Categorie `returned` | `[x] table testee` |
 | Livraison puis retour ulterieur | La commande livree reste synchronisee jusqu'au retour final | `[~] filtre et test local, cron live restant` |
+| Actions manuelles livree/abandonnee | Boutons actifs; tracking et statut transporteur exact non falsifies | `[x] garde source et build local` |
 | 429 | Backoff borne, pas de boucle infinie | `[~] code borne, fixture HTTP restante` |
 | Timeout DHD | Erreur par lot/commande, prochain cron possible | `[ ]` |
 | Cron sans navigateur | Statut mis a jour | `[ ]` |
@@ -459,6 +465,7 @@ Le chantier n'est termine que si :
 | D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] ne remplace pas etat; Mongo/UI + colonne Sheet optionnelle` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
 | D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[ ] a concevoir` |
+| D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; decision explicite utilisateur, statut metier local uniquement` |
 
 Une decision manquante ne doit bloquer que l'etape concernee. Les tests,
 refactorings internes et corrections independantes peuvent avancer sans
@@ -945,8 +952,9 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 
 - Etapes : 2, 3, 5, 6 et 8. Anomalies : B-002, B-005, B-009, B-010 et
   B-013. Objectif : supprimer les faux `ready_to_ship`, ne jamais bloquer
-  l'acceptation DHD a cause du stock local et laisser DHD/Sook seuls maitres
-  des statuts d'une commande API deja suivie.
+  l'acceptation DHD a cause du stock local et proteger le statut transporteur
+  exact. La restriction des statuts metier manuels de cette entree a ensuite
+  ete remplacee par la decision explicite de l'entree 18.
 - Contrat relu dans `ECOTRACK API.postman_collection.json` :
   `POST /api/v1/create/order` exige `success:true` et un tracking;
   `POST /api/v1/valid/order` retourne son propre `success`; la source du statut
@@ -976,11 +984,11 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   autre erreur de stock produit un avertissement et `lastSyncError`, mais ne
   transforme plus une commande acceptee en echec HTTP. La restauration reste
   idempotente lors d'un retour officiel.
-- Statuts : une commande API avec tracking refuse desormais tout remplacement
-  de tracking, changement de transporteur ou changement de statut metier par
-  le navigateur. Les boutons « livree » et « abandonnee » restent disponibles
-  pour les livreurs internes, mais sont desactives pour DHD/Sook. Les commandes
-  livrees restent candidates au cron afin de detecter
+- Statuts : une commande API avec tracking refuse tout remplacement de
+  tracking et changement de transporteur; le navigateur ne peut pas ecrire le
+  statut transporteur exact. L'interdiction temporaire des changements de
+  statut metier DHD/Sook a ete retiree dans l'entree 18 a la demande de
+  l'utilisateur. Les commandes livrees restent candidates au cron afin de detecter
   `retour_chez_livreur`, les retours intermediaires puis le retour final; seuls
   retour final et annulation arretent la surveillance.
 - Cron : la cible GitHub Actions utilisait encore l'ancien domaine backend;
@@ -996,6 +1004,38 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   identique a celui du backend Vercel; le workflow doit etre lance et observe
   apres le push. La matrice DHD/Sheet/stock exige encore une commande de test
   autorisee avant de declarer le flux Production termine.
+
+### Entree 18 — 2026-08-04 — Conservation des actions manuelles de test et d'abandon
+
+- Etape : 6. Anomalies surveillees : B-009, B-010 et B-013. Decision D-006 :
+  l'utilisateur demande explicitement de conserver « Marquer livree » pour les
+  tests et « Abandonnee » lorsqu'un client annule apres contact.
+- Contrat verifie : la collection documente `delete/order` et
+  `ask/for/order/return`, mais ces actions ne correspondent pas automatiquement
+  a tous les cas couverts par l'ancien bouton « Abandonnee ». Aucun appel DHD
+  de suppression ou de retour n'a donc ete ajoute sans regle metier plus
+  precise.
+- Fichiers touches : `front/src/pages/Orders.tsx`,
+  `back/src/orders/order.controller.ts`, `back/src/orders/orderStatus.ts`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modification : retrait de la desactivation frontend et du refus backend des
+  changements de statut metier sur les commandes DHD/Sook. Les deux boutons
+  retrouvent leur comportement precedent pour les roles deja autorises. La
+  protection contre le remplacement du tracking, le changement de
+  transporteur et l'ecriture d'un faux `carrierStatus` reste active.
+- Semantique : « Marquer livree » est une derogation locale de test; une
+  synchronisation DHD ulterieure peut la remplacer puisque les commandes
+  livrees restent surveillees. « Abandonnee » est une annulation metier
+  locale/Sheet et ne supprime pas automatiquement une commande deja creee sur
+  DHD. Le statut exact DHD reste affiche separement lorsqu'il existe.
+- Tests : `npm test` a la racine reussi; build TypeScript backend, 17 scenarios
+  contractuels, typecheck et build Vite frontend reussis. La garde verifie la
+  presence des deux libelles dans le composant actif et l'absence du blocage
+  backend retire.
+- Etat : decision appliquee et validee localement. Limite : si l'utilisateur
+  souhaite que « Abandonnee » supprime une commande DHD non expediee ou
+  demande le retour d'une commande deja expediee, la regle de choix entre les
+  deux endpoints doit etre definie et testee separement.
 
 ### Modele pour les prochaines entrees
 
