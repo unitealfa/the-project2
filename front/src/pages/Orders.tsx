@@ -1471,13 +1471,19 @@ const Orders: React.FC = () => {
     ]);
 
     const handleMarkAbandoned = React.useCallback(async () => {
+      const { deliverySettings } = resolveDeliverySettings();
+      if (deliverySettings.deliveryType !== "livreur") {
+        alert(
+          "Le statut DHD/Sook est en lecture seule. Il sera mis à jour depuis l’état officiel du transporteur."
+        );
+        return;
+      }
       const confirmed = window.confirm(
         `Confirmer l'abandon de la commande ${displayRowLabel || ""} ?`
       );
       if (!confirmed) return;
       try {
         setAbandoning(true);
-        const { deliverySettings } = resolveDeliverySettings();
         const { deliveryType: selectedDeliveryType, deliveryPersonId } =
           deliverySettings;
         const resolvedDeliveryPersonId =
@@ -1508,8 +1514,14 @@ const Orders: React.FC = () => {
 
     const handleMarkDelivered = React.useCallback(async () => {
       try {
-        setDelivering(true);
         const { deliverySettings } = resolveDeliverySettings();
+        if (deliverySettings.deliveryType !== "livreur") {
+          alert(
+            "Le statut DHD/Sook est en lecture seule. Il sera mis à jour depuis l’état officiel du transporteur."
+          );
+          return;
+        }
+        setDelivering(true);
         const { deliveryType: selectedDeliveryType, deliveryPersonId } =
           deliverySettings;
         const resolvedDeliveryPersonId =
@@ -1539,6 +1551,11 @@ const Orders: React.FC = () => {
 
     const containerClass =
       variant === "modal" ? "orders-modal__actions" : "orders-table__actions";
+    const manualStatusAllowed =
+      resolveDeliverySettings().deliverySettings.deliveryType === "livreur";
+    const automaticStatusTitle = manualStatusAllowed
+      ? undefined
+      : "Statut automatique provenant de DHD/Sook";
 
     if (variant === "modal") {
       const sanitizedCommentKey = effectiveCommentKey
@@ -1590,7 +1607,10 @@ const Orders: React.FC = () => {
             <button
               type="button"
               onClick={handleMarkDelivered}
-              disabled={delivering || submitting || abandoning}
+              disabled={
+                delivering || submitting || abandoning || !manualStatusAllowed
+              }
+              title={automaticStatusTitle}
               className={`orders-button orders-button--success orders-modal__action-button${delivering ? " is-loading" : ""
                 }`}
             >
@@ -1599,7 +1619,8 @@ const Orders: React.FC = () => {
             <button
               type="button"
               onClick={handleMarkAbandoned}
-              disabled={abandoning || submitting}
+              disabled={abandoning || submitting || !manualStatusAllowed}
+              title={automaticStatusTitle}
               className={`orders-button orders-button--danger orders-modal__action-button${abandoning ? " is-loading" : ""
                 }`}
             >
@@ -1634,7 +1655,8 @@ const Orders: React.FC = () => {
           <button
             type="button"
             onClick={handleMarkAbandoned}
-            disabled={abandoning || submitting}
+            disabled={abandoning || submitting || !manualStatusAllowed}
+            title={automaticStatusTitle}
             className={`orders-button orders-button--danger${abandoning ? " is-loading" : ""
               }`}
           >
@@ -1643,7 +1665,10 @@ const Orders: React.FC = () => {
           <button
             type="button"
             onClick={handleMarkDelivered}
-            disabled={delivering || submitting || abandoning}
+            disabled={
+              delivering || submitting || abandoning || !manualStatusAllowed
+            }
+            title={automaticStatusTitle}
             className={`orders-button orders-button--success${delivering ? " is-loading" : ""
               }`}
           >

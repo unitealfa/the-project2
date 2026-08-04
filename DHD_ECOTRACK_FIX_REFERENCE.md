@@ -196,7 +196,7 @@ tests de table avant son utilisation en production.
 
 ### B-002 — Critique — Aucun scheduler persistant sur Vercel
 
-- Etat : `[~] route et planification 5 minutes ajoutees; execution Vercel reelle a valider`
+- Etat : `[~] route et planification 5 minutes ajoutees; cible du nouveau backend corrigee; execution GitHub reelle a valider`
 - Fichiers : `back/src/app.ts`, `back/src/orders/orderStatusScheduler.ts`,
   `back/vercel.json` ou configuration de deploiement.
 - Cause : `setInterval` desactive sur Vercel.
@@ -224,7 +224,7 @@ tests de table avant son utilisation en production.
 
 ### B-005 — Critique — `valid/order` absent
 
-- Etat : `[x] decision appliquee: le bouton « Confirmer et envoyer » cree puis valide`
+- Etat : `[~] ordre create/valid avant Sheet corrige et teste localement; flux DHD staging restant`
 - Fichiers : futur client/backend de commandes, frontend.
 - Cause : creation et expedition confondues localement.
 - Decision requise : le bouton actuel doit-il creer seulement, ou creer puis
@@ -293,7 +293,7 @@ tests de table avant son utilisation en production.
 
 ### B-013 — Haute — Decrementation de stock a plusieurs endroits
 
-- Etat : `[x] machine d'etat Mongo atomique unique; test d'integration DB restant`
+- Etat : `[~] machine d'etat Mongo atomique unique et stock rendu non bloquant; test d'integration DB/DHD restant`
 - Fichiers : `Orders.tsx`, `order.controller.ts`, `orderStatusSync.service.ts`,
   `orderStockUtils.ts`.
 - Risque : double decrement ou restauration incoherente.
@@ -335,7 +335,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 2 — Creation/expedition transactionnelle
 
-- Etat : `[x] code termine; creation reelle volontairement non executee en production`
+- Etat : `[~] ordre transactionnel corrige et teste localement; creation reelle volontairement non executee en production`
 - Ajouter un endpoint backend protege pour envoyer une commande.
 - Valider le payload avant ECOTRACK.
 - Rejeter `success:false`, tracking vide et format inattendu.
@@ -412,6 +412,8 @@ tests de table avant son utilisation en production.
 | HTTP 200 + `success:false` | Echec metier, aucune fausse validation | `[x] fixture locale` |
 | HTTP 422 | Champs ECOTRACK affiches proprement | `[ ]` |
 | Creation puis validation | Etat ECOTRACK conforme au bouton | `[~] code, test staging restant` |
+| Echec de `valid/order` | Aucun `ready_to_ship` ecrit dans le Sheet | `[~] ordre code teste, integration staging restante` |
+| Stock local insuffisant/introuvable | Envoi DHD non bloque; avertissement stock separe | `[~] code et build, integration DB/DHD restante` |
 | Lot partiellement reussi | Chaque commande garde son propre resultat | `[~] code, test staging restant` |
 | 1 tracking | Une synchro ciblee, aucune pagination globale | `[x] test de decoupage local` |
 | 100 trackings | Un paquet maximum conforme | `[x] test de decoupage local` |
@@ -421,6 +423,7 @@ tests de table avant son utilisation en production.
 | `suspendu` | Categorie `suspended` | `[x] table testee` |
 | Retour intermediaire | Pas de retour final premature | `[x] table testee` |
 | Retour final | Categorie `returned` | `[x] table testee` |
+| Livraison puis retour ulterieur | La commande livree reste synchronisee jusqu'au retour final | `[~] filtre et test local, cron live restant` |
 | 429 | Backoff borne, pas de boucle infinie | `[~] code borne, fixture HTTP restante` |
 | Timeout DHD | Erreur par lot/commande, prochain cron possible | `[ ]` |
 | Cron sans navigateur | Statut mis a jour | `[ ]` |
@@ -938,6 +941,62 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   reproductibles. Limite : le backend et le frontend doivent tous deux etre
   redeployes avant la validation authentifiee en Production.
 
+### Entree 17 — 2026-08-04 — Transaction DHD, stock non bloquant et retours officiels
+
+- Etapes : 2, 3, 5, 6 et 8. Anomalies : B-002, B-005, B-009, B-010 et
+  B-013. Objectif : supprimer les faux `ready_to_ship`, ne jamais bloquer
+  l'acceptation DHD a cause du stock local et laisser DHD/Sook seuls maitres
+  des statuts d'une commande API deja suivie.
+- Contrat relu dans `ECOTRACK API.postman_collection.json` :
+  `POST /api/v1/create/order` exige `success:true` et un tracking;
+  `POST /api/v1/valid/order` retourne son propre `success`; la source du statut
+  exact reste `GET /api/v1/get/orders/status`; un retour peut etre demande par
+  un endpoint separe mais aucun webhook de statut n'est documente.
+- Cause confirmee : `sendOrderToCarrier` persistait Mongo et le Sheet en
+  `ready_to_ship` avant `valid/order`. Une validation refusee laissait donc un
+  faux succes dans le Sheet. Les boutons du frontend et `/api/orders/status`
+  permettaient aussi une transition locale d'une commande DHD/Sook suivie.
+  Enfin, les requetes du cron excluaient les commandes livrees et ne pouvaient
+  jamais observer leur passage ulterieur vers un statut de retour.
+- Fichiers touches : `back/src/orders/orderApi.controller.ts`,
+  `back/src/orders/order.controller.ts`, `back/src/orders/orderStatus.ts`,
+  `back/src/orders/orderStatusScheduler.ts`,
+  `back/src/orders/orderStatusSync.service.ts`,
+  `back/tests/ecotrack-contract.test.js`, `front/src/pages/Orders.tsx` et
+  `.github/workflows/order-status-sync.yml`.
+- Transaction corrigee : l'ordre est maintenant `create/order`, conservation
+  anti-doublon du tracking dans Mongo, `valid/order`, puis seulement apres
+  succes persistance du statut dans Mongo et Google Sheets. Un echec de
+  validation conserve le tracking et l'erreur pour permettre une reprise sans
+  recreer la commande, mais n'ecrit pas `ready_to_ship` dans le Sheet. Le faux
+  statut exact `prete_a_expedier` n'est plus invente; le champ exact vient de
+  `get/orders/status`.
+- Stock : la reconciliation reste apres le succes DHD et apres le Sheet; elle
+  autorise les quantites negatives. Une absence de produit/variante ou une
+  autre erreur de stock produit un avertissement et `lastSyncError`, mais ne
+  transforme plus une commande acceptee en echec HTTP. La restauration reste
+  idempotente lors d'un retour officiel.
+- Statuts : une commande API avec tracking refuse desormais tout remplacement
+  de tracking, changement de transporteur ou changement de statut metier par
+  le navigateur. Les boutons « livree » et « abandonnee » restent disponibles
+  pour les livreurs internes, mais sont desactives pour DHD/Sook. Les commandes
+  livrees restent candidates au cron afin de detecter
+  `retour_chez_livreur`, les retours intermediaires puis le retour final; seuls
+  retour final et annulation arretent la surveillance.
+- Cron : la cible GitHub Actions utilisait encore l'ancien domaine backend;
+  elle pointe maintenant sur `https://the-project2.vercel.app`. Verification
+  externe en lecture seule : healthcheck HTTP 200 et route cron sans secret
+  refusee en HTTP 401. Aucun appel cron autorise ni mutation DHD/Sheet n'a ete
+  execute pendant cette correction.
+- Tests : `npm test` dans `back` reussi apres build; 17 scenarios couvrent
+  notamment mapping officiel, livraison encore synchronisee, equivalence des
+  alias metier, ordre create/valid/Sheet/stock et cible du cron. `npm run build`
+  dans `front` reussi avec typecheck et build Vite. `git diff --check` reussi.
+- Etat : code termine localement. Limites : le `CRON_SECRET` GitHub doit etre
+  identique a celui du backend Vercel; le workflow doit etre lance et observe
+  apres le push. La matrice DHD/Sheet/stock exige encore une commande de test
+  autorisee avant de declarer le flux Production termine.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -967,10 +1026,10 @@ Cron Vercel                   RETIRE CAR INCOMPATIBLE AVEC HOBBY
 Cron GitHub 5 minutes         CONFIGURE, SECRET ET VALIDATION LIVE RESTANTS
 Rotation secrets              A EFFECTUER DANS LES SERVICES
 Configuration locale          PARTIELLE; ACCES SHEET/DHD MANQUANTS
-Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
+Tests contractuels            17 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
-Validation staging            NOUVEAU BACKEND/FRONT LOCAL ROUTE+CORS OK; FLUX AUTHENTIFIE DHD/SHEET RESTANT
+Validation staging            TRANSACTION/RETOURS CORRIGES LOCALEMENT; FLUX AUTHENTIFIE DHD/SHEET/STOCK RESTANT
 JWT production                CONFIGURE; RECONNEXION ET FLUX AUTHENTIFIE A VALIDER
 Deploiement corrige            NOUVEAU BACKEND PRODUCTION READY; FRONT LOCAL RELIE
 ```

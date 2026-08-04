@@ -159,7 +159,7 @@ const persistMatchedStatus = async (params: {
   // navigateur. Cela évite qu'un statut transporteur inconnu fasse régresser
   // une commande déjà mise à jour par un cron plus récent.
   const previousStatus =
-    existing?.status || order.currentStatus || 'ready_to_ship';
+    existing?.status || order.currentStatus || 'new';
   const nextStatus = mappedStatus || previousStatus;
   const changed = !statusesEqual(previousStatus, nextStatus);
   const now = new Date();
@@ -311,7 +311,7 @@ export const syncOfficialStatuses = async (
             status:
               mapCarrierStatus(carrierStatus) ||
               order.currentStatus ||
-              'ready_to_ship',
+              'new',
             tracking: order.tracking,
             carrierStatus,
             carrierType: deliveryType,

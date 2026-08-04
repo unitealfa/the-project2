@@ -10,8 +10,10 @@ const {
   parseTrackingActivity,
 } = require('../dist/src/orders/ecotrack.client.js');
 const {
+  businessStatusesEqual,
   isFinalBusinessStatus,
   mapCarrierStatus,
+  shouldContinueOfficialStatusSync,
 } = require('../dist/src/orders/orderStatus.js');
 const {
   authenticateJWT,
@@ -201,6 +203,36 @@ test('seuls les etats metier finaux ferment la synchronisation', () => {
   assert.equal(isFinalBusinessStatus('suspended'), false);
 });
 
+test('une livraison DHD reste synchronisee pour detecter un retour ulterieur', () => {
+  assert.equal(shouldContinueOfficialStatusSync('livrée'), true);
+  assert.equal(shouldContinueOfficialStatusSync('delivered'), true);
+  assert.equal(shouldContinueOfficialStatusSync('RETURN_IN_PROGRESS'), true);
+  assert.equal(shouldContinueOfficialStatusSync('retours'), false);
+  assert.equal(shouldContinueOfficialStatusSync('abandoned'), false);
+});
+
+test('les alias metier equivalentes ne permettent pas un faux changement manuel', () => {
+  assert.equal(businessStatusesEqual('livrée', 'delivered'), true);
+  assert.equal(businessStatusesEqual('retours', 'returned'), true);
+  assert.equal(businessStatusesEqual('ready_to_ship', 'delivered'), false);
+});
+
+test('create/order et valid/order precedent toute ecriture du Sheet et du stock', () => {
+  const controller = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderApi.controller.ts'),
+    'utf8'
+  );
+  const createIndex = controller.indexOf('await client.createOrder(orderPayload)');
+  const validateIndex = controller.indexOf('await client.validateOrder(tracking, askCollection)');
+  const sheetIndex = controller.indexOf('await sheetService.updateStatus({', validateIndex);
+  const stockIndex = controller.indexOf('await reconcileOrderStock(rowId, targetStatus)', sheetIndex);
+  assert.ok(createIndex >= 0);
+  assert.ok(validateIndex > createIndex);
+  assert.ok(sheetIndex > validateIndex);
+  assert.ok(stockIndex > sheetIndex);
+  assert.doesNotMatch(controller, /carrierStatus:\s*existing\?\.carrierStatus\s*\|\|\s*['"]prete_a_expedier/);
+});
+
 test('le stock refuse les quantites ambiguës et ne confond pas reference commande et SKU', () => {
   assert.equal(
     extractProductInfo({ Produit: 'T-shirt / XL', Quantité: '1,5' }),
@@ -232,5 +264,8 @@ test('la configuration Vercel evite les combinaisons invalides et le cron Hobby'
   );
   assert.match(workflow, /cron: '2\/5 \* \* \* \*'/);
   assert.match(workflow, /secrets\.CRON_SECRET/);
-  assert.match(workflow, /\/api\/orders\/cron\/sync-statuses/);
+  assert.match(
+    workflow,
+    /https:\/\/the-project2\.vercel\.app\/api\/orders\/cron\/sync-statuses/
+  );
 });

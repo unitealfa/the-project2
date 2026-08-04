@@ -16,6 +16,20 @@ const normalize = (value: string): string =>
     .trim()
     .toLowerCase();
 
+export const OFFICIAL_SYNC_TERMINAL_STATUSES = [
+  'returned',
+  'retours',
+  'abandoned',
+  'annulée',
+  'annulee',
+  'canceled',
+  'cancelled',
+] as const;
+
+const OFFICIAL_SYNC_TERMINAL_STATUS_SET = new Set<string>(
+  OFFICIAL_SYNC_TERMINAL_STATUSES.map(normalize)
+);
+
 const READY_TO_SHIP = new Set([
   'prete a expedier',
   'pret a expedier',
@@ -118,8 +132,21 @@ export const isFinalBusinessStatus = (status: unknown): boolean => {
   );
 };
 
+export const shouldContinueOfficialStatusSync = (status: unknown): boolean =>
+  typeof status !== 'string' ||
+  !OFFICIAL_SYNC_TERMINAL_STATUS_SET.has(normalize(status));
+
+export const businessStatusesEqual = (
+  left: unknown,
+  right: unknown
+): boolean => {
+  if (typeof left !== 'string' || typeof right !== 'string') return false;
+  const normalizedLeft = mapCarrierStatus(left) ?? normalize(left);
+  const normalizedRight = mapCarrierStatus(right) ?? normalize(right);
+  return Boolean(normalizedLeft && normalizedLeft === normalizedRight);
+};
+
 export const normalizeCarrierIdentifier = (value: unknown): string =>
   typeof value === 'string'
     ? value.trim().replace(/\s+/g, '').toUpperCase()
     : '';
-

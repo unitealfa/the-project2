@@ -11,7 +11,10 @@ import {
 } from './ecotrack.client';
 import { reconcileOrderStock } from './orderStockReconciliation.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
-import { isFinalBusinessStatus } from './orderStatus';
+import {
+  isFinalBusinessStatus,
+  OFFICIAL_SYNC_TERMINAL_STATUSES,
+} from './orderStatus';
 
 const ORDER_FIELDS = [
   'reference',
@@ -158,6 +161,7 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
   const askCollection: 0 | 1 = Number(req.body?.askCollection) === 1 ? 1 : 0;
   let carrierTracking = '';
   let carrierCreated = false;
+  let carrierValidationSucceeded = false;
   let sendLockAcquired = false;
 
   try {
@@ -224,27 +228,95 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       tracking = created.tracking;
       carrierCreated = true;
       reused = false;
+
+      // Memoriser immédiatement le tracking dans Mongo évite une deuxième
+      // création si valid/order échoue. Aucun statut Sheet n'est écrit ici.
+      existing = await Order.findOneAndUpdate(
+        { rowId },
+        {
+          $set: {
+            rowId,
+            status: stringValue(existing?.status) || 'new',
+            tracking,
+            deliveryType,
+            row: row ?? existing?.row,
+            lastSyncAttemptAt: new Date(),
+            lastSyncError: shouldValidate
+              ? 'Validation ECOTRACK en attente.'
+              : '',
+          },
+          $unset: { deliveryPersonId: 1, deliveryPersonName: 1 },
+        },
+        { upsert: true, new: true }
+      );
     }
     carrierTracking = tracking;
-    const targetStatus = reused
-      ? stringValue(existing?.status) || 'ready_to_ship'
-      : 'ready_to_ship';
+    let carrierValidated = Boolean(existing?.carrierValidatedAt);
+    if (
+      shouldValidate &&
+      !carrierValidated
+    ) {
+      try {
+        await client.validateOrder(tracking, askCollection);
+        carrierValidated = true;
+        carrierValidationSucceeded = true;
+      } catch (error) {
+        const safe = publicError(error);
+        const message = `Validation ECOTRACK: ${safe.message}`;
+        await Order.updateOne(
+          { rowId },
+          {
+            $set: {
+              tracking,
+              deliveryType,
+              row: row ?? existing?.row,
+              lastSyncAttemptAt: new Date(),
+              lastSyncError: message,
+            },
+          }
+        );
+        return res.status(502).json({
+          ...safe,
+          success: false,
+          partialSuccess: true,
+          tracking,
+          message:
+            'Le tracking ECOTRACK est conserve, mais la commande n’a pas ete validee pour expedition.',
+        });
+      }
+    }
 
+    const previousStatus = stringValue(existing?.status);
+    const targetStatus =
+      shouldValidate && (!previousStatus || previousStatus === 'new')
+        ? 'ready_to_ship'
+        : previousStatus || (shouldValidate ? 'ready_to_ship' : 'new');
     const now = new Date();
+    const setValues: Record<string, unknown> = {
+      rowId,
+      status: targetStatus,
+      tracking,
+      deliveryType,
+      row: row ?? existing?.row,
+      lastSyncAttemptAt: now,
+      lastSyncError: '',
+    };
+    if (carrierValidated) {
+      setValues.carrierValidatedAt = existing?.carrierValidatedAt || now;
+    }
+    if (existing?.carrierStatus) {
+      setValues.carrierStatus = existing.carrierStatus;
+    }
+    if (existing?.carrierStatusUpdatedAt) {
+      setValues.carrierStatusUpdatedAt = existing.carrierStatusUpdatedAt;
+    }
+
+    // Le statut local et le Sheet ne changent qu'après les succès create/order
+    // puis valid/order. Le statut transporteur exact viendra de get/orders/status.
     const saved = await Order.findOneAndUpdate(
       { rowId },
       {
-        $set: {
-          rowId,
-          status: targetStatus,
-          tracking,
-          deliveryType,
-          row: row ?? existing?.row,
-          carrierStatus: existing?.carrierStatus || 'prete_a_expedier',
-          carrierStatusUpdatedAt: existing?.carrierStatusUpdatedAt || now,
-          lastSyncAttemptAt: now,
-          lastSyncError: '',
-        },
+        $set: setValues,
         $unset: { deliveryPersonId: 1, deliveryPersonName: 1 },
       },
       { upsert: true, new: true }
@@ -267,40 +339,16 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
         partialSuccess: true,
         tracking,
         message:
-          'Commande creee chez ECOTRACK, mais la sauvegarde Google Sheets a echoue.',
+          'Commande acceptee par ECOTRACK, mais la sauvegarde Google Sheets a echoue.',
       });
-    }
-
-    if (
-      shouldValidate &&
-      !saved.carrierValidatedAt &&
-      (!reused || targetStatus === 'ready_to_ship')
-    ) {
-      try {
-        await client.validateOrder(tracking, askCollection);
-        saved.carrierValidatedAt = new Date();
-        saved.lastSyncError = '';
-        await saved.save();
-      } catch (error) {
-        const safe = publicError(error);
-        const message = `Validation ECOTRACK: ${safe.message}`;
-        await Order.updateOne({ rowId }, { $set: { lastSyncError: message } });
-        return res.status(502).json({
-          ...safe,
-          success: false,
-          partialSuccess: true,
-          tracking,
-          message:
-            'Commande creee et sauvegardee, mais ECOTRACK ne l’a pas validee pour expedition.',
-        });
-      }
     }
 
     let stockWarning: string | undefined;
     try {
       await reconcileOrderStock(rowId, targetStatus);
     } catch (error) {
-      stockWarning = publicError(error).message;
+      stockWarning =
+        error instanceof Error ? error.message : 'Erreur stock inconnue';
       await Order.updateOne(
         { rowId },
         { $set: { lastSyncError: `Stock: ${stockWarning}` } }
@@ -311,7 +359,7 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       success: true,
       tracking,
       reused,
-      validated: shouldValidate,
+      validated: carrierValidated,
       status: targetStatus,
       carrierStatus: saved.carrierStatus,
       ...(stockWarning ? { warning: `Stock non ajuste: ${stockWarning}` } : {}),
@@ -326,12 +374,12 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
     return res.status(status).json({
       success: false,
       ...safe,
-      ...(carrierCreated && carrierTracking
+      ...((carrierCreated || carrierValidationSucceeded) && carrierTracking
         ? {
             partialSuccess: true,
             tracking: carrierTracking,
             message:
-              'Commande creee chez ECOTRACK, mais sa persistance locale a echoue. Ne la renvoyez pas avant verification.',
+              'La commande a ete creee ou validee chez ECOTRACK, mais sa persistance locale a echoue. Ne la renvoyez pas avant verification.',
           }
         : {}),
     });
@@ -472,18 +520,9 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
       deliveryType: { $in: ['api_dhd', 'api_sook'] },
       tracking: { $type: 'string', $regex: /\S{5}/, $nin: ['', 'N/A'] },
       status: {
-        $nin: [
-          'delivered',
-          'livrée',
-          'livree',
-          'returned',
-          'retours',
-          'abandoned',
-          'annulée',
-          'annulee',
-          'canceled',
-          'cancelled',
-        ],
+        // Une commande livrée reste candidate: ECOTRACK peut ensuite annoncer
+        // un retour. Les seuls arrêts sont retour final ou annulation.
+        $nin: [...OFFICIAL_SYNC_TERMINAL_STATUSES],
       },
     })
       .select('rowId tracking status deliveryType row')

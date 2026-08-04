@@ -2,6 +2,7 @@ import connectDB from '../config/db';
 import Order from './order.model';
 import OrderSyncLock from './orderSyncLock.model';
 import { syncOfficialStatuses } from './orderStatusSync.service';
+import { OFFICIAL_SYNC_TERMINAL_STATUSES } from './orderStatus';
 
 const getIntervalMs = (): number => {
   const configuredInterval = Number(process.env.OFFICIAL_STATUS_SYNC_INTERVAL_MS);
@@ -38,19 +39,6 @@ const releaseSyncLock = async (): Promise<void> => {
   );
 };
 
-const FINAL_STATUSES = new Set([
-  'delivered',
-  'livrée',
-  'livree',
-  'returned',
-  'retours',
-  'abandoned',
-  'annulée',
-  'annulee',
-  'canceled',
-  'cancelled',
-]);
-
 export const startOrderStatusScheduler = () => {
   if (process.env.DISABLE_OFFICIAL_STATUS_CRON === 'true') {
     console.log('[DHD sync] Cron désactivé via DISABLE_OFFICIAL_STATUS_CRON=true');
@@ -71,7 +59,9 @@ export const startOrderStatusScheduler = () => {
       const candidates = await Order.find({
         deliveryType: { $in: ['api_dhd', 'api_sook'] },
         tracking: { $type: 'string', $regex: /\S{5}/, $nin: ['', 'N/A'] },
-        status: { $nin: Array.from(FINAL_STATUSES) },
+        // Une livraison peut encore devenir un retour chez ECOTRACK. Seuls
+        // les retours finaux et annulations quittent la surveillance.
+        status: { $nin: [...OFFICIAL_SYNC_TERMINAL_STATUSES] },
       })
         .select('rowId tracking status deliveryType row')
         .sort({ lastSyncAttemptAt: 1, updatedAt: 1 })

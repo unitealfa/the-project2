@@ -14,6 +14,10 @@ import {
   releaseStatusSyncLock,
 } from './orderApi.controller';
 import { classifyGoogleSheetError } from './googleSheetError';
+import {
+  businessStatusesEqual,
+  normalizeCarrierIdentifier,
+} from './orderStatus';
 
 const debugLog = (...args: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
@@ -311,6 +315,32 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
           'Le transporteur ne peut pas être changé après la création du tracking sans intervention manuelle contrôlée.',
       });
     }
+    if (
+      hasExistingTracking &&
+      normalizedTracking &&
+      normalizeCarrierIdentifier(normalizedTracking) !==
+        normalizeCarrierIdentifier(existingOrder?.tracking)
+    ) {
+      return res.status(409).json({
+        success: false,
+        message:
+          'Le tracking ECOTRACK existant ne peut pas être remplacé depuis le site.',
+      });
+    }
+    const existingIsApiOrder =
+      existingOrder?.deliveryType === 'api_dhd' ||
+      existingOrder?.deliveryType === 'api_sook';
+    if (
+      hasExistingTracking &&
+      existingIsApiOrder &&
+      !businessStatusesEqual(existingOrder?.status, normalizedStatus)
+    ) {
+      return res.status(409).json({
+        success: false,
+        message:
+          'Le statut d’une commande DHD/Sook suivie ne peut être modifié que par la synchronisation officielle du transporteur.',
+      });
+    }
 
     // Si c'est un envoi vers un livreur, vérifier que le livreur existe
     let resolvedDeliveryPersonId: string | undefined;
@@ -348,8 +378,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     }
 
     const effectiveTracking = normalizedTracking || existingOrder?.tracking;
-    const effectiveCarrierStatus =
-      normalizedCarrierStatus || existingOrder?.carrierStatus;
+    // Un statut transporteur exact ne provient jamais du navigateur pour une
+    // commande API déjà suivie. Il est réservé à get/orders/status.
+    const effectiveCarrierStatus = existingIsApiOrder && hasExistingTracking
+      ? existingOrder?.carrierStatus
+      : normalizedCarrierStatus || existingOrder?.carrierStatus;
     const setValues: Record<string, unknown> = {
       rowId: normalizedRowId,
       status: normalizedStatus,
@@ -436,19 +469,23 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       { rowId: normalizedRowId },
       { $set: { lastSyncError: syncErrors.join(' | ') } }
     );
-    if (syncErrors.length > 0) {
-      return res.status(sheetFailed ? 502 : 500).json({
+    if (sheetFailed) {
+      return res.status(502).json({
         success: false,
         partialSuccess: true,
-        message: sheetFailed
-          ? 'Le statut est sauvegardé dans la base, mais Google Sheets n’a pas pu être synchronisé.'
-          : `Le statut est sauvegardé, mais le stock n'a pas pu être ajusté: ${stockMessage}`,
+        message:
+          'Le statut est sauvegardé dans la base, mais Google Sheets n’a pas pu être synchronisé.',
       });
     }
 
     return res.json({
       success: true,
       result: sheetResult,
+      ...(stockMessage
+        ? {
+            warning: `Statut sauvegardé; stock non ajusté: ${stockMessage}`,
+          }
+        : {}),
     });
   } catch (error) {
     return res.status(500).json({

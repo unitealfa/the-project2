@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     env:
-      SYNC_URL: https://the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/cron/sync-statuses
+      SYNC_URL: https://the-project2.vercel.app/api/orders/cron/sync-statuses
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Appeler la synchronisation protegee
