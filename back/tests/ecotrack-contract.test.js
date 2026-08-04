@@ -151,11 +151,14 @@ test('le stock refuse les quantites ambiguës et ne confond pas reference comman
   assert.equal(product.code, undefined);
 });
 
-test('le deploiement Hobby garde le cron hors de vercel.json', () => {
+test('la configuration Vercel evite les combinaisons invalides et le cron Hobby', () => {
   const vercelConfig = JSON.parse(
     fs.readFileSync(path.resolve(__dirname, '../vercel.json'), 'utf8')
   );
   assert.equal(Object.hasOwn(vercelConfig, 'crons'), false);
+  assert.equal(Object.hasOwn(vercelConfig, 'builds'), false);
+  assert.equal(vercelConfig.functions['api/index.ts'].maxDuration, 60);
+  assert.equal(vercelConfig.routes[0].dest, '/api/index.ts');
 
   const workflow = fs.readFileSync(
     path.resolve(__dirname, '../../.github/workflows/order-status-sync.yml'),

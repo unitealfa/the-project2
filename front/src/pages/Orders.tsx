@@ -3189,6 +3189,7 @@ Zm0 14H8V7h9v12Z"
   const isFirstLoadRef = React.useRef(true);
   const cancelledRef = React.useRef(false);
   const fetchingRef = React.useRef(false);
+  const sheetPollingDisabledRef = React.useRef(false);
   const disableStatusSync = React.useCallback((reason?: unknown) => {
     if (!syncDisabledRef.current) {
       syncDisabledRef.current = true;
@@ -3283,7 +3284,13 @@ Zm0 14H8V7h9v12Z"
 
     try {
       const res = await apiFetch(buildCsvUrl(), { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const requestError = new Error(`HTTP ${res.status}`) as Error & {
+          status?: number;
+        };
+        requestError.status = res.status;
+        throw requestError;
+      }
       const text = await res.text();
       const grid = parseCsv(text);
       if (grid.length === 0) {
@@ -3629,7 +3636,16 @@ Zm0 14H8V7h9v12Z"
         setRows(hydratedRows);
       }
     } catch (e: any) {
-      if (!cancelledRef.current) setError(e?.message || "Erreur inconnue");
+      if (e?.status === 404) {
+        sheetPollingDisabledRef.current = true;
+      }
+      if (!cancelledRef.current) {
+        setError(
+          e?.status === 404
+            ? "Le backend déployé est trop ancien et ne fournit pas la route des commandes. Redéployez le backend puis rechargez cette page."
+            : e?.message || "Erreur inconnue"
+        );
+      }
     } finally {
       if (!cancelledRef.current && shouldShowSpinner) {
         setLoading(false);
@@ -3648,7 +3664,13 @@ Zm0 14H8V7h9v12Z"
 
     const initialise = async () => {
       await loadSheetData(true);
+      if (cancelledRef.current || sheetPollingDisabledRef.current) return;
       intervalId = setInterval(() => {
+        if (sheetPollingDisabledRef.current) {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = undefined;
+          return;
+        }
         loadSheetData(false);
       }, 10000);
     };

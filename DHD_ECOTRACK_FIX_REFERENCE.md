@@ -653,7 +653,7 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   tous les builds locaux, mais GitHub publie deux statuts Vercel distincts : le
   projet frontend termine avec succes et le projet backend echoue au
   deploiement.
-- Cause : `back/vercel.json` declarait `*/5 * * * *`. Vercel Hobby refuse les
+- Premiere cause : `back/vercel.json` declarait `*/5 * * * *`. Vercel Hobby refuse les
   expressions cron executees plus d'une fois par jour et fait echouer le
   deploiement avant la mise en production du nouveau backend.
 - Correction : retrait du cron natif dans `back/vercel.json`; conservation de
@@ -672,6 +672,30 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Limite externe : le prochain commit doit etre pousse pour obtenir une preuve
   de deploiement backend; le workflow doit ensuite etre lance manuellement une
   premiere fois apres configuration du secret GitHub.
+
+### Entree 9 — 2026-08-04 — Seconde erreur Vercel et boucle 404 frontend
+
+- Preuve utilisateur : `bug.txt` montre `GET /api/orders/sheet` en HTTP 404
+  toutes les dix secondes. La route existe dans le nouveau backend mais pas
+  dans l'ancien deploiement encore servi.
+- Verification externe : le commit `72d0926` produit encore un statut Vercel
+  backend en echec et un statut frontend en succes; le retrait du cron a donc
+  ferme une premiere erreur sans permettre au backend d'etre remplace.
+- Seconde cause : `back/vercel.json` combinait les proprietes incompatibles
+  `builds` et `functions`. Vercel rejette cette configuration avant le build.
+- Correction backend : migration vers la detection automatique de
+  `api/index.ts`, retrait de `builds`, conservation de la route catch-all et de
+  `functions.api/index.ts.maxDuration=60`.
+- Correction frontend : apres un 404 de `/api/orders/sheet`, le polling est
+  arrete au lieu de rappeler indefiniment l'ancien backend; un message demande
+  explicitement de redeployer puis recharger la page.
+- Test anti-regression : absence simultanee de `builds` et `crons`, duree et
+  destination de la fonction verifiees dans le test contractuel.
+- Resultats locaux : `npm test`, build TypeScript, 11 scenarios contractuels,
+  typecheck/build Vite, validation JSON et `git diff --check` reussis.
+- Prochaine preuve requise : pousser ce correctif, verifier les deux statuts
+  Vercel verts, puis confirmer que `/api/orders/sheet` retourne 401 sans JWT et
+  200 CSV avec un JWT operateur.
 
 ### Modele pour les prochaines entrees
 
@@ -706,7 +730,7 @@ Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
 Validation staging            NON COMMENCEE
-Deploiement corrige            NON COMMENCE
+Deploiement corrige            CORRECTIF 2 LOCAL, NOUVEAU PUSH REQUIS
 ```
 
 Ne pas modifier cet etat synthetique sans mettre a jour les anomalies, les
