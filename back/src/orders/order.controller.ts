@@ -13,6 +13,7 @@ import {
   acquireStatusSyncLock,
   releaseStatusSyncLock,
 } from './orderApi.controller';
+import { classifyGoogleSheetError } from './googleSheetError';
 
 const debugLog = (...args: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
@@ -41,9 +42,12 @@ export const getSheetCsv = async (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     return res.status(200).send(csv);
-  } catch {
+  } catch (error) {
+    const code = classifyGoogleSheetError(error);
+    console.error(`[Google Sheets] lecture impossible: ${code}`);
     return res.status(502).json({
       success: false,
+      code,
       message: 'Impossible de charger la feuille de commandes.',
     });
   }

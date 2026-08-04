@@ -19,6 +19,9 @@ const {
 const {
   extractProductInfo,
 } = require('../dist/src/orders/orderStockUtils.js');
+const {
+  classifyGoogleSheetError,
+} = require('../dist/src/orders/googleSheetError.js');
 
 test('les routes protegees refusent une requete sans JWT', () => {
   let statusCode = 200;
@@ -44,6 +47,31 @@ test('les routes protegees refusent une requete sans JWT', () => {
   assert.equal(statusCode, 401);
   assert.equal(body.message, 'Token manquant');
   assert.equal(nextCalled, false);
+});
+
+test('Google Sheets: les erreurs sont classifiees sans exposer les secrets', () => {
+  assert.equal(
+    classifyGoogleSheetError(new Error('GOOGLE_SPREADSHEET_ID doit être configuré.')),
+    'sheet_config_missing'
+  );
+  assert.equal(
+    classifyGoogleSheetError(Object.assign(new Error('error: DECODER routines::unsupported'), {
+      code: 'ERR_OSSL_UNSUPPORTED',
+    })),
+    'sheet_credentials_invalid'
+  );
+  assert.equal(
+    classifyGoogleSheetError({ response: { status: 403 } }),
+    'sheet_forbidden'
+  );
+  assert.equal(
+    classifyGoogleSheetError({ response: { status: 404 } }),
+    'sheet_not_found'
+  );
+  assert.equal(
+    classifyGoogleSheetError({ code: 'ETIMEDOUT' }),
+    'sheet_timeout'
+  );
 });
 
 test('ECOTRACK: HTTP 200 avec success:false reste un echec metier', () => {

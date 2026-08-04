@@ -771,6 +771,46 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Validation locale proportionnee : `git diff --check` reussi; aucune suite de
   code relancee puisque les sources et dependances n'ont pas change.
 
+### Entree 12 — 2026-08-04 — Audit local/GitHub/Vercel du HTTP 502 Sheet
+
+- Alignement du code : le depot local, `origin/main`, la branche GitHub lue par
+  `git ls-remote` et les builds Vercel backend/frontend pointent tous sur le
+  commit `a5d7fec`. Les commits recents ne modifient pas les sources actives
+  apres le correctif Vercel; aucun conflit ou ancien code divergent n'explique
+  le HTTP 502.
+- Backend live : healthcheck HTTP 200, preflight de l'origine frontend HTTP 204
+  et faux JWT refuse en HTTP 401. MongoDB, CORS, routage et initialisation JWT
+  sont donc verifies independamment de Google Sheets.
+- Frontend live : le module `api-B35y0r3-.js` est servi en HTTP 200, contient
+  exactement le domaine backend attendu et ne contient aucun appel direct vers
+  `platform.dhd-dz.com`.
+- Variables Vercel : les noms requis sont presents dans les deux projets et le
+  frontend Production ne contient que `VITE_API_BASE_URL` parmi les variables
+  Vite; sa valeur effective pointe sur le bon backend. Vercel masque les valeurs
+  marquees `sensitive` lors de `env pull`, donc leur contenu ne peut pas etre
+  valide par lecture ou recopie depuis le CLI. Les controles live ci-dessus
+  valident CORS/JWT/Mongo; le contenu des identifiants Google reste a verifier
+  par leur comportement.
+- Cause circonscrite : `GET /api/orders/sheet` atteint le controleur, puis
+  `getSheetCsv` transforme toute erreur Google en HTTP 502 generique. Les logs
+  precedents ne conservaient aucun code securise permettant de distinguer cle
+  privee invalide, permission 403, feuille 404, quota ou timeout.
+- Instrumentation ajoutee : `googleSheetError.ts` classe uniquement des codes
+  publics bornes; `getSheetCsv` journalise et retourne ce code sans message
+  brut, identifiant, email, cle ou contenu de commande. Des fixtures couvrent
+  configuration absente, cle invalide, 403, 404 et timeout.
+- Securite de deploiement : une simulation CLI a revele que `back/.env` local
+  ferait partie d'un upload direct. Le deploiement direct a ete annule et
+  `.vercelignore` exclut maintenant `back/.env` et ses variantes, tout en
+  conservant `back/.env.example`. Une seconde simulation confirme
+  `back/.env` absent et `back/api/index.ts` present; les exports temporaires de
+  variables ont ensuite ete supprimes de `/tmp`.
+- Validation locale : `npm test` reussi (build backend, tests contractuels,
+  typecheck et build frontend). Prochaine action : pousser uniquement les
+  sources/reference sans `.env`, attendre les deux builds Vercel, puis lire le
+  nouveau code d'erreur Google dans les logs live avant toute modification de
+  credential.
+
 ### Modele pour les prochaines entrees
 
 ```text
