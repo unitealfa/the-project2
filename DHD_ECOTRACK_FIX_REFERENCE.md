@@ -738,6 +738,39 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Etat : panne 404/CORS de production fermee avec preuves; validation metier
   DHD de bout en bout toujours ouverte.
 
+### Entree 11 — 2026-08-04 — Correction des HTTP 500 sur les routes authentifiees
+
+- Preuve utilisateur : `erreur console.txt` montre des HTTP 500 simultanes sur
+  `/api/orders/sheet`, `/api/products` et `/api/orders/delivery-persons`.
+- Verification live : MongoDB se connecte et CORS repond correctement, puis un
+  appel en lecture avec un faux Bearer retourne exactement HTTP 500
+  `Authentification serveur non configurée`.
+- Cause confirmee dans le code actif : `getJwtSecret()` refuse une valeur
+  absente ou inferieure a 32 caracteres. L'ancienne valeur Vercel n'etait donc
+  plus conforme au controle de securite du backend; les trois routes echouaient
+  dans le middleware JWT avant leur controleur respectif.
+- Correction de configuration : le `JWT_SECRET` local aleatoire de 64
+  caracteres, deja cree et ignore par Git, a ete transmis par stdin vers la
+  variable Production Vercel sans affichage ni copie dans un fichier suivi.
+  Aucun secret n'est consigne dans ce journal.
+- Deploiement : `dpl_EiKids9Emth6gV5buvPkjBXTavP4` est `Ready` et lie au domaine
+  backend stable.
+- Preuve apres correction : le meme faux Bearer retourne HTTP 401
+  `Token invalide`, avec l'origine frontend autorisee, au lieu du HTTP 500. Le
+  serveur JWT est donc initialise et refuse correctement un jeton non signe.
+- Effet attendu et necessaire : tous les jetons signes par l'ancienne valeur
+  sont invalides. L'utilisateur doit actualiser puis se reconnecter afin que le
+  login emette un nouveau jeton avec `issuer`, `audience`, expiration et
+  `tokenVersion` conformes au code actuel.
+- Limite restante : sans identifiants utilisateur, aucun contournement de
+  connexion n'a ete tente. Le HTTP 200 authentifie de Sheet/produits/livreurs
+  doit etre confirme apres reconnexion; une erreur Sheet eventuelle devra alors
+  etre diagnostiquee separement desormais que JWT fonctionne.
+- Code fonctionnel modifie : aucun; le controle de securite etait correct. Seuls
+  la configuration Vercel et le present suivi/documentation ont ete corriges.
+- Validation locale proportionnee : `git diff --check` reussi; aucune suite de
+  code relancee puisque les sources et dependances n'ont pas change.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -771,7 +804,8 @@ Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
 Validation staging            ROUTE/CORS LIVE OK; FLUX AUTHENTIFIE DHD/SHEET RESTANT
-Deploiement corrige            BACKEND PRODUCTION READY; PUSH DOC/CONFIG REQUIS
+JWT production                CONFIGURE; RECONNEXION ET FLUX AUTHENTIFIE A VALIDER
+Deploiement corrige            BACKEND PRODUCTION READY; ROUTES PUBLIQUES/JWT INVALIDES OK
 ```
 
 Ne pas modifier cet etat synthetique sans mettre a jour les anomalies, les

@@ -21,8 +21,9 @@ cp front/.env.example front/.env
 
 Compléter ensuite les variables locales. Ne jamais versionner les fichiers
 `.env`. `JWT_SECRET` et `CRON_SECRET` doivent être des valeurs aléatoires
-distinctes; les jetons DHD/Sook et la clé privée Google restent exclusivement
-sur le backend.
+distinctes d'au moins 32 caractères; les jetons DHD/Sook et la clé privée
+Google restent exclusivement sur le backend. Toute modification de
+`JWT_SECRET` invalide les sessions existantes et impose une nouvelle connexion.
 
 ## Développement
 

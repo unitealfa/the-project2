@@ -1,0 +1,12 @@
+the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/sheet:1  Failed to load resource: the server responded with a status of 500 ()
+the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/products:1  Failed to load resource: the server responded with a status of 500 ()
+the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/delivery-persons:1  Failed to load resource: the server responded with a status of 500 ()
+the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/sheet?cacheBust=1785845590567:1  Failed to load resource: the server responded with a status of 500 ()
+api-B35y0r3-.js:1  GET https://the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/sheet?cacheBust=1785845601230 500 (Internal Server Error)
+n @ api-B35y0r3-.js:1
+(anonymous) @ Orders-Dq2x9T05.js:3
+(anonymous) @ Orders-Dq2x9T05.js:3
+api-B35y0r3-.js:1  GET https://the-project2jhbgcioijiuzi1niisinr5cci6iback.vercel.app/api/orders/sheet?cacheBust=1785845611230 500 (Internal Server Error)
+n @ api-B35y0r3-.js:1
+(anonymous) @ Orders-Dq2x9T05.js:3
+(anonymous) @ Orders-Dq2x9T05.js:3
