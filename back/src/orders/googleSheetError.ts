@@ -1,5 +1,6 @@
 export type GoogleSheetFailureCode =
-  | 'sheet_config_missing'
+  | 'sheet_spreadsheet_id_missing'
+  | 'sheet_credentials_missing'
   | 'sheet_config_invalid'
   | 'sheet_credentials_invalid'
   | 'sheet_unauthorized'
@@ -33,11 +34,15 @@ export const classifyGoogleSheetError = (
   const rawStatus = details.response?.status ?? details.status;
   const status = typeof rawStatus === 'number' ? rawStatus : Number(rawStatus);
 
+  if (message.includes('google_spreadsheet_id doit être configuré')) {
+    return 'sheet_spreadsheet_id_missing';
+  }
   if (
-    message.includes('doit être configuré') ||
-    message.includes('doivent etre configures')
+    message.includes(
+      'google_service_account_email et google_private_key doivent etre configures'
+    )
   ) {
-    return 'sheet_config_missing';
+    return 'sheet_credentials_missing';
   }
   if (
     message.includes('spreadsheet_id est invalide') ||

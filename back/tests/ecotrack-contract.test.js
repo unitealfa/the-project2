@@ -52,7 +52,15 @@ test('les routes protegees refusent une requete sans JWT', () => {
 test('Google Sheets: les erreurs sont classifiees sans exposer les secrets', () => {
   assert.equal(
     classifyGoogleSheetError(new Error('GOOGLE_SPREADSHEET_ID doit être configuré.')),
-    'sheet_config_missing'
+    'sheet_spreadsheet_id_missing'
+  );
+  assert.equal(
+    classifyGoogleSheetError(
+      new Error(
+        'GOOGLE_SERVICE_ACCOUNT_EMAIL et GOOGLE_PRIVATE_KEY doivent etre configures.'
+      )
+    ),
+    'sheet_credentials_missing'
   );
   assert.equal(
     classifyGoogleSheetError(Object.assign(new Error('error: DECODER routines::unsupported'), {

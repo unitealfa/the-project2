@@ -810,6 +810,15 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   sources/reference sans `.env`, attendre les deux builds Vercel, puis lire le
   nouveau code d'erreur Google dans les logs live avant toute modification de
   credential.
+- Premiere preuve live du commit `54d5b36` : le domaine stable pointe sur le
+  deploiement `dpl_EQzaawF34kf8XygNZ2Xfowf5jFaM` `Ready`, et une requete
+  authentifiee journalise `sheet_config_missing`. La panne est donc une
+  configuration Google vide dans le runtime, pas une erreur de build ou de
+  reseau Vercel. Le classifieur est raffine afin de distinguer sans valeur
+  affichee l'identifiant Spreadsheet manquant des credentials de compte de
+  service manquants.
+- Validation du raffinement : `npm --prefix back test` reussi; aucune valeur
+  d'environnement n'est incluse dans les fixtures ou les sorties.
 
 ### Modele pour les prochaines entrees
 
