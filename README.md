@@ -49,11 +49,22 @@ limites de déploiement sont suivis dans `DHD_ECOTRACK_FIX_REFERENCE.md`.
 Le dépôt contient deux applications et doit être relié à deux projets Vercel :
 
 - frontend : `Root Directory` = `front`, build `npm run build`, sortie `dist` ;
-- backend : `Root Directory` = `back`, configuration lue dans
-  `back/vercel.json`.
+- backend : `Root Directory` = `back`, preset `Other`, build `npm run build`,
+  sortie `dist`; ces réglages sont aussi déclarés dans `back/vercel.json`.
 
 Les variables du frontend et du backend doivent être configurées dans le projet
 Vercel correspondant. Le fichier local `back/.env` reste ignoré par Git.
+Pour le backend de production :
+
+- `FRONTEND_URL` doit contenir l'alias principal du frontend ;
+- `CORS_ORIGINS` doit lister, séparés par des virgules, tous les alias frontend
+  réellement utilisés, sans slash final ;
+- `UPLOADS_DIR` doit valoir `/tmp/uploads`, seul emplacement temporaire
+  inscriptible par la fonction. Les fichiers y restent éphémères : un stockage
+  objet est requis pour conserver durablement les images.
+
+Après toute modification d'une variable Vercel, redéployer le backend : les
+déploiements déjà construits conservent leur ancien instantané d'environnement.
 
 Le plan Vercel Hobby refuse les crons exécutés plus d'une fois par jour. La
 synchronisation toutes les cinq minutes est donc lancée par

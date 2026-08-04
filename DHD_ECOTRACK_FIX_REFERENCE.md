@@ -1,7 +1,7 @@
 # Reference de correction DHD / ECOTRACK
 
 Derniere mise a jour : 2026-08-04  
-Etat global : **corrections implementees et testees localement; configuration/rotation et validation staging restantes**  
+Etat global : **backend Vercel deploye et route Sheet/CORS verifies; validation DHD/Sheet authentifiee et rotations restantes**
 Portee : commandes, statuts transporteur, Google Sheets, MongoDB, frontend,
 backend et execution Vercel.
 
@@ -394,7 +394,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 8 — Validation, staging et deploiement
 
-- Etat : `[~] tests/builds locaux termines; staging et deploiement non executes`
+- Etat : `[~] tests/builds locaux et deploiement backend verifies; flux DHD/Sheet authentifie staging restant`
 - Tester d'abord avec fixtures, puis environnement de staging.
 - Comparer un echantillon autorise de trackings entre ECOTRACK, Mongo, Sheet et
   UI sans publier de PII.
@@ -697,6 +697,47 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   Vercel verts, puis confirmer que `/api/orders/sheet` retourne 401 sans JWT et
   200 CSV avec un JWT operateur.
 
+### Entree 10 — 2026-08-04 — Diagnostic CLI Vercel et remise en service live
+
+- Symptome : le domaine backend stable continuait de renvoyer 404 sur
+  `/api/orders/sheet` apres le push du commit `b5bdc9e`.
+- Preuve de deploiement : le statut GitHub/Vercel du backend etait en echec. La
+  commande `vercel inspect dpl_5dPhDT4RfrtaYjdX6PTjwyD9wfHD --logs` a montre
+  que `npm run build`/`tsc` reussissait, puis que Vercel interrompait le
+  deploiement faute de dossier de sortie `public`.
+- Cause racine : le projet backend, preset `Other`, utilisait la detection de
+  sortie statique et attendait `public`; l'ancien deploiement restait donc lie
+  au domaine de production et ne contenait pas la nouvelle route.
+- Correction de deploiement : `Output Directory` du projet backend passe a
+  `dist`, puis ajout de `outputDirectory: "dist"` dans `back/vercel.json` pour
+  rendre le reglage reproductible. Le deploiement production
+  `dpl_9S6UkmaL6LR4R28VdDx1pUCuY86v` est `Ready` et contient la fonction
+  `api/index`.
+- Anomalie suivante observee : les requetes navigateur atteignaient alors la
+  route mais le preflight etait refuse en HTTP 403. Les alias du projet
+  frontend n'etaient pas correctement couverts par la configuration CORS du
+  backend.
+- Correction runtime : `CORS_ORIGINS` limite aux alias frontend verifies,
+  `FRONTEND_URL` pointe sur l'alias principal, et `UPLOADS_DIR` vaut
+  `/tmp/uploads` afin d'eviter l'ecriture dans le systeme de fichiers en lecture
+  seule de la fonction. Les valeurs sensibles ne sont pas reproduites ici.
+- Preuves live apres redeploiement : origine frontend principale -> preflight
+  HTTP 204 avec `Access-Control-Allow-Origin` exact; origine etrangere -> HTTP
+  403 sans en-tete CORS; `GET /api/orders/sheet` sans JWT -> HTTP 401
+  `Token manquant`, et non plus 404. Les logs du dernier deploiement ne montrent
+  plus l'avertissement de creation du dossier uploads.
+- Limite restante : le HTTP 200 CSV avec un JWT operateur et la convergence
+  DHD/Mongo/Sheet/UI doivent encore etre verifies avec une session autorisee,
+  sans afficher de donnee client. Le cron GitHub exige toujours le meme
+  `CRON_SECRET` dans GitHub Actions et Vercel.
+- Documentation : procedure Vercel completee dans `README.md`.
+- Validation locale apres documentation : `npm test` reussi (build TypeScript
+  backend, tests contractuels, typecheck et build Vite), JSON Vercel valide et
+  `git diff --check` sans erreur. L'avertissement Vite sur deux gros chunks
+  reste non bloquant et sans rapport avec cette panne.
+- Etat : panne 404/CORS de production fermee avec preuves; validation metier
+  DHD de bout en bout toujours ouverte.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -729,8 +770,8 @@ Configuration locale          PARTIELLE; ACCES SHEET/DHD MANQUANTS
 Tests contractuels            11 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
-Validation staging            NON COMMENCEE
-Deploiement corrige            CORRECTIF 2 LOCAL, NOUVEAU PUSH REQUIS
+Validation staging            ROUTE/CORS LIVE OK; FLUX AUTHENTIFIE DHD/SHEET RESTANT
+Deploiement corrige            BACKEND PRODUCTION READY; PUSH DOC/CONFIG REQUIS
 ```
 
 Ne pas modifier cet etat synthetique sans mettre a jour les anomalies, les
