@@ -18,6 +18,9 @@ front/.env
 !.env.example
 !**/.env.example
 
+# Google Cloud service account credentials
+sheetbot-*.json
+
 # Editor files
 .vscode/
 

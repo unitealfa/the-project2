@@ -820,6 +820,67 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Validation du raffinement : `npm --prefix back test` reussi; aucune valeur
   d'environnement n'est incluse dans les fixtures ou les sorties.
 
+### Entree 13 — 2026-08-04 — Audit des variables obligatoires
+
+- Preuve runtime apres deploiement du commit `cb7a597` : une lecture Sheet
+  authentifiee journalise `sheet_credentials_missing`. Le code verifie d'abord
+  `GOOGLE_SPREADSHEET_ID`, puis exige simultanement
+  `GOOGLE_SERVICE_ACCOUNT_EMAIL` et `GOOGLE_PRIVATE_KEY`.
+- Deduction bornee : `GOOGLE_SPREADSHEET_ID` passe donc le controle de presence
+  et de format. L'audit Vercel precedent a confirme la presence et le format de
+  `GOOGLE_SERVICE_ACCOUNT_EMAIL`; la credential actuellement absente du runtime
+  Production est par consequent `GOOGLE_PRIVATE_KEY`.
+- Audit local sans divulgation de valeur : `back/.env` contient un
+  `JWT_SECRET` de 64 caracteres, l'URI Mongo, l'identifiant Spreadsheet,
+  l'adresse du compte de service et le secret cron; `GOOGLE_PRIVATE_KEY`,
+  `DHD_API_TOKEN`, `SOOK_API_TOKEN`, les variables SMTP/webhook et les variables
+  bootstrap admin sont vides. Cet etat local ne doit pas etre confondu avec le
+  coffre Production Vercel, ou plusieurs noms sensibles existent mais sont
+  masques.
+- Variables indispensables au socle Production : `MONGO_URI`, `JWT_SECRET` de
+  32 caracteres minimum, origine frontend via `CORS_ORIGINS`/`FRONTEND_URL`, et
+  `VITE_API_BASE_URL` dans le projet frontend separe.
+- Variables indispensables a Google Sheets : `GOOGLE_SPREADSHEET_ID`,
+  `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`; `GOOGLE_SHEET_NAME`
+  utilise `Mirocho` par defaut et doit etre explicite uniquement si l'onglet a
+  un autre nom. Le Sheet doit etre partage en editeur avec le compte de service.
+- Variables indispensables a ECOTRACK selon le transporteur utilise :
+  `DHD_API_TOKEN` pour DHD et `SOOK_API_TOKEN` pour Sook. Les URL ont une valeur
+  DHD HTTPS par defaut, mais doivent rester explicites en Production.
+- Synchronisation planifiee : `CRON_SECRET` doit avoir exactement la meme valeur
+  dans le projet backend Vercel et dans le secret GitHub Actions du depot.
+- Reinitialisation du mot de passe : configurer soit le couple webhook
+  `GOOGLE_WEBHOOK_URL`/`GOOGLE_WEBHOOK_KEY`, soit le transport SMTP
+  `SMTP_USER`/`SMTP_PASS` et une adresse d'expedition. Ces variables ne bloquent
+  ni la lecture Sheet ni les appels DHD.
+- `GOOGLE_SHEET_SYNC_URL` est obsolete et n'est consommee par aucun fichier
+  actif. `PORT` est local; Vercel fournit son propre runtime. Les variables de
+  delai, retry, batch et scheduler ont des valeurs par defaut.
+
+### Entree 14 — 2026-08-04 — Installation et validation de la cle Google
+
+- Le fichier fourni `sheetbot-474512-6542303eb64a.json` a ete valide sans
+  afficher ses secrets : type `service_account`, projet `sheetbot-474512`,
+  adresse de compte de service structurellement valide et cle privee PEM
+  complete.
+- `client_email` et `private_key` ont ete importes dans `back/.env`; les retours
+  a la ligne de la cle sont conserves sous forme `\n`, format accepte par
+  `dotenv` et normalise par `SheetSyncService`.
+- Le `.gitignore`, trouve vide localement, a ete restaure avec les exclusions
+  des `.env`, dependances et builds. La regle `sheetbot-*.json` protege aussi la
+  cle Google fournie et ses futures rotations contre un ajout Git accidentel.
+- Verification locale sans divulgation : email, cle PEM et identifiant
+  Spreadsheet passent leurs controles structurels; `git check-ignore` confirme
+  que `back/.env` et le JSON Google sont ignores.
+- Preuve externe en lecture seule : authentification du compte de service puis
+  lecture de `'Mirocho'!1:1` reussies en HTTP 200; douze colonnes d'en-tete ont
+  ete detectees sans journaliser leur contenu. La credential, l'API Sheets,
+  l'identifiant, le nom d'onglet et le partage Google sont donc valides.
+- Action Production restante : recopier les variables de `back/.env` dans le
+  projet backend Vercel pour l'environnement Production, puis redeployer. Le
+  fichier `.env` et le JSON ne doivent jamais etre commits ou televerses avec
+  les sources.
+
 ### Modele pour les prochaines entrees
 
 ```text
