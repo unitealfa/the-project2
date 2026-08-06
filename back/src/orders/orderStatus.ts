@@ -5,7 +5,24 @@ export type BusinessOrderStatus =
   | 'livrée'
   | 'RETURN_IN_PROGRESS'
   | 'retours'
-  | 'abandoned';
+  | 'abandoned'
+  | 'Supprimé de DHD'
+  | 'Supprimé de Sook';
+
+export const getMissingCarrierBusinessStatus = (
+  deliveryType: 'api_dhd' | 'api_sook'
+): BusinessOrderStatus =>
+  deliveryType === 'api_sook' ? 'Supprimé de Sook' : 'Supprimé de DHD';
+
+export const isMissingCarrierBusinessStatus = (status: unknown): boolean => {
+  if (typeof status !== 'string') return false;
+  const value = status
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+  return value === 'supprime de dhd' || value === 'supprime de sook';
+};
 
 const normalize = (value: string): string =>
   value

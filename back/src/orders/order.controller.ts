@@ -433,8 +433,10 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         status: normalizedStatus,
         tracking:
           normalizedDeliveryType === 'livreur' ? undefined : effectiveTracking,
-        carrierStatus:
-          normalizedDeliveryType === 'livreur' ? undefined : effectiveCarrierStatus,
+        // Cette route porte une action metier manuelle. Le dernier statut
+        // officiel reste dans Mongo, mais ne doit pas ecraser "abandoned"
+        // (ou une autre derogation) dans la colonne principale du Sheet.
+        carrierStatus: undefined,
         carrierType:
           normalizedDeliveryType === 'api_dhd' ||
           normalizedDeliveryType === 'api_sook'

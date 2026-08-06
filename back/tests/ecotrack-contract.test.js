@@ -10,10 +10,15 @@ const {
   parseTrackingActivity,
 } = require('../dist/src/orders/ecotrack.client.js');
 const {
+  getMissingCarrierBusinessStatus,
+  isMissingCarrierBusinessStatus,
   isFinalBusinessStatus,
   mapCarrierStatus,
   shouldContinueOfficialStatusSync,
 } = require('../dist/src/orders/orderStatus.js');
+const {
+  shouldRestore,
+} = require('../dist/src/orders/orderStockReconciliation.service.js');
 const {
   authenticateJWT,
 } = require('../dist/src/middleware/auth.middleware.js');
@@ -211,6 +216,13 @@ test('ECOTRACK: le schema groupe data[tracking].status est parse sans heuristiqu
   assert.equal(parsed.size, 1);
   assert.equal(parsed.get('ECO-1').status, 'en_preparation');
   assert.equal(parsed.get('ECO-1').activity[0].status, 'picked');
+  assert.equal(parseStatusResponse({ data: {} }).size, 0);
+  assert.equal(parseStatusResponse({ data: [] }).size, 0);
+  assert.throws(() => parseStatusResponse({}), /champ data des statuts absent/);
+  assert.throws(
+    () => parseStatusResponse({ data: ['invalide'] }),
+    /format data des statuts inattendu/
+  );
 });
 
 test('tracking/info: seule la liste activity est exposee comme historique', () => {
@@ -232,6 +244,25 @@ test('Google Sheets: le statut DHD exact utilise la colonne principale sans colo
     'SHIPPED'
   );
   assert.equal(selectPrimarySheetStatus('livrée', undefined, false), 'livrée');
+  assert.equal(selectPrimarySheetStatus('abandoned', undefined, false), 'abandoned');
+});
+
+test('un tracking absent devient un etat local supprime sans inventer un statut officiel', () => {
+  assert.equal(getMissingCarrierBusinessStatus('api_dhd'), 'Supprimé de DHD');
+  assert.equal(getMissingCarrierBusinessStatus('api_sook'), 'Supprimé de Sook');
+  assert.equal(isMissingCarrierBusinessStatus('Supprimé de DHD'), true);
+  assert.equal(mapCarrierStatus('Supprimé de DHD'), null);
+  assert.equal(isFinalBusinessStatus('Supprimé de DHD'), false);
+  assert.equal(shouldContinueOfficialStatusSync('Supprimé de DHD'), true);
+  assert.equal(shouldRestore('Supprimé de DHD'), true);
+
+  const syncService = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderStatusSync.service.ts'),
+    'utf8'
+  );
+  assert.match(syncService, /missingForPersistence\.push\(order\)/);
+  assert.match(syncService, /status:\s*getMissingCarrierBusinessStatus\(deliveryType\)/);
+  assert.match(syncService, /lastSyncError:\s*'tracking_not_found'/);
 });
 
 test('mapping exhaustif des statuts officiels fournis par la collection', () => {
@@ -374,6 +405,9 @@ test('les actions manuelles livree et abandonnee restent disponibles', () => {
     orderController,
     /ne peut être modifié que par la synchronisation officielle/
   );
+  assert.match(orderController, /carrierStatus:\s*undefined/);
+  assert.match(ordersPage, /normalizedBusinessStatus === "abandoned"/);
+  assert.match(ordersPage, /Abandonner la sélection/);
 });
 
 test("l'envoi DHD ne remplace jamais une wilaya absente ou inconnue par Alger", () => {

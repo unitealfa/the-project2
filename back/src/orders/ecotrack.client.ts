@@ -221,9 +221,29 @@ export const parseStatusResponse = (
   payload: unknown
 ): Map<string, EcotrackStatusEntry> => {
   const result = new Map<string, EcotrackStatusEntry>();
-  if (!payload || typeof payload !== 'object') return result;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: champ data des statuts absent.'
+    );
+  }
+  if (!Object.prototype.hasOwnProperty.call(payload, 'data')) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: champ data des statuts absent.'
+    );
+  }
   const data = (payload as Record<string, unknown>).data;
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return result;
+  // Les API PHP encodent parfois une collection vide en [] plutôt qu'en {}.
+  if (Array.isArray(data)) {
+    if (data.length === 0) return result;
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: format data des statuts inattendu.'
+    );
+  }
+  if (!data || typeof data !== 'object') {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: format data des statuts inattendu.'
+    );
+  }
 
   Object.entries(data as Record<string, unknown>).forEach(([tracking, entry]) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;

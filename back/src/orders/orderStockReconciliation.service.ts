@@ -3,6 +3,7 @@ import {
   decrementStockForDeliveredOrder,
   incrementStockForReturnedOrder,
 } from './orderStockUtils';
+import { isMissingCarrierBusinessStatus } from './orderStatus';
 
 const normalize = (status: string): string =>
   status
@@ -22,7 +23,8 @@ const shouldDebit = (status: string): boolean => {
   ].includes(value);
 };
 
-const shouldRestore = (status: string): boolean => {
+export const shouldRestore = (status: string): boolean => {
+  if (isMissingCarrierBusinessStatus(status)) return true;
   const value = normalize(status);
   return [
     'retours',

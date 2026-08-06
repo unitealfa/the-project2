@@ -452,6 +452,18 @@ const getRowStatus = (row: OrderRow): string => {
 
 const getDisplayedOrderStatus = (row: OrderRow): string => {
   const businessStatus = getRowStatus(row);
+  const normalizedBusinessStatus = businessStatus
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  if (
+    normalizedBusinessStatus === "abandoned" ||
+    normalizedBusinessStatus === "supprime de dhd" ||
+    normalizedBusinessStatus === "supprime de sook"
+  ) {
+    return businessStatus;
+  }
   const carrierStatus = String(row["__carrierStatus"] ?? "").trim();
   if (!carrierStatus) return businessStatus;
   const readableCarrierStatus = carrierStatus.replace(/_/g, " ");
@@ -5036,7 +5048,7 @@ Zm0 14H8V7h9v12Z"
                         if (selectedIds.size === 0) return;
                         if (
                           !window.confirm(
-                            `Supprimer ${selectedIds.size} commande(s) ?`
+                            `Abandonner ${selectedIds.size} commande(s) ?`
                           )
                         )
                           return;
@@ -5056,7 +5068,7 @@ Zm0 14H8V7h9v12Z"
                         clearSelection();
                       }}
                     >
-                      Supprimer sélection
+                      Abandonner la sélection
                     </button>
                   </div>
                 </div>

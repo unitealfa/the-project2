@@ -161,6 +161,13 @@ retour_archive
 annule
 ```
 
+`Supprimé de DHD` et `Supprimé de Sook` ne sont pas des statuts officiels de
+la liste ci-dessus. Ce sont des etats metier locaux explicites, utilises
+uniquement lorsqu'une requete `get/orders/status` reussit mais n'inclut plus un
+tracking auparavant persiste. Le dernier `carrierStatus` officiel reste
+conserve separement et la surveillance continue pour permettre une correction
+si le tracking reapparait.
+
 Modele cible :
 
 - `carrierStatus` : valeur ECOTRACK exacte ;
@@ -316,6 +323,26 @@ tests de table avant son utilisation en production.
   echouer clairement si elle est absente/ambigue.
 - Validation : test avec ordre de colonnes modifie.
 
+### B-015 — Haute — Tracking supprime chez DHD ignore localement
+
+- Etat : `[~] code et suite locale valides; redeploiement et nouvel essai live
+  restants`
+- Cause : une reponse groupee reussie sans le tracking alimentait seulement
+  `notFound`/`lastSyncError`, sans modifier le statut de la commande.
+- Correction : ecrire `Supprimé de DHD` ou `Supprimé de Sook` comme statut
+  metier local, ne pas falsifier `carrierStatus`, restaurer le stock de facon
+  idempotente et continuer les verifications ulterieures.
+
+### B-016 — Haute — « Abandonnée » masque par le statut DHD dans le Sheet
+
+- Etat : `[~] ecriture manuelle et suite locale validees; redeploiement et
+  preuve Sheet live restants`
+- Cause : la route manuelle transmettait encore l'ancien `carrierStatus`; sans
+  colonne transporteur dediee, `order.service.ts` le reecrivait dans la colonne
+  principale a la place de `abandoned`.
+- Correction : conserver le statut officiel dans Mongo mais ne pas le fournir
+  lors d'une ecriture manuelle Sheet.
+
 ## 8. Plan d'implementation obligatoire
 
 ### Etape 0 — Baseline et sauvegarde logique
@@ -426,14 +453,14 @@ tests de table avant son utilisation en production.
 | 1 tracking | Une synchro ciblee, aucune pagination globale | `[x] test de decoupage local` |
 | 100 trackings | Un paquet maximum conforme | `[x] test de decoupage local` |
 | 101 trackings | Deux paquets, resultats fusionnes | `[x] test de decoupage local` |
-| Tracking introuvable | La commande suivante est traitee | `[~] code, integration DB restante` |
+| Tracking supprime/introuvable apres reponse DHD reussie | Etat local `Supprimé de DHD/Sook`, Sheet/Mongo mis a jour, surveillance maintenue | `[~] code/tests ajoutes, suite a executer` |
 | Statut inconnu | Statut exact conserve et alerte observable | `[x] fixture locale + code` |
 | Statut exact dans Sheet sans colonne dediee | La colonne statut principale recoit la valeur DHD exacte | `[x] structure d'en-tete reelle + fonction testee; ecriture live restante` |
 | `suspendu` | Categorie `suspended` | `[x] table testee` |
 | Retour intermediaire | Pas de retour final premature | `[x] table testee` |
 | Retour final | Categorie `returned` | `[x] table testee` |
 | Livraison puis retour ulterieur | La commande livree reste synchronisee jusqu'au retour final | `[~] filtre et test local, cron live restant` |
-| Actions manuelles livree/abandonnee | Boutons actifs; tracking et statut transporteur exact non falsifies | `[x] garde source et build local` |
+| Actions manuelles livree/abandonnee | Boutons actifs; statut manuel ecrit dans le Sheet, statut officiel Mongo non falsifie | `[~] correction/test ajoutes, preuve Sheet live restante` |
 | 429 | Backoff borne, pas de boucle infinie | `[~] code borne, fixture HTTP restante` |
 | Timeout DHD | Erreur par lot/commande, prochain cron possible | `[ ]` |
 | Cron sans navigateur | Statut mis a jour | `[~] run planifie #24 vert; commande ayant effectivement change d'etat restante` |
@@ -469,8 +496,9 @@ Le chantier n'est termine que si :
 | D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] colonne dediee si elle existe; sinon la colonne etat actuelle recoit le statut DHD exact` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
 | D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[ ] a concevoir` |
-| D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; decision explicite utilisateur, statut metier local uniquement` |
+| D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; statut metier local et colonne principale Sheet, carrierStatus officiel conserve dans Mongo` |
 | D-007 | Que transmettre a DHD lorsque la colonne adresse est vide ? | `[x] utiliser la commune validee; conserver l'adresse detaillee lorsqu'elle existe` |
+| D-008 | Comment representer un colis supprime manuellement sur DHD ? | `[x] etat local `Supprimé de DHD/Sook` quand la lecture groupee reussit sans ce tracking; ne jamais l'ajouter aux 19 statuts officiels` |
 
 Une decision manquante ne doit bloquer que l'etape concernee. Les tests,
 refactorings internes et corrections independantes peuvent avancer sans
@@ -1221,6 +1249,54 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Etat : implementation locale validee; redeploiement frontend/backend et
   creation d'un nouveau colis de test requis pour confirmer
   `prete_a_expedier` sur DHD.
+
+### Entree 23 — 2026-08-06 — Suppression DHD et priorité de « Abandonnée » dans le Sheet
+
+- Etapes : 3, 4, 6 et 8. Anomalies : B-015 et B-016. Preuves utilisateur :
+  apres suppression manuelle d'un colis encore `prete_a_expedier` sur DHD, une
+  actualisation conservait l'ancien statut dans le site et le Sheet; le bouton
+  rouge devait aussi rendre `abandoned` visible dans la colonne principale.
+- Contrat verifie dans `ECOTRACK API.postman_collection.json` :
+  `DELETE /api/v1/delete/order` supprime une commande tant que l'expedition
+  n'est pas validee. La liste de `get/orders/status` contient exactement 19
+  statuts et aucun statut « supprime ».
+- Decision anti-hallucination D-008 : une reponse de statut reussie sans le
+  tracking devient l'etat metier local `Supprimé de DHD`/`Supprimé de Sook`;
+  cette valeur n'est jamais stockee comme `carrierStatus` officiel. La commande
+  reste candidate aux synchronisations suivantes.
+- Fichiers touches : `back/src/orders/orderStatus.ts`,
+  `back/src/orders/ecotrack.client.ts`,
+  `back/src/orders/orderStatusSync.service.ts`,
+  `back/src/orders/orderStockReconciliation.service.ts`,
+  `back/src/orders/order.controller.ts`, `front/src/pages/Orders.tsx`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modifications : les absences de tracking sont ecrites en lot dans le Sheet,
+  persistees dans Mongo et restaurent le stock de facon idempotente. Une
+  reapparition du tracking remplace automatiquement cet etat par le statut DHD
+  officiel. Pour une action manuelle telle que « Abandonnée », le Sheet recoit
+  le statut metier demande sans que l'ancien statut transporteur ne l'ecrase;
+  Mongo conserve toujours ce dernier statut officiel separement. Le parseur de
+  statut n'accepte une absence de tracking que si la reponse DHD contient un
+  champ `data` structurellement valide (objet, ou tableau vide PHP); une
+  reponse mal formee echoue au lieu de marquer tous les colis comme supprimes.
+- Tests ajoutes : libelles DHD/Sook, absence de mapping officiel, poursuite de
+  la surveillance, restauration stock, branche `notFound`, priorite Sheet et
+  affichage frontend des etats locaux, ainsi que refus des reponses de statut
+  sans `data` ou avec un format inattendu.
+- Premier resultat de test : `npm test` a echoue au build backend car
+  `Object.hasOwn` n'existe pas dans la bibliotheque TypeScript cible. La
+  verification a ete remplacee par
+  `Object.prototype.hasOwnProperty.call`, compatible avec la cible actuelle;
+  la relance complete a ensuite reussi.
+- Tests/commandes executes : `npm test` a la racine reussi apres correction
+  (build TypeScript backend, tests contractuels, typecheck frontend et build
+  Vite de production); `git diff --check` reussi. L'avertissement Vite sur les
+  chunks superieurs a 500 kB est non bloquant et sans rapport avec cette
+  correction.
+- Etat : implementation et validation locale terminees. B-015 et B-016 restent
+  en `[~]` uniquement jusqu'au redeploiement et aux deux preuves live : tracking
+  supprime affiche dans le site/Sheet, puis clic « Abandonnée » affiche dans le
+  Sheet.
 
 ### Modele pour les prochaines entrees
 

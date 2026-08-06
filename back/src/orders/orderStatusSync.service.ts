@@ -7,6 +7,7 @@ import {
   EcotrackStatusEntry,
 } from './ecotrack.client';
 import {
+  getMissingCarrierBusinessStatus,
   mapCarrierStatus,
   normalizeCarrierIdentifier,
 } from './orderStatus';
@@ -206,6 +207,60 @@ const persistMatchedStatus = async (params: {
   return { mappedStatus, previousStatus, nextStatus, changed };
 };
 
+const persistMissingCarrierStatus = async (params: {
+  order: SyncOrderPayload;
+  deliveryType: DeliveryApiType;
+  sheetAlreadyUpdated?: boolean;
+}) => {
+  const { order, deliveryType, sheetAlreadyUpdated } = params;
+  const nextStatus = getMissingCarrierBusinessStatus(deliveryType);
+  const existing = await Order.findOne({ rowId: order.rowId });
+  const previousStatus = existing?.status || order.currentStatus || 'new';
+  const changed = !statusesEqual(previousStatus, nextStatus);
+  const now = new Date();
+
+  if (!sheetAlreadyUpdated) {
+    await sheetService.updateStatus({
+      rowId: order.rowId,
+      status: nextStatus,
+      tracking: order.tracking,
+      carrierType: deliveryType,
+      row: existing?.row,
+    });
+  }
+
+  // "Supprimé" est un état métier déduit d'une réponse de statut réussie qui
+  // n'inclut plus ce tracking. Le dernier carrierStatus officiel est conservé
+  // séparément et le cron continuera à vérifier le tracking.
+  const savedOrder = await Order.findOneAndUpdate(
+    { rowId: order.rowId },
+    {
+      $set: {
+        rowId: order.rowId,
+        status: nextStatus,
+        tracking: order.tracking,
+        deliveryType,
+        lastSyncAttemptAt: now,
+        lastSyncError: 'tracking_not_found',
+      },
+    },
+    { upsert: true, new: true }
+  );
+
+  if (savedOrder.row) {
+    try {
+      await reconcileOrderStock(order.rowId, nextStatus);
+    } catch (error) {
+      await Order.updateOne(
+        { rowId: order.rowId },
+        { $set: { lastSyncError: `Stock: ${safeErrorMessage(error)}` } }
+      );
+    }
+  }
+
+  return { previousStatus, nextStatus, changed };
+};
+
 export const syncOfficialStatuses = async (
   params: SyncOfficialStatusesParams
 ): Promise<SyncOfficialStatusesResult> => {
@@ -293,19 +348,32 @@ export const syncOfficialStatuses = async (
         rowId: string;
         status: string;
         tracking?: string;
-        carrierStatus: string;
+        carrierStatus?: string;
         carrierType: DeliveryApiType;
       }> = [];
       const matchedForPersistence: Array<{
         order: SyncOrderPayload;
         carrierStatus: string;
       }> = [];
+      const missingForPersistence: SyncOrderPayload[] = [];
       for (const tracking of chunk) {
         const entry = statuses.get(tracking);
+        const matchedOrders = ordersByTracking.get(tracking) ?? [];
+        if (!entry) {
+          for (const order of matchedOrders) {
+            sheetPayloads.push({
+              rowId: order.rowId,
+              status: getMissingCarrierBusinessStatus(deliveryType),
+              tracking: order.tracking,
+              carrierType: deliveryType,
+            });
+          }
+          continue;
+        }
         const carrierStatus =
           typeof entry?.status === 'string' ? entry.status.trim() : '';
         if (!carrierStatus) continue;
-        for (const order of ordersByTracking.get(tracking) ?? []) {
+        for (const order of matchedOrders) {
           sheetPayloads.push({
             rowId: order.rowId,
             status:
@@ -342,7 +410,12 @@ export const syncOfficialStatuses = async (
               tracking: order.tracking,
               reference: order.reference,
             });
-            await recordSyncError(order.rowId, 'tracking_not_found');
+            if (sheetBatchError) {
+              result.errors.push({ ...order, error: sheetBatchError });
+              await recordSyncError(order.rowId, sheetBatchError);
+            } else {
+              missingForPersistence.push(order);
+            }
           }
           continue;
         }
@@ -390,6 +463,24 @@ export const syncOfficialStatuses = async (
             if (!persisted.mappedStatus) {
               result.skipped.push({ ...order, reason: 'unknown_status_preserved' });
             }
+          } catch (error) {
+            const message = safeErrorMessage(error);
+            result.errors.push({ ...order, error: message });
+            await recordSyncError(order.rowId, message);
+          }
+        }
+      );
+
+      await processWithConcurrency(
+        missingForPersistence,
+        10,
+        async (order) => {
+          try {
+            await persistMissingCarrierStatus({
+              order,
+              deliveryType,
+              sheetAlreadyUpdated: true,
+            });
           } catch (error) {
             const message = safeErrorMessage(error);
             result.errors.push({ ...order, error: message });
