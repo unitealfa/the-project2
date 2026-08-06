@@ -358,6 +358,23 @@ tests de table avant son utilisation en production.
   s'il est confirme absent ou annule, et permettre la reactivation locale de
   `abandoned` sans autoriser la recreation d'une livraison/retour final.
 
+### B-018 — Critique — Import DHD annule si une page secondaire est lente
+
+- Etat : `[~] cause Production reproduite; correction, suite locale et import
+  live anonymise 40/40 reussis; redeploiement et preuve du bouton Production
+  restants`
+- Preuve utilisateur : le bouton « Actualiser les statuts DHD » retourne HTTP
+  502 avec « Import DHD impossible » et aucun colis `prete_a_expedier` ne
+  rejoint le site ou le Sheet.
+- Cause confirmee : la page 1 officielle retourne quarante colis valides, mais
+  l'import manuel attend cinq pages avant toute ecriture. Les pages suivantes
+  prennent environ neuf a onze secondes chacune; une erreur/expiration d'une
+  seule page jette tout le lot valide et approche la limite Vercel de 60 s.
+- Correction : page 1 obligatoire et persistable; une unique page de curseur
+  par passage. Une page secondaire lente est reportee sans annuler la page 1,
+  et son curseur n'avance pas. Aucun filtre de statut absent du contrat n'est
+  invente.
+
 ## 8. Plan d'implementation obligatoire
 
 ### Etape 0 — Baseline et sauvegarde logique
@@ -470,8 +487,9 @@ tests de table avant son utilisation en production.
 | 101 trackings | Deux paquets, resultats fusionnes | `[x] test de decoupage local` |
 | Tracking supprime/introuvable apres reponse DHD reussie | Etat local `Supprimé de DHD/Sook`, Sheet/Mongo mis a jour, surveillance maintenue | `[~] suite locale + seize convergences live anonymes; preuve du colis utilisateur apres redeploiement restante` |
 | Reemission apres suppression/abandon | Tracking existant verifie; absent/annule archive puis remplace; `abandoned` reactuable; aucun doublon sur erreur DHD | `[~] contrat, suite locale et lectures live sans mutation reussis; reemission live restante` |
+| Import colis DHD manuel | Page 1 persistee meme si le rattrapage pagine est lent; curseur repris au passage suivant | `[~] suite locale et import live 40/40 sans conflit reussis; bouton Production apres redeploiement restant` |
 | Statut inconnu | Statut exact conserve et alerte observable | `[x] fixture locale + code` |
-| Statut exact dans Sheet sans colonne dediee | La colonne statut principale recoit la valeur DHD exacte | `[x] structure d'en-tete reelle + fonction testee; ecriture live restante` |
+| Statut exact dans Sheet sans colonne dediee | La colonne statut principale recoit la valeur DHD exacte | `[x] structure, fonction et ecriture live croisee Sheet/Mongo/DHD verifiees` |
 | `suspendu` | Categorie `suspended` | `[x] table testee` |
 | Retour intermediaire | Pas de retour final premature | `[x] table testee` |
 | Retour final | Categorie `returned` | `[x] table testee` |
@@ -511,7 +529,7 @@ Le chantier n'est termine que si :
 | D-002 | Quelle frequence de synchro souhaitee : 1, 2, 5 ou 10 minutes ? | `[x] 5 minutes, reprise du comportement UI existant` |
 | D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] colonne dediee si elle existe; sinon la colonne etat actuelle recoit le statut DHD exact` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
-| D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[~] implementation et tests locaux termines; deploiement et preuve d'ecriture live restants` |
+| D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[~] implementation, tests et preuve d'ecriture live page 1 termines; deploiement et rattrapage progressif des pages restantes` |
 | D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; statut metier local et colonne principale Sheet, carrierStatus officiel conserve dans Mongo` |
 | D-007 | Que transmettre a DHD lorsque la colonne adresse est vide ? | `[x] utiliser la commune validee; conserver l'adresse detaillee lorsqu'elle existe` |
 | D-008 | Comment representer un colis supprime manuellement sur DHD ? | `[x] etat local `Supprimé de DHD/Sook` quand la lecture groupee reussit sans ce tracking; ne jamais l'ajouter aux 19 statuts officiels` |
@@ -1457,6 +1475,126 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   sans conflit et la presence d'un colis manuel dans le site, puis lancer le
   workflow GitHub manuellement et confirmer un HTTP 200 avec `success=true`.
 
+### Entree 26 — 2026-08-06 — Correction du 502 pendant l'import pagine DHD
+
+- Etapes : 1, 4, 5, 6 et 8. Anomalie : B-018. Decision suivie : D-005.
+- Preuve Production utilisateur : `/api/orders/sync-statuses` retourne 502 et
+  le frontend affiche « Synchronisation impossible : Import DHD impossible ».
+- Contrat relu : `GET /api/v1/get/orders` documente quarante commandes par
+  page, `page`, les deux dates et `tracking`; aucun filtre `status` ni webhook
+  d'import n'existe. Les archives sont exclues.
+- Diagnostic en lecture seule sans PII : page 1 = quarante colis valides;
+  feuille lisible avec 9550 lignes mais encore sans colonnes techniques;
+  Mongo accessible, collection de curseur presente mais vide et zero document
+  `carrier_import`. L'echec precede donc toute ecriture Sheet/Mongo.
+- Mesure sequentielle anonymisee : pages 1 a 5 toutes valides mais environ
+  3,7 s, 11,4 s, 9,1 s, 10,9 s et 9,2 s, soit environ 44 s pour DHD seul.
+  Une tentative concurrente a echoue sur quatre pages; l'API ne doit pas etre
+  bombardee pour contourner sa latence.
+- Modification : la page 1 devient la seule page obligatoire. Une page de
+  curseur est tentee ensuite; son echec augmente `pageErrors`, conserve le
+  curseur et n'annule plus les colis deja lus. La limite manuelle par defaut
+  passe de cinq a deux pages et le service impose au plus deux pages dans le
+  runtime Vercel meme si une ancienne variable demande davantage. Des codes
+  d'etape bornes et sans PII distinguent
+  desormais DHD page 1, lecture/ecriture Mongo, Sheet et curseur dans les logs
+  et la reponse. Le front et GitHub affichent le nombre de pages reportees.
+- Preuve d'ecriture reelle autorisee apres les tests : import limite a la page
+  1 reussi, quarante colis lus, trente-sept ajoutes dans Sheet/Mongo, zero
+  erreur de page, zero reference ambigue et trois conflits proteges sans
+  ecrasement. Mongo contient trente-sept sources `carrier_import`, toutes avec
+  stock desactive, dont vingt-huit au statut metier `ready_to_ship` et au
+  statut transporteur exact `prete_a_expedier`.
+- Controle Sheet apres ecriture : le nombre de lignes a augmente exactement de
+  trente-sept; tracking, statut transporteur et transporteur sont remplis sur
+  les trente-sept nouvelles lignes. La derniere colonne `Source commande` est
+  toutefois restee vide lors de cette creation initiale des en-tetes, alors
+  que Mongo a bien conserve la source.
+- Cause complementaire : apres l'ajout des huit nouveaux en-tetes, le service
+  relisait immediatement la ligne Google et a utilise une vue tronquee de la
+  derniere colonne pour construire les lignes. Correction : reutiliser la
+  liste exacte dont `values.update` vient de confirmer l'ecriture et la mettre
+  en cache; le prochain import remplit la source manquante par tracking, sans
+  ajouter de doublon.
+- Diagnostic d'alignement complementaire : les trente-sept vrais trackings
+  sont tous presents onze colonnes trop loin, sur les memes numeros de ligne
+  que Mongo. La plage d'append etait seulement le nom de l'onglet; Google a
+  detecte la table existante et commence en colonne L. La matrice anonymisee
+  confirme notamment Produit en M, Montant en O, Client en P et Telephone en
+  Q; les champs DHD complets vont jusqu'a AE.
+- Correction d'alignement : l'append utilise desormais explicitement `A:T`.
+  Pour les trente-sept lignes deja creees, la double preuve source externe +
+  tracking Mongo autorise une reparation idempotente : reecriture complete de
+  A:T avec les champs officiels, puis effacement de U:AE contenant les anciennes
+  valeurs decalees. Aucune ligne historique non marquee externe n'est eligible
+  a cette reparation.
+- Execution live de la reparation : la premiere tentative a rencontre une
+  erreur Google Sheets transitoire `import_sheet_write`, sans preuve de
+  modification partielle; la relance immediate a reussi avec trente-sept
+  lignes existantes reparees, zero ajout et les trois conflits toujours
+  proteges. Pour ne plus transformer directement ce cas en 502, les lectures,
+  updates d'en-tetes et batch updates idempotents de cet import ont desormais
+  une seule relance bornee. `values.append` est explicitement exclu de cette
+  relance, car une reponse reseau perdue apres l'ajout pourrait creer un
+  doublon.
+- Preuve croisee post-reparation, uniquement par compteurs anonymes : 37/37
+  trackings Sheet correspondent a Mongo, 37/37 sources, 37/37 statuts metier,
+  37/37 statuts transporteur et 37/37 lignes U:AE nettoyees; les 37 documents
+  externes gardent `stockSyncEnabled=false`. Repartition Mongo : vingt-huit
+  `ready_to_ship`, huit `SHIPPED`, un `livree`. La page DHD observee renvoie le
+  libelle officiel/API `prete_a_expedier`, correctement mappe vers le statut
+  metier historique `ready_to_ship`; la colonne transporteur conserve le
+  libelle DHD brut.
+- Contre-preuve live de `values.append` avec plage `A:T` : deux nouveaux colis
+  apparus sur la page 1 ont ete ajoutes sur leurs bons numeros de ligne, mais
+  Google a encore selectionne une table logique commencant en J; leurs deux
+  trackings sont en colonne Y au lieu de P. La plage bornee ne garantit donc
+  pas la colonne de depart pour cet endpoint, contrairement a l'hypothese
+  precedente. Correction : suppression complete de `values.append` pour cet
+  import; calcul de la prochaine ligne apres la derniere ligne non vide puis
+  `values.update` explicite de A:T. Les routes manuelle, cron et scheduler
+  executent deja l'import sous le verrou Mongo global. Les deux lignes live
+  mal alignees restent eligibles a la reparation idempotente existante.
+- Diagnostic anonymise des trois conflits repetes : aucun tracking duplique
+  dans Mongo et aucun tracking de la page courante duplique dans la colonne P.
+  Lors d'une capture de page, les trois cas etaient des commandes `site` dont
+  Mongo confirmait le couple ligne + tracking, tandis que P contenait une
+  ancienne valeur differente; ces valeurs ne correspondaient a aucun tracking
+  Mongo connu. La page 1 ayant change entre deux lectures, la verification par
+  reference n'etait plus reproductible et aucune hypothese de reference n'a
+  ete retenue. Regle ajoutee : le lien Mongo peut reparer uniquement la cellule
+  technique d'une ligne site si sa valeur actuelle n'appartient a aucun autre
+  tracking Mongo; un vrai tracking d'une autre commande reste un conflit.
+- Fichiers touches : `back/src/orders/carrierOrderImport.service.ts`,
+  `back/src/orders/order.service.ts`,
+  `back/src/orders/orderApi.controller.ts`, `back/src/orders/order.controller.ts`,
+  `front/src/pages/Orders.tsx`, `.github/workflows/order-status-sync.yml`,
+  `back/.env.example` et cette reference.
+- Tests/commandes executes : diagnostic DHD/Sheet/Mongo en lecture seule et
+  relecture contractuelle reussis. Premier build backend apres correction
+  reussi. Test ajoute : une page secondaire en erreur conserve la page 1 et le
+  meme curseur; une page secondaire reussie avance exactement le curseur; les
+  codes d'erreur sont bornes. La suite complete a reussi avant l'ajout de la
+  relance Google. Premiere relance apres ce changement : build TypeScript
+  reussi, puis echec d'une assertion statique qui cherchait le mot anglais
+  `never` alors que le commentaire de securite emploie `jamais`; l'assertion a
+  ete corrigee sans changement fonctionnel.
+- Validation finale apres les deux dernieres corrections : `npm test` reussi
+  (build/tests backend, typecheck et build frontend), execution directe des
+  trente-et-un tests reussie et `git diff --check` reussi. Le warning Vite sur
+  deux chunks de plus de 500 kB reste non bloquant et sans lien avec DHD.
+- Dernier cycle live anonymise : quarante colis lus, quarante importes ou
+  relies, un nouveau colis ecrit par la plage A:T explicite, zero conflit,
+  zero reference ambigue et zero erreur de page. Controle croise immediat :
+  40/40 colis courants ont un unique document Mongo, le bon tracking Sheet,
+  le statut metier mappe et le statut transporteur DHD exact. Les quarante-et-un
+  imports externes rencontres au fil des pages ont tous tracking/source
+  alignes, U:AE vide et `stockSyncEnabled=false`; aucun tracking Mongo n'est
+  duplique. Trente-trois des quarante colis de la capture etaient
+  `prete_a_expedier`, donc `ready_to_ship` dans le statut metier.
+- Etat : `[~] correction locale et donnees live validees; pousser/redeployer
+  puis obtenir HTTP 200 depuis le bouton Production pour clore B-018`.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -1485,13 +1623,13 @@ Migration frontend            TERMINEE LOCALEMENT
 Cron Vercel                   RETIRE CAR INCOMPATIBLE AVEC HOBBY
 Cron GitHub 5 minutes         ROUTE LIVE HTTP 200; RUN PLANIFIE #24 REUSSI, TRANSITION REELLE RESTANTE
 Rotation secrets              A EFFECTUER DANS LES SERVICES
-Configuration locale          VARIABLES DHD/SHEET PRESENTES; VALIDATION COMPLETE RESTANTE
-Tests contractuels            SUITE RACINE REUSSIE LE 2026-08-06, STAGING RESTANT
+Configuration locale          DHD/SHEET/MONGO VALIDES PAR IMPORT LIVE ANONYMISE
+Tests contractuels            SUITE RACINE + 31 TESTS REUSSIS LE 2026-08-06
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
-Validation staging            FLUX COMPLET CORRIGE LOCALEMENT; COLIS TEST DHD/SHEET/STOCK RESTANT
+Validation staging            IMPORT LIVE 40/40 ET SHEET/MONGO/STATUT/STOCK CONVERGENTS
 JWT production                CONFIGURE; RECONNEXION ET FLUX AUTHENTIFIE A VALIDER
-Deploiement corrige            NOUVEAU BACKEND PRODUCTION READY; FRONT LOCAL RELIE
+Deploiement corrige            CODE PRET; PUSH/REDEPLOIEMENT ET HTTP 200 DU BOUTON RESTANTS
 ```
 
 Ne pas modifier cet etat synthetique sans mettre a jour les anomalies, les

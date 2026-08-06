@@ -1,6 +1,45 @@
 import { google, sheets_v4 } from 'googleapis';
 import { JWT } from 'google-auth-library';
 
+const RETRYABLE_SHEETS_HTTP_STATUSES = new Set([
+  408, 429, 500, 502, 503, 504,
+]);
+const RETRYABLE_SHEETS_NETWORK_CODES = new Set([
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'ENETUNREACH',
+  'ETIMEDOUT',
+]);
+
+const retryIdempotentSheetsOperation = async <T>(
+  operation: () => Promise<T>
+): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    const candidate = error as {
+      code?: unknown;
+      cause?: { code?: unknown };
+      response?: { status?: unknown };
+    };
+    const httpStatus = Number(candidate.response?.status ?? candidate.code);
+    const networkCode = String(
+      candidate.cause?.code ?? candidate.code ?? ''
+    ).toUpperCase();
+    const retryable =
+      RETRYABLE_SHEETS_HTTP_STATUSES.has(httpStatus) ||
+      RETRYABLE_SHEETS_NETWORK_CODES.has(networkCode);
+    if (!retryable) throw error;
+
+    // Une seule relance bornee suffit pour les erreurs transitoires observees
+    // sans allonger excessivement une fonction Vercel. Cette aide ne doit
+    // jamais entourer values.append, qui n'est pas idempotent si la reponse
+    // reseau est perdue apres l'ajout effectif.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return operation();
+  }
+};
+
 export interface UpdateStatusPayload {
   rowId: string;
   status: string;
@@ -373,10 +412,12 @@ export class SheetSyncService {
     }
 
     const sheets = await this.getSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: getSpreadsheetId(),
-      range: `${sheetRangePrefix()}!1:1`,
-    });
+    const response = await retryIdempotentSheetsOperation(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId: getSpreadsheetId(),
+        range: `${sheetRangePrefix()}!1:1`,
+      })
+    );
     const headers = (response.data.values?.[0] ?? []).map((cell) =>
       typeof cell === 'string' ? cell : String(cell ?? '')
     );
@@ -396,14 +437,20 @@ export class SheetSyncService {
     const endColumn = this.columnIndexToLetter(
       currentHeaders.length + additions.length - 1
     );
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: getSpreadsheetId(),
-      range: `${sheetRangePrefix()}!${startColumn}1:${endColumn}1`,
-      valueInputOption: 'RAW',
-      requestBody: { values: [additions] },
-    });
-    this.headerCache = undefined;
-    return this.getHeaderRow();
+    await retryIdempotentSheetsOperation(() =>
+      sheets.spreadsheets.values.update({
+        spreadsheetId: getSpreadsheetId(),
+        range: `${sheetRangePrefix()}!${startColumn}1:${endColumn}1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [additions] },
+      })
+    );
+    // L'update reussie confirme exactement ces en-tetes. Les reutiliser
+    // evite une relecture immediate pouvant retourner temporairement une
+    // ligne tronquee et decaler la derniere colonne technique de l'import.
+    const updatedHeaders = [...currentHeaders, ...additions];
+    this.headerCache = { headers: updatedHeaders, fetchedAt: Date.now() };
+    return updatedHeaders;
   }
 
   async upsertCarrierOrders(
@@ -438,12 +485,14 @@ export class SheetSyncService {
 
     const headers = await this.ensureCarrierImportHeaders();
     const sheets = await this.getSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: getSpreadsheetId(),
-      range: sheetRangePrefix(),
-      majorDimension: 'ROWS',
-      valueRenderOption: 'FORMATTED_VALUE',
-    });
+    const response = await retryIdempotentSheetsOperation(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId: getSpreadsheetId(),
+        range: sheetRangePrefix(),
+        majorDimension: 'ROWS',
+        valueRenderOption: 'FORMATTED_VALUE',
+      })
+    );
     const sheetRows = (response.data.values ?? []).slice(1).map((raw, index) => {
       const values = Array.from({ length: headers.length }, (_, column) =>
         String(raw[column] ?? '').trim()
@@ -508,6 +557,9 @@ export class SheetSyncService {
         normalizedTracking(value),
       ])
     );
+    const knownMongoTrackings = new Set(
+      Array.from(occupied.values()).filter(Boolean)
+    );
     const externalRowIds = new Set(
       (links.externalRowIds ?? []).map((value) => String(value).trim())
     );
@@ -536,9 +588,14 @@ export class SheetSyncService {
     ) => {
       const sheetTracking = normalizedTracking(row.values[trackingIndex]);
       const mongoTracking = occupied.get(String(row.rowNumber));
+      const mongoConfirmsRow =
+        mongoTracking === tracking &&
+        (!sheetTracking ||
+          sheetTracking === tracking ||
+          !knownMongoTrackings.has(sheetTracking));
       return (
         !claimedRows.has(row.rowNumber) &&
-        (!sheetTracking || sheetTracking === tracking) &&
+        (mongoConfirmsRow || !sheetTracking || sheetTracking === tracking) &&
         (!mongoTracking || mongoTracking === tracking)
       );
     };
@@ -593,6 +650,11 @@ export class SheetSyncService {
         ...order,
         source: externalSource ? 'carrier_import' : 'site',
       });
+      const mongoTracking = occupied.get(String(matchedRow.rowNumber));
+      const repairMisalignedExternalRow =
+        externalSource &&
+        mongoTracking === tracking &&
+        normalizedTracking(matchedRow.values[trackingIndex]) !== tracking;
       const metadataIndexes = new Set(
         [
           TRACKING_HEADER_CANDIDATES,
@@ -606,25 +668,43 @@ export class SheetSyncService {
           .map((candidates) => findHeaderIndex(headers, candidates))
           .filter((index) => index >= 0)
       );
-      importedValues.forEach((value, column) => {
-        if (!value) return;
-        if (
-          column === statusIndex &&
-          order.businessStatus === 'new' &&
-          Boolean(order.carrierStatus) &&
-          Boolean(matchedRow?.values[column])
-        ) {
-          return;
-        }
-        const shouldWrite =
-          metadataIndexes.has(column) || !matchedRow?.values[column];
-        if (!shouldWrite || matchedRow?.values[column] === value) return;
-        matchedRow.values[column] = value;
+      if (repairMisalignedExternalRow) {
+        // Une ancienne version utilisait le nom d'onglet seul comme plage
+        // d'append; Google a alors commence en colonne L. Ces lignes sont
+        // identifiees a la fois par Mongo (source externe + tracking) et par
+        // le tracking Sheet incoherent. Reecrire A:T et effacer U:AE repare
+        // toutes les donnees decalees sans toucher aux lignes historiques.
+        const overflowColumnsToClear = 11;
+        const repairedValues = [
+          ...importedValues,
+          ...Array.from({ length: overflowColumnsToClear }, () => ''),
+        ];
+        matchedRow.values = [...importedValues];
         cellUpdates.push({
-          range: `${sheetRangePrefix()}!${this.columnIndexToLetter(column)}${matchedRow.rowNumber}`,
-          values: [[value]],
+          range: `${sheetRangePrefix()}!A${matchedRow.rowNumber}:${this.columnIndexToLetter(repairedValues.length - 1)}${matchedRow.rowNumber}`,
+          values: [repairedValues],
         });
-      });
+      } else {
+        importedValues.forEach((value, column) => {
+          if (!value) return;
+          if (
+            column === statusIndex &&
+            order.businessStatus === 'new' &&
+            Boolean(order.carrierStatus) &&
+            Boolean(matchedRow?.values[column])
+          ) {
+            return;
+          }
+          const shouldWrite =
+            metadataIndexes.has(column) || !matchedRow?.values[column];
+          if (!shouldWrite || matchedRow?.values[column] === value) return;
+          matchedRow.values[column] = value;
+          cellUpdates.push({
+            range: `${sheetRangePrefix()}!${this.columnIndexToLetter(column)}${matchedRow.rowNumber}`,
+            values: [[value]],
+          });
+        });
+      }
       matches.push({
         tracking,
         rowId: String(matchedRow.rowNumber),
@@ -636,49 +716,42 @@ export class SheetSyncService {
     }
 
     for (let index = 0; index < cellUpdates.length; index += 500) {
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: getSpreadsheetId(),
-        requestBody: {
-          valueInputOption: 'RAW',
-          data: cellUpdates.slice(index, index + 500),
-        },
-      });
+      await retryIdempotentSheetsOperation(() =>
+        sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: getSpreadsheetId(),
+          requestBody: {
+            valueInputOption: 'RAW',
+            data: cellUpdates.slice(index, index + 500),
+          },
+        })
+      );
     }
 
     if (appendOrders.length > 0) {
-      const appendResponse = await sheets.spreadsheets.values.append({
-        spreadsheetId: getSpreadsheetId(),
-        range: sheetRangePrefix(),
-        valueInputOption: 'RAW',
-        insertDataOption: 'INSERT_ROWS',
-        requestBody: {
-          values: appendOrders.map((order) =>
-            buildCarrierSheetRowValues(headers, {
-              ...order,
-              source: 'carrier_import',
-            })
-          ),
-        },
-      });
-      const updatedRange = String(appendResponse.data.updates?.updatedRange ?? '');
-      const rangeMatch = updatedRange.match(/![A-Z]+(\d+):[A-Z]+(\d+)$/i);
-      const firstRow = Number(rangeMatch?.[1]);
-      const lastRow = Number(rangeMatch?.[2]);
-      if (
-        !Number.isSafeInteger(firstRow) ||
-        !Number.isSafeInteger(lastRow) ||
-        lastRow - firstRow + 1 !== appendOrders.length
-      ) {
-        throw new Error(
-          'Google Sheets a ajoute les colis sans retourner leurs lignes exactes; le prochain import les reliera par tracking.'
-        );
-      }
-      appendOrders.forEach((order, index) => {
-        const rowNumber = firstRow + index;
-        const values = buildCarrierSheetRowValues(headers, {
+      // values.append choisit la premiere colonne d'une "table logique" et
+      // peut donc ignorer A meme avec une plage A:T. La lecture precedente
+      // donne la derniere ligne non vide; le verrou global DHD protege les
+      // appels applicatifs concurrents. Une update explicite fixe A:T sans
+      // aucune detection heuristique de table par Google.
+      const firstRow = (response.data.values ?? []).length + 1;
+      const lastRow = firstRow + appendOrders.length - 1;
+      const appendedValues = appendOrders.map((order) =>
+        buildCarrierSheetRowValues(headers, {
           ...order,
           source: 'carrier_import',
-        });
+        })
+      );
+      await retryIdempotentSheetsOperation(() =>
+        sheets.spreadsheets.values.update({
+          spreadsheetId: getSpreadsheetId(),
+          range: `${sheetRangePrefix()}!A${firstRow}:${this.columnIndexToLetter(headers.length - 1)}${lastRow}`,
+          valueInputOption: 'RAW',
+          requestBody: { values: appendedValues },
+        })
+      );
+      appendOrders.forEach((order, index) => {
+        const rowNumber = firstRow + index;
+        const values = appendedValues[index];
         matches.push({
           tracking: normalizedTracking(order.tracking),
           rowId: String(rowNumber),

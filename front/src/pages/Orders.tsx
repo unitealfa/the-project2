@@ -3876,8 +3876,9 @@ Zm0 14H8V7h9v12Z"
       const appended = Number(data?.import?.appended ?? 0);
       const linked = Number(data?.import?.linkedByReference ?? 0);
       const conflicts = Number(data?.import?.conflicts ?? 0);
+      const pageErrors = Number(data?.import?.pageErrors ?? 0);
       setOfficialSyncMessage(
-        `Synchronisation terminée : ${imported} colis DHD découvert(s), ${appended} ajouté(s), ${linked} rattaché(s), ${updates} statut(s) lu(s), ${errors} erreur(s), ${notFound} tracking(s) introuvable(s)${conflicts ? `, ${conflicts} conflit(s) à vérifier` : ""}.`
+        `Synchronisation terminée : ${imported} colis DHD découvert(s), ${appended} ajouté(s), ${linked} rattaché(s), ${updates} statut(s) lu(s), ${errors} erreur(s), ${notFound} tracking(s) introuvable(s)${conflicts ? `, ${conflicts} conflit(s) à vérifier` : ""}${pageErrors ? `, ${pageErrors} page DHD reportée au prochain passage` : ""}.`
       );
       await loadSheetData(false);
     } catch (error) {

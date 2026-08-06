@@ -15,7 +15,11 @@ import {
 } from './orderApi.controller';
 import { classifyGoogleSheetError } from './googleSheetError';
 import { normalizeCarrierIdentifier } from './orderStatus';
-import { importCarrierOrders } from './carrierOrderImport.service';
+import {
+  CarrierImportErrorCode,
+  getCarrierImportErrorCode,
+  importCarrierOrders,
+} from './carrierOrderImport.service';
 
 const debugLog = (event: string, ..._details: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
@@ -652,14 +656,16 @@ export const syncOfficialStatuses = async (req: Request, res: Response) => {
     }
     let importResult: Awaited<ReturnType<typeof importCarrierOrders>> | undefined;
     let importFailed = false;
+    let importErrorCode: CarrierImportErrorCode | undefined;
     try {
       importResult = await importCarrierOrders({
         carrierType: 'api_dhd',
-        maxPages: Number(process.env.ORDER_IMPORT_MANUAL_PAGES ?? 5),
+        maxPages: Number(process.env.ORDER_IMPORT_MANUAL_PAGES ?? 2),
       });
-    } catch {
+    } catch (error) {
       importFailed = true;
-      console.error('[DHD import] Echec de la decouverte manuelle');
+      importErrorCode = getCarrierImportErrorCode(error);
+      console.error(`[DHD import] ${importErrorCode}`);
     }
     const result = await syncOfficialStatusesService({
       orders,
@@ -671,7 +677,12 @@ export const syncOfficialStatuses = async (req: Request, res: Response) => {
       success: !importFailed,
       import: importResult,
       ...result,
-      ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
+      ...(importFailed
+        ? {
+            code: importErrorCode,
+            message: `Import DHD impossible (${importErrorCode}).`,
+          }
+        : {}),
     });
   } catch (error) {
     const message =

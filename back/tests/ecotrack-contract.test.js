@@ -40,6 +40,11 @@ const {
 const {
   sanitizeOrderPayload,
 } = require('../dist/src/orders/orderApi.controller.js');
+const {
+  CarrierOrderImportError,
+  collectCarrierOrderPages,
+  getCarrierImportErrorCode,
+} = require('../dist/src/orders/carrierOrderImport.service.js');
 const orderRouter = require('../dist/src/orders/order.routes.js').default;
 
 test('les routes protegees refusent une requete sans JWT', () => {
@@ -309,6 +314,50 @@ test('ECOTRACK: la liste paginee des colis DHD conserve uniquement les champs of
   );
 });
 
+test('Import DHD: une page de rattrapage en echec ne jette jamais la page 1', async () => {
+  const firstPage = {
+    currentPage: 1,
+    lastPage: 5,
+    perPage: 40,
+    total: 200,
+    orders: [{ tracking: 'FIXTURE-1', status: 'prete_a_expedier' }],
+    invalidOrders: 0,
+  };
+  const failed = await collectCarrierOrderPages({
+    firstPage,
+    nextPage: 2,
+    maxPages: 2,
+    fetchPage: async () => {
+      throw new Error('fixture secondaire indisponible');
+    },
+  });
+  assert.equal(failed.pages.length, 1);
+  assert.equal(failed.pages[0], firstPage);
+  assert.equal(failed.pageErrors, 1);
+  assert.equal(failed.nextPage, 2);
+
+  const succeeded = await collectCarrierOrderPages({
+    firstPage,
+    nextPage: 2,
+    maxPages: 2,
+    fetchPage: async (page) => ({
+      ...firstPage,
+      currentPage: page,
+      orders: [{ tracking: 'FIXTURE-2', status: 'prete_a_expedier' }],
+    }),
+  });
+  assert.equal(succeeded.pages.length, 2);
+  assert.equal(succeeded.pageErrors, 0);
+  assert.equal(succeeded.nextPage, 3);
+  assert.equal(
+    getCarrierImportErrorCode(
+      new CarrierOrderImportError('import_sheet_write')
+    ),
+    'import_sheet_write'
+  );
+  assert.equal(getCarrierImportErrorCode(new Error('fixture')), 'import_unknown');
+});
+
 test('Google Sheets: une ligne DHD importee contient le suivi sans inventer quantite ni mode de livraison', () => {
   const headers = [
     'ID',
@@ -409,9 +458,21 @@ test("l'import DHD suit uniquement le contrat pagine officiel et protege le stoc
   assert.match(importService, /preferredRowIdsByTracking/);
   assert.match(importService, /stockSyncEnabled:\s*!externallyCreated/);
   assert.match(importService, /blockedTrackings/);
+  assert.match(importService, /pageErrors/);
+  assert.match(importService, /process\.env\.VERCEL \? 2 : 10/);
   assert.match(sheetService, /matchType = 'reference'/);
   assert.match(sheetService, /rowsByTracking/);
+  assert.match(sheetService, /knownMongoTrackings/);
+  assert.match(sheetService, /!knownMongoTrackings\.has\(sheetTracking\)/);
   assert.match(sheetService, /Source commande/);
+  assert.match(sheetService, /const updatedHeaders = \[\.\.\.currentHeaders, \.\.\.additions\]/);
+  assert.match(sheetService, /const firstRow = \(response\.data\.values \?\? \[\]\)\.length \+ 1/);
+  assert.match(sheetService, /!A\$\{firstRow\}:\$\{this\.columnIndexToLetter\(headers\.length - 1\)\}\$\{lastRow\}/);
+  assert.doesNotMatch(sheetService, /spreadsheets\.values\.append\(/);
+  assert.match(sheetService, /repairMisalignedExternalRow/);
+  assert.match(sheetService, /overflowColumnsToClear = 11/);
+  assert.match(sheetService, /retryIdempotentSheetsOperation/);
+  assert.match(sheetService, /jamais entourer values\.append/);
   assert.match(stockService, /stockSyncEnabled:\s*\{ \$ne: false \}/);
   assert.match(apiController, /ORDER_IMPORT_CRON_PAGES/);
   assert.match(manualController, /ORDER_IMPORT_MANUAL_PAGES/);

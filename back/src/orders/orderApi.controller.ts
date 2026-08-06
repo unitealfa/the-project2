@@ -11,7 +11,11 @@ import {
 } from './ecotrack.client';
 import { reconcileOrderStock } from './orderStockReconciliation.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
-import { importCarrierOrders } from './carrierOrderImport.service';
+import {
+  CarrierImportErrorCode,
+  getCarrierImportErrorCode,
+  importCarrierOrders,
+} from './carrierOrderImport.service';
 import {
   canRecreateMissingCarrierOrder,
   getMissingCarrierBusinessStatus,
@@ -668,14 +672,16 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
   try {
     let importResult: Awaited<ReturnType<typeof importCarrierOrders>> | undefined;
     let importFailed = false;
+    let importErrorCode: CarrierImportErrorCode | undefined;
     try {
       importResult = await importCarrierOrders({
         carrierType: 'api_dhd',
         maxPages: Number(process.env.ORDER_IMPORT_CRON_PAGES ?? 2),
       });
-    } catch {
+    } catch (error) {
       importFailed = true;
-      console.error('[DHD import] Echec de la decouverte planifiee');
+      importErrorCode = getCarrierImportErrorCode(error);
+      console.error(`[DHD import] ${importErrorCode}`);
     }
 
     const configuredLimit = Number(process.env.ORDER_SYNC_BATCH_LIMIT);
@@ -706,7 +712,12 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
         processed: 0,
         updates: 0,
         import: importResult,
-        ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
+        ...(importFailed
+          ? {
+              code: importErrorCode,
+              message: `Import DHD impossible (${importErrorCode}).`,
+            }
+          : {}),
       });
     }
 
@@ -727,7 +738,12 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
       errors: result.errors.length,
       requestsMade: result.requestsMade,
       import: importResult,
-      ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
+      ...(importFailed
+        ? {
+            code: importErrorCode,
+            message: `Import DHD impossible (${importErrorCode}).`,
+          }
+        : {}),
     });
   } catch (error) {
     return res.status(500).json({ success: false, ...publicError(error) });

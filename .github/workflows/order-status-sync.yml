@@ -72,7 +72,7 @@ jobs:
             exit 1
           fi
 
-          if ! result="$(node -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const n=(v)=>Number.isFinite(Number(v))?Number(v):0;const i=b.import||{};const r={success:b.success===true,imported:n(i.imported),appended:n(i.appended),linked:n(i.linkedByReference),conflicts:n(i.conflicts),processed:n(b.processed),updates:n(b.updates),notFound:n(b.notFound),skipped:n(b.skipped),errors:n(b.errors),requestsMade:n(b.requestsMade)};console.log(JSON.stringify(r));if(!r.success)process.exit(1)' "$response_file")"; then
+          if ! result="$(node -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const n=(v)=>Number.isFinite(Number(v))?Number(v):0;const i=b.import||{};const r={success:b.success===true,imported:n(i.imported),appended:n(i.appended),linked:n(i.linkedByReference),conflicts:n(i.conflicts),pageErrors:n(i.pageErrors),processed:n(b.processed),updates:n(b.updates),notFound:n(b.notFound),skipped:n(b.skipped),errors:n(b.errors),requestsMade:n(b.requestsMade)};console.log(JSON.stringify(r));if(!r.success)process.exit(1)' "$response_file")"; then
             echo "::error title=Reponse backend invalide::Le backend a retourne HTTP 200 sans confirmation success=true."
             exit 1
           fi
