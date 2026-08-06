@@ -13,6 +13,8 @@ import { reconcileOrderStock } from './orderStockReconciliation.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import {
   isFinalBusinessStatus,
+  mapCarrierStatus,
+  normalizeCarrierIdentifier,
   OFFICIAL_SYNC_TERMINAL_STATUSES,
 } from './orderStatus';
 
@@ -57,7 +59,7 @@ const sanitizeOrderRow = (value: unknown): Record<string, unknown> | undefined =
   return sanitized;
 };
 
-const sanitizeOrderPayload = (payload: unknown): EcotrackOrderPayload => {
+export const sanitizeOrderPayload = (payload: unknown): EcotrackOrderPayload => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new EcotrackApiError('Les donnees de la commande sont invalides.');
   }
@@ -286,11 +288,39 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       }
     }
 
+    let latestCarrierStatus = stringValue(existing?.carrierStatus);
+    let latestCarrierStatusUpdatedAt = existing?.carrierStatusUpdatedAt;
+    let statusSyncWarning = '';
+    if (carrierValidated) {
+      try {
+        const statuses = await client.getStatuses([tracking]);
+        const normalizedTracking = normalizeCarrierIdentifier(tracking);
+        const officialEntry = Array.from(statuses.entries()).find(
+          ([candidateTracking]) =>
+            normalizeCarrierIdentifier(candidateTracking) === normalizedTracking
+        )?.[1];
+        const officialStatus = stringValue(officialEntry?.status);
+        if (officialStatus) {
+          latestCarrierStatus = officialStatus;
+          latestCarrierStatusUpdatedAt = new Date();
+        } else {
+          statusSyncWarning =
+            'Statut ECOTRACK non encore disponible; le cron reessaiera automatiquement.';
+        }
+      } catch (error) {
+        const safe = publicError(error);
+        statusSyncWarning =
+          `Lecture du statut ECOTRACK reportee: ${safe.message}`.slice(0, 500);
+      }
+    }
+
     const previousStatus = stringValue(existing?.status);
+    const mappedOfficialStatus = mapCarrierStatus(latestCarrierStatus);
     const targetStatus =
-      shouldValidate && (!previousStatus || previousStatus === 'new')
+      mappedOfficialStatus ||
+      (shouldValidate && (!previousStatus || previousStatus === 'new')
         ? 'ready_to_ship'
-        : previousStatus || (shouldValidate ? 'ready_to_ship' : 'new');
+        : previousStatus || (shouldValidate ? 'ready_to_ship' : 'new'));
     const now = new Date();
     const setValues: Record<string, unknown> = {
       rowId,
@@ -299,20 +329,21 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       deliveryType,
       row: row ?? existing?.row,
       lastSyncAttemptAt: now,
-      lastSyncError: '',
+      lastSyncError: statusSyncWarning,
     };
     if (carrierValidated) {
       setValues.carrierValidatedAt = existing?.carrierValidatedAt || now;
     }
-    if (existing?.carrierStatus) {
-      setValues.carrierStatus = existing.carrierStatus;
+    if (latestCarrierStatus) {
+      setValues.carrierStatus = latestCarrierStatus;
     }
-    if (existing?.carrierStatusUpdatedAt) {
-      setValues.carrierStatusUpdatedAt = existing.carrierStatusUpdatedAt;
+    if (latestCarrierStatusUpdatedAt) {
+      setValues.carrierStatusUpdatedAt = latestCarrierStatusUpdatedAt;
     }
 
     // Le statut local et le Sheet ne changent qu'après les succès create/order
-    // puis valid/order. Le statut transporteur exact viendra de get/orders/status.
+    // puis valid/order. Une lecture ciblee fournit immédiatement le statut
+    // transporteur exact; le cron reprend si DHD ne le rend pas encore disponible.
     const saved = await Order.findOneAndUpdate(
       { rowId },
       {
@@ -355,6 +386,11 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       );
     }
 
+    const warnings = [
+      statusSyncWarning,
+      stockWarning ? `Stock non ajuste: ${stockWarning}` : '',
+    ].filter(Boolean);
+
     return res.json({
       success: true,
       tracking,
@@ -362,7 +398,7 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       validated: carrierValidated,
       status: targetStatus,
       carrierStatus: saved.carrierStatus,
-      ...(stockWarning ? { warning: `Stock non ajuste: ${stockWarning}` } : {}),
+      ...(warnings.length > 0 ? { warning: warnings.join(' ') } : {}),
     });
   } catch (error) {
     const safe = publicError(error);

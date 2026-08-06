@@ -17,10 +17,10 @@ import { parseLocaleAmount, parsePositiveIntegerQuantity } from "../utils/number
 import "../styles/Orders.css";
 
 const DEBUG_ORDERS = false;
-const debugLog = (...args: any[]) => {
+const debugLog = (event: string, ..._details: unknown[]) => {
   if (!DEBUG_ORDERS) return;
   if (typeof console !== "undefined") {
-    console.log("[ORDERS DEBUG]", ...args);
+    console.log("[ORDERS DEBUG]", event);
   }
 };
 const getScrollSnapshot = () => {
@@ -95,6 +95,22 @@ function parseCsv(csvText: string): string[][] {
 interface OrderRow {
   [key: string]: string;
 }
+
+const firstNonEmptyRowValue = (
+  row: OrderRow,
+  candidates: string[]
+): string => {
+  for (const key of candidates) {
+    const value = String(row[key] ?? "").trim();
+    if (value) return value;
+  }
+  return "";
+};
+
+const readBooleanRowFlag = (row: OrderRow, candidates: string[]): 0 | 1 => {
+  const value = normalizeTextValue(firstNonEmptyRowValue(row, candidates));
+  return ["1", "true", "oui", "yes", "fragile"].includes(value) ? 1 : 0;
+};
 
 const configuredSheetEditUrl = String(
   import.meta.env.VITE_SHEET_EDIT_URL ?? ""
@@ -671,7 +687,7 @@ const Orders: React.FC = () => {
 
   function getWilayaIdByName(name: string) {
     if (!name || !name.trim()) {
-      return 16; // Fallback Alger si vide
+      return 0;
     }
     
     const normalize = (s: string) =>
@@ -703,7 +719,7 @@ const Orders: React.FC = () => {
       });
     }
     
-    return found ? found.wilaya_id : 16; // Fallback Alger si non reconnu
+    return found ? found.wilaya_id : 0;
   }
 
   const normalizePhone = (phone: string): string => {
@@ -994,21 +1010,28 @@ const Orders: React.FC = () => {
       [effectiveCommentKey, onCommentChange]
     );
 
-    const telephone_2 = telephone;
+    const telephone_2 = normalizePhone(
+      firstNonEmptyRowValue(row, [
+        "Numero 2",
+        "Numéro 2",
+        "Téléphone 2",
+        "Telephone 2",
+        "Tel 2",
+        "Phone 2",
+      ])
+    );
     const code_wilaya = getWilayaIdByName(row["Wilaya"]);
 
-  const stopDeskFlag = (() => {
+    const stopDeskFlag = (() => {
       const normalizedMode = getDeliveryModeFromRow(row);
       return normalizedMode === "stop_desk" ? 1 : 0;
     })();
 
-    const totalForApi = (() => {
-      const quantityForTotal = (() => {
-        return parsePositiveIntegerQuantity(
-          row["Quantité"] || row["Quantite"] || row["Qte"]
-        ) ?? 1;
-      })();
+    const quantityForApi = parsePositiveIntegerQuantity(
+      row["Quantité"] || row["Quantite"] || row["Qte"]
+    );
 
+    const totalForApi = (() => {
       const unitPriceForTotal = (() => {
         const candidates = ["Prix unitaire", "Prix", "PrixU", "PU", "Prix U"];
         for (const key of candidates) {
@@ -1038,10 +1061,10 @@ const Orders: React.FC = () => {
       })();
 
       const computedFromUnit =
-        unitPriceForTotal !== null
-          ? unitPriceForTotal * quantityForTotal
+        unitPriceForTotal !== null && quantityForApi !== null
+          ? unitPriceForTotal * quantityForApi
           : null;
-      return amountFromSheet ?? computedFromUnit ?? quantityForTotal * 1000;
+      return amountFromSheet ?? computedFromUnit;
     })();
 
 
@@ -1163,7 +1186,17 @@ const Orders: React.FC = () => {
       }
 
       // Commune resolution
-      const codeW = manualWilaya ?? (parseInt(String(code_wilaya)) || 16);
+      const parsedWilaya = Number(manualWilaya ?? code_wilaya);
+      if (
+        !Number.isInteger(parsedWilaya) ||
+        parsedWilaya < 1 ||
+        parsedWilaya > 58
+      ) {
+        setInitialCorrectionData({ commune: "", wilayaCode: 16 });
+        setCorrectionModalOpen(true);
+        return;
+      }
+      const codeW = parsedWilaya;
       let commune = manualCommune || resolveCommuneName(
         row["Commune"] || "",
         row["Wilaya"] || "",
@@ -1232,11 +1265,40 @@ const Orders: React.FC = () => {
         return;
       }
 
-      setSubmitting(true);
-
+      // La commune resolue doit rester cohérente avec une wilaya officielle.
+      const resolvedWilayaCode =
+        manualWilaya ?? getWilayaIdByCommune(commune, codeW);
       const adr = String(
         row["Adresse"] ?? row["adresse"] ?? row["Address"] ?? ""
-      ).trim() || `${commune}, ${String(row["Wilaya"] ?? "").trim()}`;
+      ).trim();
+      const validationErrors: string[] = [];
+      if (!rowId) validationErrors.push("identifiant de ligne");
+      if (!nom_client) validationErrors.push("nom du client");
+      if (!/^\d{9,10}$/.test(telephone)) {
+        validationErrors.push("telephone valide (9 ou 10 chiffres)");
+      }
+      if (!adr) validationErrors.push("adresse");
+      if (
+        !Number.isInteger(resolvedWilayaCode) ||
+        resolvedWilayaCode < 1 ||
+        resolvedWilayaCode > 58
+      ) {
+        validationErrors.push("wilaya");
+      }
+      if (totalForApi === null || !Number.isFinite(totalForApi) || totalForApi < 0) {
+        validationErrors.push("montant total");
+      }
+      if (validationErrors.length > 0) {
+        alert(
+          `Impossible d'envoyer la commande à DHD. Champs manquants ou invalides : ${validationErrors.join(
+            ", "
+          )}.`
+        );
+        return;
+      }
+
+      setSubmitting(true);
+
       const rawProductLabel =
         extractProductLabel(row) || String(row["Produit"] ?? "").trim();
       const produit = rawProductLabel;
@@ -1264,30 +1326,44 @@ const Orders: React.FC = () => {
         return "";
       })();
 
-      // Get the wilaya code from the resolved commune name (more reliable than from row data)
-      // Pass the original code_wilaya as a hint for disambiguation of duplicate commune names
-      // If manualWilaya is provided, use it directly as the source of truth
-      const resolvedWilayaCode = manualWilaya ?? getWilayaIdByCommune(commune, codeW);
-
       const realClientData = {
         reference: extractReference(row) || rowId,
         nom_client,
         telephone,
         telephone_2,
         adresse: adr,
+        code_postal: firstNonEmptyRowValue(row, [
+          "Code postal",
+          "Code Postal",
+          "code_postal",
+          "CP",
+        ]),
         code_wilaya: resolvedWilayaCode,
-        montant: String(Math.round(totalForApi)),
+        montant: String(Math.round(totalForApi as number)),
         type: "1",
         stop_desk: stopDeskFlag,
         stock: "0",
-        fragile: "0",
+        quantite: quantityForApi ?? undefined,
+        fragile: readBooleanRowFlag(row, ["Fragile", "fragile"]),
         produit: produit,
+        produit_a_recuperer: firstNonEmptyRowValue(row, [
+          "Produit à récupérer",
+          "Produit a recuperer",
+          "produit_a_recuperer",
+        ]),
+        boutique: firstNonEmptyRowValue(row, ["Boutique", "Shop"]),
+        weight: firstNonEmptyRowValue(row, ["Poids", "Weight"]),
+        gps_link: firstNonEmptyRowValue(row, [
+          "Lien GPS",
+          "GPS",
+          "gps_link",
+        ]),
       };
       const trimmedComment = currentComment.trim();
       const finalRemark = trimmedComment || remarkFromSheet;
 
       // Normalize commune name for API - remove accents (DHD API doesn't accept them)
-      const communeForApi = (commune || "alger")
+      const communeForApi = commune
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
@@ -1299,15 +1375,12 @@ const Orders: React.FC = () => {
       };
 
       if (DEBUG_ORDERS) {
-        console.log("Données normalisées:", {
-          original_commune: row["Commune"],
-          resolved_commune: commune,
-          original_phone: row["Numero"] || row["Téléphone"],
-          normalized_phone: telephone,
-          original_name: row["Nom du client"],
-          normalized_name: nom_client,
-          original_wilaya_code: code_wilaya,
-          resolved_wilaya_code: resolvedWilayaCode,
+        debugLog("Données normalisées", {
+          rowId,
+          hasCommune: Boolean(commune),
+          hasPhone: Boolean(telephone),
+          hasName: Boolean(nom_client),
+          wilayaCodeValid: resolvedWilayaCode >= 1 && resolvedWilayaCode <= 58,
         });
       }
 
@@ -1358,7 +1431,7 @@ const Orders: React.FC = () => {
         }
 
         if (DEBUG_ORDERS) {
-          console.log("Envoi securise via le backend:", finalData);
+          debugLog("Envoi securise via le backend", { rowId });
         }
 
         const response = await apiFetch("/api/orders/send", {
@@ -1376,7 +1449,10 @@ const Orders: React.FC = () => {
         const responseData = await response.json().catch(() => ({}));
 
         if (DEBUG_ORDERS) {
-          console.log("Réponse backend:", response.status, responseData);
+          debugLog("Réponse backend", response.status, {
+            success: responseData?.success === true,
+            hasTracking: Boolean(responseData?.tracking),
+          });
         }
 
         if (
@@ -2030,12 +2106,9 @@ const Orders: React.FC = () => {
                   currentWilayaCode = foundByOriginal.wilaya_id;
                   currentWilayaName = foundByOriginal.wilaya_name;
                 } else {
-                  // Utiliser getWilayaIdByName comme fallback (retourne 16 si pas trouvé)
+                  // Une wilaya inconnue reste invalide : ne jamais l'envoyer comme Alger.
                   currentWilayaCode = getWilayaIdByName(wilayaId);
-                  // Si le code est 16 mais qu'on avait une wilaya, c'est qu'elle n'a pas été trouvée
-                  // Dans ce cas, on garde le nom original pour l'affichage
-                  currentWilayaName = currentWilayaCode === 16 && wilayaId ? wilayaId : 
-                    WILAYAS.find(w => w.wilaya_id === currentWilayaCode)?.wilaya_name || "Alger";
+                  currentWilayaName = wilayaId;
                 }
               }
             } else if (wilayaId) {
@@ -2048,13 +2121,11 @@ const Orders: React.FC = () => {
                 currentWilayaName = foundByOriginal.wilaya_name;
               } else {
                 currentWilayaCode = getWilayaIdByName(wilayaId);
-                currentWilayaName = currentWilayaCode === 16 && wilayaId ? wilayaId : 
-                  WILAYAS.find(w => w.wilaya_id === currentWilayaCode)?.wilaya_name || "Alger";
+                currentWilayaName = wilayaId;
               }
             } else {
-              // Pas de wilaya du tout, utiliser Alger par défaut
-              currentWilayaCode = 16;
-              currentWilayaName = "Alger";
+              currentWilayaCode = 0;
+              currentWilayaName = "";
             }
             
             const communesForWilaya = getCommunesByWilaya(currentWilayaCode);
@@ -2337,6 +2408,10 @@ Zm0 14H8V7h9v12Z"
     !SHEET_EDIT_URL
   );
   const [sheetLinkError, setSheetLinkError] = React.useState<boolean>(false);
+  const [officialSyncLoading, setOfficialSyncLoading] =
+    React.useState<boolean>(false);
+  const [officialSyncMessage, setOfficialSyncMessage] =
+    React.useState<string>("");
   const [query, setQuery] = React.useState<string>("");
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("day");
@@ -3724,6 +3799,86 @@ Zm0 14H8V7h9v12Z"
     };
   }, [loadSheetData]);
 
+  const handleRefreshOfficialStatuses = React.useCallback(async () => {
+    if (officialSyncLoading) return;
+
+    const ordersToSync = rows
+      .map((row) => {
+        const rowId = String(row["id-sheet"] ?? row["ID"] ?? "").trim();
+        const tracking = String(
+          row["Tracking"] ?? row["tracking"] ?? ""
+        ).trim();
+        const settings = orderDeliverySettings[rowId];
+        if (
+          !rowId ||
+          !tracking ||
+          !settings ||
+          (settings.deliveryType !== "api_dhd" &&
+            settings.deliveryType !== "api_sook")
+        ) {
+          return null;
+        }
+        return {
+          rowId,
+          tracking,
+          reference: extractReference(row) || undefined,
+          currentStatus: String(row["etat"] ?? "").trim() || undefined,
+          deliveryType: settings.deliveryType,
+        };
+      })
+      .filter((order): order is NonNullable<typeof order> => order !== null)
+      .slice(0, 1000);
+
+    if (ordersToSync.length === 0) {
+      setOfficialSyncMessage(
+        "Aucune commande DHD/Sook avec tracking n'est disponible à synchroniser."
+      );
+      return;
+    }
+
+    setOfficialSyncLoading(true);
+    setOfficialSyncMessage("");
+    try {
+      const response = await apiFetch("/api/orders/sync-statuses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orders: ordersToSync }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 409) {
+        setOfficialSyncMessage(
+          "Une synchronisation est déjà en cours. Les données vont être rechargées."
+        );
+        await loadSheetData(false);
+        return;
+      }
+      if (!response.ok || data?.success !== true) {
+        throw new Error(data?.message || `HTTP ${response.status}`);
+      }
+
+      const updates = Array.isArray(data.updates) ? data.updates.length : 0;
+      const errors = Array.isArray(data.errors) ? data.errors.length : 0;
+      const notFound = Array.isArray(data.notFound) ? data.notFound.length : 0;
+      setOfficialSyncMessage(
+        `Synchronisation terminée : ${updates} statut(s) lu(s), ${errors} erreur(s), ${notFound} tracking(s) introuvable(s).`
+      );
+      await loadSheetData(false);
+    } catch (error) {
+      setOfficialSyncMessage(
+        error instanceof Error
+          ? `Synchronisation impossible : ${error.message}`
+          : "Synchronisation impossible."
+      );
+    } finally {
+      setOfficialSyncLoading(false);
+    }
+  }, [
+    loadSheetData,
+    officialSyncLoading,
+    orderDeliverySettings,
+    rows,
+  ]);
+
 
   const handleUpdateRowStatus = useCallback(
     async (
@@ -4388,7 +4543,24 @@ Zm0 14H8V7h9v12Z"
                 ? "Préparation de la feuille…"
                 : "Ouvrir la feuille Google"}
             </button>
+            <button
+              type="button"
+              className="orders-link"
+              disabled={officialSyncLoading}
+              onClick={() => void handleRefreshOfficialStatuses()}
+              title="Lire maintenant les statuts officiels DHD/Sook et mettre à jour la feuille"
+            >
+              {officialSyncLoading
+                ? "Synchronisation…"
+                : "Actualiser les statuts DHD"}
+            </button>
           </div>
+
+          {officialSyncMessage && (
+            <p className="orders-state" role="status">
+              {officialSyncMessage}
+            </p>
+          )}
 
           <div className="orders-toolbar__row orders-toolbar__row--filters">
             <span className="orders-filter-label">Filtrer par période :</span>
@@ -4599,13 +4771,12 @@ Zm0 14H8V7h9v12Z"
                               continue;
                             }
                             // Calcul montant similaire au flux individuel
-                            const quantityForTotal = (() => {
-                              return parsePositiveIntegerQuantity(
+                            const quantityForTotal =
+                              parsePositiveIntegerQuantity(
                                 row["Quantité"] ||
                                 row["Quantite"] ||
                                 row["Qte"]
-                              ) ?? 1;
-                            })();
+                              );
                             const unitPriceForTotal = (() => {
                               const candidates = [
                                 "Prix unitaire",
@@ -4639,17 +4810,16 @@ Zm0 14H8V7h9v12Z"
                               return null;
                             })();
                             const computedFromUnit =
-                              unitPriceForTotal !== null
+                              unitPriceForTotal !== null &&
+                                quantityForTotal !== null
                                 ? unitPriceForTotal * quantityForTotal
                                 : null;
                             const montantNumber =
                               amountFromSheet ??
-                              computedFromUnit ??
-                              quantityForTotal * 1000;
-                            const wilayaCode =
-                              parseInt(
-                                String(getWilayaIdByName(row["Wilaya"] as any))
-                              ) || 16;
+                              computedFromUnit;
+                            const wilayaCode = Number(
+                              getWilayaIdByName(row["Wilaya"] as any)
+                            );
                             const communeResolved = resolveCommuneName(
                               (row["Commune"] as any) || "",
                               (row["Wilaya"] as any) || "",
@@ -4683,38 +4853,113 @@ Zm0 14H8V7h9v12Z"
                                 )
                                 ] || ""
                               ).trim() || remarkFromSheet;
+                            const address = String(
+                              row["Adresse"] ??
+                              row["adresse"] ??
+                              row["Address"] ??
+                              ""
+                            ).trim();
+                            const bulkValidationErrors: string[] = [];
+                            if (!s.rowId) bulkValidationErrors.push("identifiant de ligne");
+                            if (!(s.name || s.rawName)) {
+                              bulkValidationErrors.push("nom du client");
+                            }
+                            if (!/^\d{9,10}$/.test(s.phoneDial)) {
+                              bulkValidationErrors.push("telephone valide");
+                            }
+                            if (!address) bulkValidationErrors.push("adresse");
+                            if (
+                              !Number.isInteger(wilayaCode) ||
+                              wilayaCode < 1 ||
+                              wilayaCode > 58
+                            ) {
+                              bulkValidationErrors.push("wilaya");
+                            }
+                            if (!communeResolved) {
+                              bulkValidationErrors.push("commune");
+                            }
+                            if (
+                              montantNumber === null ||
+                              !Number.isFinite(montantNumber) ||
+                              montantNumber < 0
+                            ) {
+                              bulkValidationErrors.push("montant total");
+                            }
+                            if (bulkValidationErrors.length > 0) {
+                              alert(
+                                `Commande ${s.displayRowLabel || s.rowId || "sélectionnée"} non envoyée. Champs manquants ou invalides : ${bulkValidationErrors.join(
+                                  ", "
+                                )}.`
+                              );
+                              continue;
+                            }
+                            const secondaryPhone = normalizePhone(
+                              firstNonEmptyRowValue(row, [
+                                "Numero 2",
+                                "Numéro 2",
+                                "Téléphone 2",
+                                "Telephone 2",
+                                "Tel 2",
+                                "Phone 2",
+                              ])
+                            );
+                            const communeForApi = String(communeResolved || "")
+                              .normalize("NFD")
+                              .replace(/[\u0300-\u036f]/g, "");
                             const payload = {
                               reference: extractReference(row) || s.rowId,
                               nom_client: s.name || s.rawName || "",
                               telephone: s.phoneDial || "",
-                              telephone_2: s.phoneDial || "",
-                              adresse:
-                                String(
-                                  row["Adresse"] ??
-                                  row["adresse"] ??
-                                  row["Address"] ??
-                                  ""
-                                ).trim() ||
-                                `${communeResolved || "alger"}, ${String(row["Wilaya"] ?? "").trim()}`,
+                              telephone_2: secondaryPhone,
+                              adresse: address,
+                              code_postal: firstNonEmptyRowValue(row, [
+                                "Code postal",
+                                "Code Postal",
+                                "code_postal",
+                                "CP",
+                              ]),
                               code_wilaya: wilayaCode,
-                              montant: String(Math.round(montantNumber)),
+                              montant: String(Math.round(montantNumber as number)),
                               type: "1",
                               stop_desk:
                                 getDeliveryModeFromRow(row) === "stop_desk"
                                   ? 1
                                   : 0,
                               stock: "0",
-                              fragile: "0",
+                              quantite: quantityForTotal ?? undefined,
+                              fragile: readBooleanRowFlag(row, [
+                                "Fragile",
+                                "fragile",
+                              ]),
                               produit:
                                 extractProductLabel(row) ||
                                 (row["Produit"] as any) ||
                                 "",
-                              commune: communeResolved || "alger",
+                              produit_a_recuperer: firstNonEmptyRowValue(row, [
+                                "Produit à récupérer",
+                                "Produit a recuperer",
+                                "produit_a_recuperer",
+                              ]),
+                              boutique: firstNonEmptyRowValue(row, [
+                                "Boutique",
+                                "Shop",
+                              ]),
+                              weight: firstNonEmptyRowValue(row, [
+                                "Poids",
+                                "Weight",
+                              ]),
+                              gps_link: firstNonEmptyRowValue(row, [
+                                "Lien GPS",
+                                "GPS",
+                                "gps_link",
+                              ]),
+                              commune: communeForApi,
                               remarque: finalRemark,
-                              Remarque: finalRemark,
                             };
                             if (DEBUG_ORDERS) {
-                              console.log("[BULK] Envoi securise", payload);
+                              debugLog("[BULK] Envoi securise", {
+                                rowId: s.rowId,
+                              });
                             }
                             const resp = await apiFetch("/api/orders/send", {
                               method: "POST",
@@ -4730,7 +4975,10 @@ Zm0 14H8V7h9v12Z"
                             });
                             const data = await resp.json().catch(() => ({}));
                             if (DEBUG_ORDERS) {
-                              console.log("[BULK] Response", resp.status, data);
+                              debugLog("[BULK] Response", resp.status, {
+                                success: data?.success === true,
+                                hasTracking: Boolean(data?.tracking),
+                              });
                             }
                             if (
                               resp.ok &&
@@ -4754,8 +5002,7 @@ Zm0 14H8V7h9v12Z"
                             } else {
                               console.error(
                                 "[BULK] API error",
-                                resp.status,
-                                data
+                                { status: resp.status }
                               );
                               alert(
                                 `Erreur API (${resp.status}) pour ${s.rawName || s.name

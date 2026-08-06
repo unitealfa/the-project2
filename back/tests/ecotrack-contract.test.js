@@ -25,7 +25,11 @@ const {
 } = require('../dist/src/orders/googleSheetError.js');
 const {
   getSheetEditUrl,
+  selectPrimarySheetStatus,
 } = require('../dist/src/orders/order.service.js');
+const {
+  sanitizeOrderPayload,
+} = require('../dist/src/orders/orderApi.controller.js');
 const orderRouter = require('../dist/src/orders/order.routes.js').default;
 
 test('les routes protegees refusent une requete sans JWT', () => {
@@ -134,6 +138,33 @@ test('ECOTRACK: un succes de creation doit contenir un tracking', () => {
   );
 });
 
+test('ECOTRACK: le payload de creation exige les champs officiels et conserve les options utiles', () => {
+  assert.throws(
+    () => sanitizeOrderPayload({ nom_client: 'Fixture' }),
+    /Champs commande manquants/
+  );
+  const payload = sanitizeOrderPayload({
+    reference: 'REF-FIXTURE',
+    nom_client: 'Fixture',
+    telephone: '0550 00 00 00',
+    telephone_2: '',
+    adresse: 'Adresse fixture',
+    commune: 'Commune fixture',
+    code_wilaya: 16,
+    montant: '2500',
+    produit: 'Produit fixture',
+    quantite: 2,
+    type: 1,
+    stop_desk: 0,
+    champ_invente: 'interdit',
+  });
+  assert.equal(payload.telephone, '0550000000');
+  assert.equal(payload.code_wilaya, 16);
+  assert.equal(payload.montant, 2500);
+  assert.equal(payload.quantite, 2);
+  assert.equal(Object.hasOwn(payload, 'champ_invente'), false);
+});
+
 test('ECOTRACK: lots de 1, 100 et 101 trackings sans depasser le contrat', () => {
   assert.deepEqual(chunkTrackings(['A']), [['A']]);
   assert.deepEqual(chunkTrackings(Array.from({ length: 100 }, (_, i) => `T${i}`)).map((x) => x.length), [100]);
@@ -162,6 +193,18 @@ test('tracking/info: seule la liste activity est exposee comme historique', () =
   assert.deepEqual(parseTrackingActivity({ status: 'en_livraison' }), []);
 });
 
+test('Google Sheets: le statut DHD exact utilise la colonne principale sans colonne dediee', () => {
+  assert.equal(
+    selectPrimarySheetStatus('SHIPPED', 'en_livraison', false),
+    'en_livraison'
+  );
+  assert.equal(
+    selectPrimarySheetStatus('SHIPPED', 'en_livraison', true),
+    'SHIPPED'
+  );
+  assert.equal(selectPrimarySheetStatus('livrée', undefined, false), 'livrée');
+});
+
 test('mapping exhaustif des statuts officiels fournis par la collection', () => {
   const table = {
     prete_a_expedier: 'ready_to_ship',
@@ -186,6 +229,39 @@ test('mapping exhaustif des statuts officiels fournis par la collection', () => 
   };
   for (const [carrierStatus, expected] of Object.entries(table)) {
     assert.equal(mapCarrierStatus(carrierStatus), expected, carrierStatus);
+  }
+});
+
+test('la collection Postman officielle ne contient aucun statut non mappe', () => {
+  const collection = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, '../../ECOTRACK API.postman_collection.json'),
+      'utf8'
+    )
+  );
+  const requests = [];
+  const walk = (items) => {
+    for (const item of items || []) {
+      if (item.request) requests.push(item);
+      if (item.item) walk(item.item);
+    }
+  };
+  walk(collection.item);
+  const statusRequest = requests.find(
+    (item) =>
+      `/${(item.request.url?.path || []).join('/')}` ===
+      '/api/v1/get/orders/status'
+  );
+  assert.ok(statusRequest, 'endpoint officiel get/orders/status absent');
+  const documentedStatuses = Array.from(
+    String(statusRequest.request.description || '').matchAll(
+      /\*\*([a-z_]+),?\*\*/g
+    ),
+    (match) => match[1]
+  ).filter((status) => status !== 'all');
+  assert.equal(documentedStatuses.length, 19);
+  for (const status of documentedStatuses) {
+    assert.notEqual(mapCarrierStatus(status), null, status);
   }
 });
 
@@ -221,11 +297,60 @@ test('les actions manuelles livree et abandonnee restent disponibles', () => {
   );
   assert.match(ordersPage, /Marquer livrée/);
   assert.match(ordersPage, /Abandonnée/);
+  assert.match(ordersPage, /Actualiser les statuts DHD/);
+  assert.match(ordersPage, /\/api\/orders\/sync-statuses/);
   assert.doesNotMatch(ordersPage, /manualStatusAllowed/);
   assert.doesNotMatch(
     orderController,
     /ne peut être modifié que par la synchronisation officielle/
   );
+});
+
+test("l'envoi DHD ne remplace jamais une wilaya absente ou inconnue par Alger", () => {
+  const ordersPage = fs.readFileSync(
+    path.resolve(__dirname, '../../front/src/pages/Orders.tsx'),
+    'utf8'
+  );
+  const resolverStart = ordersPage.indexOf('function getWilayaIdByName');
+  const resolverEnd = ordersPage.indexOf('const normalizePhone', resolverStart);
+  assert.ok(resolverStart >= 0 && resolverEnd > resolverStart);
+  const resolver = ordersPage.slice(resolverStart, resolverEnd);
+  assert.doesNotMatch(resolver, /return\s+16/);
+  assert.match(resolver, /return\s+0/);
+  assert.doesNotMatch(ordersPage, /communeResolved\s*\|\|\s*["']alger["']/i);
+  assert.doesNotMatch(ordersPage, /quantityForTotal\s*\*\s*1000/);
+});
+
+test('les journaux de diagnostic de la page commandes ignorent leurs details', () => {
+  const ordersPage = fs.readFileSync(
+    path.resolve(__dirname, '../../front/src/pages/Orders.tsx'),
+    'utf8'
+  );
+  const loggerStart = ordersPage.indexOf('const debugLog');
+  const loggerEnd = ordersPage.indexOf('const getScrollSnapshot', loggerStart);
+  assert.ok(loggerStart >= 0 && loggerEnd > loggerStart);
+  const logger = ordersPage.slice(loggerStart, loggerEnd);
+  assert.match(logger, /\.\.\._details:\s*unknown\[\]/);
+  assert.doesNotMatch(logger, /console\.log\([^\n]*details/);
+  assert.doesNotMatch(logger, /console\.log\([^\n]*\.\.\./);
+
+  const orderController = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/order.controller.ts'),
+    'utf8'
+  );
+  const backendLoggerStart = orderController.indexOf('const debugLog');
+  const backendLoggerEnd = orderController.indexOf(
+    'const sanitizeOrderRow',
+    backendLoggerStart
+  );
+  assert.ok(backendLoggerStart >= 0 && backendLoggerEnd > backendLoggerStart);
+  const backendLogger = orderController.slice(
+    backendLoggerStart,
+    backendLoggerEnd
+  );
+  assert.match(backendLogger, /\.\.\._details:\s*unknown\[\]/);
+  assert.doesNotMatch(backendLogger, /console\.log\([^\n]*details/);
+  assert.doesNotMatch(backendLogger, /console\.log\([^\n]*\.\.\./);
 });
 
 test('create/order et valid/order precedent toute ecriture du Sheet et du stock', () => {
@@ -235,11 +360,13 @@ test('create/order et valid/order precedent toute ecriture du Sheet et du stock'
   );
   const createIndex = controller.indexOf('await client.createOrder(orderPayload)');
   const validateIndex = controller.indexOf('await client.validateOrder(tracking, askCollection)');
+  const officialStatusIndex = controller.indexOf('await client.getStatuses([tracking])');
   const sheetIndex = controller.indexOf('await sheetService.updateStatus({', validateIndex);
   const stockIndex = controller.indexOf('await reconcileOrderStock(rowId, targetStatus)', sheetIndex);
   assert.ok(createIndex >= 0);
   assert.ok(validateIndex > createIndex);
-  assert.ok(sheetIndex > validateIndex);
+  assert.ok(officialStatusIndex > validateIndex);
+  assert.ok(sheetIndex > officialStatusIndex);
   assert.ok(stockIndex > sheetIndex);
   assert.doesNotMatch(controller, /carrierStatus:\s*existing\?\.carrierStatus\s*\|\|\s*['"]prete_a_expedier/);
 });

@@ -16,9 +16,9 @@ import {
 import { classifyGoogleSheetError } from './googleSheetError';
 import { normalizeCarrierIdentifier } from './orderStatus';
 
-const debugLog = (...args: unknown[]) => {
+const debugLog = (event: string, ..._details: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
-    console.log(...args);
+    console.log(event);
   }
 };
 

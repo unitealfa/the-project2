@@ -40,6 +40,10 @@ const CARRIER_STATUS_HEADER_CANDIDATES = [
   'Statut DHD',
   'Statut ECOTRACK',
   'Carrier status',
+  'État du colis',
+  'Etat du colis',
+  'Statut du colis',
+  'Statut colis',
 ];
 const CARRIER_TYPE_HEADER_CANDIDATES = [
   'Transporteur',
@@ -95,6 +99,17 @@ const COMMUNE_HEADER_CANDIDATES = [
 ];
 
 const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export const selectPrimarySheetStatus = (
+  businessStatus: string,
+  carrierStatus: string | undefined,
+  hasDedicatedCarrierStatusColumn: boolean
+): string => {
+  const officialStatus = carrierStatus?.trim();
+  return officialStatus && !hasDedicatedCarrierStatusColumn
+    ? officialStatus
+    : businessStatus;
+};
 
 const extractRowNumber = (value: unknown): number | null => {
   if (value === undefined || value === null) {
@@ -338,17 +353,28 @@ export class SheetSyncService {
     if (!statusColumn) {
       throw new Error(`Colonne statut introuvable dans la feuille "${getSheetName()}".`);
     }
+    const officialCarrierStatus = carrierStatus?.trim();
+    const carrierStatusColumn = officialCarrierStatus
+      ? await this.resolveColumnLetter(CARRIER_STATUS_HEADER_CANDIDATES)
+      : null;
     updates.push({
       range: `${sheetRangePrefix()}!${statusColumn}${rowNumber}`,
-      values: [[status]],
+      values: [[
+        selectPrimarySheetStatus(
+          status,
+          officialCarrierStatus,
+          Boolean(carrierStatusColumn)
+        ),
+      ]],
     });
 
-    if (carrierStatus?.trim()) {
-      const column = await this.resolveColumnLetter(CARRIER_STATUS_HEADER_CANDIDATES);
-      if (column) {
+    if (officialCarrierStatus && carrierStatusColumn) {
+      if (carrierStatusColumn === statusColumn) {
+        updates[0].values = [[officialCarrierStatus]];
+      } else {
         updates.push({
-          range: `${sheetRangePrefix()}!${column}${rowNumber}`,
-          values: [[carrierStatus.trim()]],
+          range: `${sheetRangePrefix()}!${carrierStatusColumn}${rowNumber}`,
+          values: [[officialCarrierStatus]],
         });
       }
     }

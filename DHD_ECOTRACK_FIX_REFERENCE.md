@@ -1,7 +1,7 @@
 # Reference de correction DHD / ECOTRACK
 
-Derniere mise a jour : 2026-08-04  
-Etat global : **backend Vercel deploye et route Sheet/CORS verifies; validation DHD/Sheet authentifiee et rotations restantes**
+Derniere mise a jour : 2026-08-06
+Etat global : **flux DHD/Sheet corrige et valide localement; deploiement et colis de preuve Production restants**
 Portee : commandes, statuts transporteur, Google Sheets, MongoDB, frontend,
 backend et execution Vercel.
 
@@ -74,25 +74,23 @@ representer uniquement la derniere valeur exacte lue chez DHD/Sook.
 ## 3. Architecture actuelle verifiee
 
 ```text
-Google Sheet public CSV
-        |
-        v
-front/src/pages/Orders.tsx -- appels directs --> ECOTRACK / DHD
-        |
-        v
-back/src/orders/* --> Google Sheets API
-        |
-        +----------> MongoDB (copie partielle des commandes)
+front/src/pages/Orders.tsx -- JWT --> back/src/orders/order.routes.ts
+                                      |-- create/order puis valid/order
+                                      |-- get/orders/status cible/groupe
+                                      |-- MongoDB (metier + statut exact)
+                                      +-- Google Sheets API (statut exact)
+
+GitHub Actions (5 minutes) -- secret --> route cron backend
 ```
 
-- Le frontend recharge le CSV Google Sheet toutes les 10 secondes.
-- La creation ECOTRACK est actuellement faite directement depuis le
-  navigateur.
-- Le frontend demande une synchro officielle toutes les 5 minutes, uniquement
-  lorsque la page Commandes est ouverte.
-- Le backend balaie les pages de `/api/v1/get/orders`, puis ecrit le statut
-  simplifie dans Google Sheets.
-- Le scheduler Node est desactive sur Vercel.
+- Le frontend recharge le Google Sheet via le backend toutes les 10 secondes.
+- La creation/validation ECOTRACK est faite uniquement par le backend; aucun
+  token transporteur n'est inclus dans le bundle navigateur.
+- Apres validation, le backend lit immediatement le statut du tracking cible.
+- Le bouton manuel et le cron utilisent `/api/v1/get/orders/status`, groupe par
+  compte et par paquets de 100; aucun scan global de `/get/orders` ne subsiste.
+- Le scheduler Node est desactive sur Vercel; GitHub Actions appelle la route
+  cron protegee toutes les cinq minutes.
 
 ## 4. Faits verifies et preuves de depart
 
@@ -201,7 +199,7 @@ tests de table avant son utilisation en production.
 
 ### B-002 — Critique — Aucun scheduler persistant sur Vercel
 
-- Etat : `[~] route et planification 5 minutes ajoutees; route Production validee par un appel autorise HTTP 200; executions GitHub #4 a #23 en echec car le secret GitHub est absent ou different; remplacement du secret et nouveau run requis`
+- Etat : `[~] route et planification ajoutees; route Production HTTP 200 et run planifie GitHub #24 reussi; transition reelle d'une commande sans navigateur encore a prouver`
 - Fichiers : `back/src/app.ts`, `back/src/orders/orderStatusScheduler.ts`,
   `back/vercel.json` ou configuration de deploiement.
 - Cause : `setInterval` desactive sur Vercel.
@@ -229,7 +227,7 @@ tests de table avant son utilisation en production.
 
 ### B-005 — Critique — `valid/order` absent
 
-- Etat : `[~] ordre create/valid avant Sheet corrige et teste localement; flux DHD staging restant`
+- Etat : `[~] ordre create/valid/lecture immediate du statut avant Sheet corrige et teste localement; flux DHD staging restant`
 - Fichiers : futur client/backend de commandes, frontend.
 - Cause : creation et expedition confondues localement.
 - Decision requise : le bouton actuel doit-il creer seulement, ou creer puis
@@ -368,7 +366,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 5 — Cron serverless fiable
 
-- Etat : `[~] route, secret, verrou et horaire ajoutes; route deployee prouvee par HTTP 200 autorise; scheduler GitHub bloque par son secret absent ou different`
+- Etat : `[~] route, secret, verrou et horaire ajoutes; route HTTP 200 et run planifie GitHub #24 reussi; changement reel d'une commande page fermee restant`
 - Exposer une route de cron protegee par secret.
 - Configurer le scheduler de deploiement.
 - Limiter les commandes candidates et traiter par lots bornes.
@@ -418,6 +416,7 @@ tests de table avant son utilisation en production.
 | HTTP 422 | Champs ECOTRACK affiches proprement | `[ ]` |
 | Creation puis validation | Etat ECOTRACK conforme au bouton | `[~] code, test staging restant` |
 | Echec de `valid/order` | Aucun `ready_to_ship` ecrit dans le Sheet | `[~] ordre code teste, integration staging restante` |
+| Lecture immediate apres validation | Statut exact DHD lu puis persiste; echec non bloquant repris par cron | `[x] ordre code et fixture source testes; integration DHD restante` |
 | Stock local insuffisant/introuvable | Envoi DHD non bloque; avertissement stock separe | `[~] code et build, integration DB/DHD restante` |
 | Lot partiellement reussi | Chaque commande garde son propre resultat | `[~] code, test staging restant` |
 | 1 tracking | Une synchro ciblee, aucune pagination globale | `[x] test de decoupage local` |
@@ -425,6 +424,7 @@ tests de table avant son utilisation en production.
 | 101 trackings | Deux paquets, resultats fusionnes | `[x] test de decoupage local` |
 | Tracking introuvable | La commande suivante est traitee | `[~] code, integration DB restante` |
 | Statut inconnu | Statut exact conserve et alerte observable | `[x] fixture locale + code` |
+| Statut exact dans Sheet sans colonne dediee | La colonne statut principale recoit la valeur DHD exacte | `[x] structure d'en-tete reelle + fonction testee; ecriture live restante` |
 | `suspendu` | Categorie `suspended` | `[x] table testee` |
 | Retour intermediaire | Pas de retour final premature | `[x] table testee` |
 | Retour final | Categorie `returned` | `[x] table testee` |
@@ -432,13 +432,13 @@ tests de table avant son utilisation en production.
 | Actions manuelles livree/abandonnee | Boutons actifs; tracking et statut transporteur exact non falsifies | `[x] garde source et build local` |
 | 429 | Backoff borne, pas de boucle infinie | `[~] code borne, fixture HTTP restante` |
 | Timeout DHD | Erreur par lot/commande, prochain cron possible | `[ ]` |
-| Cron sans navigateur | Statut mis a jour | `[~] appel autorise Production HTTP 200; prochain run GitHub apres remplacement du secret restant` |
+| Cron sans navigateur | Statut mis a jour | `[~] run planifie #24 vert; commande ayant effectivement change d'etat restante` |
 | Deux crons concurrents | Pas de double ecriture/stock | `[~] verrou code, test DB restant` |
 | Remarque libre | Aucun changement de statut | `[x] fixture locale` |
 | Rechargement page | Transporteur et statut conserves | `[~] hydratation code, test navigateur restant` |
 | Appel route sans JWT | 401/403 | `[x] middleware teste localement` |
 | Bundle frontend | Aucun token/secret | `[x] scan rg du build` |
-| Build front et back | Succes | `[x] 2026-08-04` |
+| Build front et back | Succes | `[x] 2026-08-06` |
 
 ## 10. Definition de termine
 
@@ -462,7 +462,7 @@ Le chantier n'est termine que si :
 |---|---|---|
 | D-001 | « Confirmer et envoyer » doit-il appeler automatiquement `valid/order` ? | `[x] oui, conforme au libelle; parametre backend desactivable` |
 | D-002 | Quelle frequence de synchro souhaitee : 1, 2, 5 ou 10 minutes ? | `[x] 5 minutes, reprise du comportement UI existant` |
-| D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] ne remplace pas etat; Mongo/UI + colonne Sheet optionnelle` |
+| D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] colonne dediee si elle existe; sinon la colonne etat actuelle recoit le statut DHD exact` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
 | D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[ ] a concevoir` |
 | D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; decision explicite utilisateur, statut metier local uniquement` |
@@ -1090,6 +1090,78 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   `CRON_SECRET` > valeur identique a `back/.env`, puis Actions >
   Synchronisation des statuts ECOTRACK > Run workflow.
 
+### Entree 20 — 2026-08-06 — Flux complet du bouton DHD et statut exact dans le Sheet
+
+- Etapes : 2, 3, 4, 5, 6 et 8. Anomalies surveillees : B-002, B-005,
+  B-009, B-010, B-013 et B-014. Objectif : garantir que le bouton bleu cree
+  puis valide le colis chez DHD avec les donnees officielles et que chaque
+  changement DHD, y compris livraison et retours, converge vers Mongo, Sheet
+  et interface.
+- Contrat relu integralement et extrait de
+  `ECOTRACK API.postman_collection.json` : `POST /create/order` accepte les
+  champs reference, client, telephones, adresse, code postal, commune, wilaya,
+  montant, remarque, produit, stock, quantite, produit a recuperer, boutique,
+  type, stop desk, poids, fragile et GPS. Son exemple 422 exige notamment nom,
+  telephone, adresse, wilaya, commune, montant et type. Un succes exige
+  `success:true` et un tracking; HTTP 200 avec `success:false` reste un refus.
+  `POST /valid/order` valide et expedie; `GET /get/orders/status` accepte au
+  maximum 100 trackings et documente 19 statuts plus `all`. Aucun webhook de
+  statut n'est documente.
+- Flux actif confirme : `front/src/main.tsx` importe la page active
+  `front/src/pages/Orders.tsx`; le bouton bleu appelle la route JWT
+  `POST /api/orders/send`. Le backend fait create, conserve le tracking
+  anti-doublon, fait valid, puis seulement apres succes ecrit Mongo/Sheet et
+  reconcilie le stock. Les copies interdites n'ont pas ete consultees.
+- Ecarts prouves : les flux individuel et groupe inventaient encore une
+  wilaya 16, une commune/adresse de secours et un montant `quantite * 1000`
+  lorsque les donnees etaient absentes. Apres valid, aucune lecture immediate
+  du statut officiel n'etait faite. Enfin, une lecture reelle limitee a la
+  ligne d'en-tete du Sheet a trouve 12 colonnes, une seule colonne de statut et
+  aucune colonne dediee DHD/ECOTRACK ou « etat du colis »; `carrierStatus`
+  etait donc ignore par l'ecriture Google actuelle.
+- Fichiers touches : `back/src/orders/orderApi.controller.ts`,
+  `back/src/orders/order.controller.ts`, `back/src/orders/order.service.ts`,
+  `back/tests/ecotrack-contract.test.js`, `front/src/pages/Orders.tsx` et cette
+  reference.
+- Creation corrigee : aucune valeur obligatoire n'est plus inventee. Le bouton
+  refuse clairement nom, telephone, adresse, wilaya, commune ou montant
+  absent/invalide. Une wilaya vide ou inconnue vaut desormais `0`, declenche la
+  correction et ne peut plus etre transformee silencieusement en Alger `16`.
+  Les valeurs optionnelles disponibles sont transmises :
+  second telephone distinct, code postal, quantite, produit a recuperer,
+  boutique, poids, fragile et lien GPS. Les logs de l'envoi ne recopient plus
+  le payload ni la reponse complete.
+- Statut immediat : apres le succes de `valid/order`, le backend appelle
+  `get/orders/status` uniquement pour le tracking cree/reutilise. Il conserve
+  le statut exact, applique le mapping metier et ecrit ensuite le Sheet. Si DHD
+  ne rend pas encore le statut disponible ou si cette lecture echoue, la
+  commande deja acceptee reste un succes avec avertissement et le cron reprend.
+- Sheet : lorsqu'une colonne transporteur dediee existe, le statut metier reste
+  dans la colonne principale et le statut exact va dans la colonne dediee.
+  Pour la feuille actuelle qui n'en possede pas, la colonne de statut principale
+  recoit directement la valeur exacte DHD, comme demande. Mongo conserve en
+  parallele la categorie metier necessaire au stock et aux permissions.
+- Interface : ajout du bouton `Actualiser les statuts DHD`. Il envoie seulement
+  les commandes ayant tracking et transporteur persiste vers la route groupee
+  officielle, recharge ensuite le Sheet et affiche des compteurs sans donnee
+  client. Le cron GitHub reste la garantie page fermee; le run planifie #24 a
+  ete observe vert, mais aucune transition de colis cible n'a encore ete
+  comparee de bout en bout.
+- Tests executes : `npm test` a la racine reussi le 2026-08-06 : build
+  TypeScript backend, test contractuel backend, typecheck frontend et build
+  Vite de production reussis. Le test backend controle le payload, le statut
+  Sheet, l'ordre create/valid/getStatus/Sheet/stock, l'absence de fallback
+  wilaya/commune/montant et la non-divulgation des details de diagnostic. Le
+  test derive directement les 19 statuts depuis la collection et exige un
+  mapping pour chacun. `git diff --check` reussi.
+- Securite : seule la ligne d'en-tete Google a ete lue et son contenu n'a pas
+  ete affiche. Aucun token, tracking reel, valeur de cellule ou donnee client
+  n'a ete journalise. Aucun colis reel DHD n'a ete cree ou modifie pendant
+  cette correction.
+- Etat : implementation locale validee par la suite automatisee. La preuve
+  Production exige un colis de test autorise avec comparaison DHD, Mongo,
+  colonne statut Google et interface, puis un changement livraison/retour.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -1116,13 +1188,13 @@ Reference anti-hallucination  TERMINE
 Implementation backend       TERMINEE LOCALEMENT
 Migration frontend            TERMINEE LOCALEMENT
 Cron Vercel                   RETIRE CAR INCOMPATIBLE AVEC HOBBY
-Cron GitHub 5 minutes         ROUTE LIVE HTTP 200; RUNS #4-#23 EN ECHEC, SECRET GITHUB A REMPLACER
+Cron GitHub 5 minutes         ROUTE LIVE HTTP 200; RUN PLANIFIE #24 REUSSI, TRANSITION REELLE RESTANTE
 Rotation secrets              A EFFECTUER DANS LES SERVICES
 Configuration locale          VARIABLES DHD/SHEET PRESENTES; VALIDATION COMPLETE RESTANTE
 Tests contractuels            SUITE RACINE REUSSIE LE 2026-08-06, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
-Validation staging            TRANSACTION/RETOURS CORRIGES LOCALEMENT; FLUX AUTHENTIFIE DHD/SHEET/STOCK RESTANT
+Validation staging            FLUX COMPLET CORRIGE LOCALEMENT; COLIS TEST DHD/SHEET/STOCK RESTANT
 JWT production                CONFIGURE; RECONNEXION ET FLUX AUTHENTIFIE A VALIDER
 Deploiement corrige            NOUVEAU BACKEND PRODUCTION READY; FRONT LOCAL RELIE
 ```
