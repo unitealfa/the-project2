@@ -19,9 +19,18 @@ export interface IOrder extends Document {
   stockDebitedAt?: Date;
   stockRestoredAt?: Date;
   sendInProgressUntil?: Date;
+  carrierTrackingHistory?: CarrierTrackingHistoryEntry[];
 }
 
 export type StockAdjustmentState = 'not_debited' | 'debited' | 'restored';
+
+export interface CarrierTrackingHistoryEntry {
+  tracking: string;
+  deliveryType: 'api_dhd' | 'api_sook';
+  carrierStatus?: string;
+  endedAt: Date;
+  reason: 'missing_at_carrier' | 'carrier_cancelled';
+}
 
 const OrderSchema = new Schema({
   rowId: { type: String, required: true, unique: true, trim: true, maxlength: 100 },
@@ -48,7 +57,23 @@ const OrderSchema = new Schema({
   },
   stockDebitedAt: { type: Date },
   stockRestoredAt: { type: Date },
-  sendInProgressUntil: { type: Date }
+  sendInProgressUntil: { type: Date },
+  carrierTrackingHistory: [{
+    _id: false,
+    tracking: { type: String, required: true, trim: true, maxlength: 100 },
+    deliveryType: {
+      type: String,
+      required: true,
+      enum: ['api_dhd', 'api_sook'],
+    },
+    carrierStatus: { type: String, maxlength: 160 },
+    endedAt: { type: Date, required: true },
+    reason: {
+      type: String,
+      required: true,
+      enum: ['missing_at_carrier', 'carrier_cancelled'],
+    },
+  }]
 }, {
   timestamps: true
 });

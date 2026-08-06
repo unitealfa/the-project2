@@ -325,8 +325,8 @@ tests de table avant son utilisation en production.
 
 ### B-015 — Haute — Tracking supprime chez DHD ignore localement
 
-- Etat : `[~] code et suite locale valides; redeploiement et nouvel essai live
-  restants`
+- Etat : `[~] code/suite et convergence live de seize cas verifies; un cas
+  ancien traite par B-017, redeploiement et nouvel essai utilisateur restants`
 - Cause : une reponse groupee reussie sans le tracking alimentait seulement
   `notFound`/`lastSyncError`, sans modifier le statut de la commande.
 - Correction : ecrire `Supprimé de DHD` ou `Supprimé de Sook` comme statut
@@ -342,6 +342,21 @@ tests de table avant son utilisation en production.
   principale a la place de `abandoned`.
 - Correction : conserver le statut officiel dans Mongo mais ne pas le fournir
   lors d'une ecriture manuelle Sheet.
+
+### B-017 — Haute — Reemission bloquee apres abandon ou suppression DHD
+
+- Etat : `[~] implementation et suite locale validees; redeploiement et preuve
+  live restants`
+- Preuve : apres suppression manuelle DHD ou abandon local, le clic bleu peut
+  retourner HTTP 409 « tracking et statut final » avant de verifier si le
+  tracking existe encore chez le transporteur.
+- Cause : `sendOrderToCarrier` applique le blocage final sur l'ancien etat
+  Mongo avant toute lecture DHD et reutilise un tracking supprime au lieu de
+  creer un nouveau colis.
+- Correction cible : verifier le tracking existant par les endpoints officiels
+  de lecture; le reutiliser s'il existe, archiver puis remplacer uniquement
+  s'il est confirme absent ou annule, et permettre la reactivation locale de
+  `abandoned` sans autoriser la recreation d'une livraison/retour final.
 
 ## 8. Plan d'implementation obligatoire
 
@@ -453,7 +468,8 @@ tests de table avant son utilisation en production.
 | 1 tracking | Une synchro ciblee, aucune pagination globale | `[x] test de decoupage local` |
 | 100 trackings | Un paquet maximum conforme | `[x] test de decoupage local` |
 | 101 trackings | Deux paquets, resultats fusionnes | `[x] test de decoupage local` |
-| Tracking supprime/introuvable apres reponse DHD reussie | Etat local `Supprimé de DHD/Sook`, Sheet/Mongo mis a jour, surveillance maintenue | `[~] code/tests ajoutes, suite a executer` |
+| Tracking supprime/introuvable apres reponse DHD reussie | Etat local `Supprimé de DHD/Sook`, Sheet/Mongo mis a jour, surveillance maintenue | `[~] suite locale + seize convergences live anonymes; preuve du colis utilisateur apres redeploiement restante` |
+| Reemission apres suppression/abandon | Tracking existant verifie; absent/annule archive puis remplace; `abandoned` reactuable; aucun doublon sur erreur DHD | `[~] contrat, suite locale et lectures live sans mutation reussis; reemission live restante` |
 | Statut inconnu | Statut exact conserve et alerte observable | `[x] fixture locale + code` |
 | Statut exact dans Sheet sans colonne dediee | La colonne statut principale recoit la valeur DHD exacte | `[x] structure d'en-tete reelle + fonction testee; ecriture live restante` |
 | `suspendu` | Categorie `suspended` | `[x] table testee` |
@@ -499,6 +515,7 @@ Le chantier n'est termine que si :
 | D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; statut metier local et colonne principale Sheet, carrierStatus officiel conserve dans Mongo` |
 | D-007 | Que transmettre a DHD lorsque la colonne adresse est vide ? | `[x] utiliser la commune validee; conserver l'adresse detaillee lorsqu'elle existe` |
 | D-008 | Comment representer un colis supprime manuellement sur DHD ? | `[x] etat local `Supprimé de DHD/Sook` quand la lecture groupee reussit sans ce tracking; ne jamais l'ajouter aux 19 statuts officiels` |
+| D-009 | Comment reagir au clic bleu avec un ancien tracking supprime ou une commande `abandoned` ? | `[x] verifier DHD avant le blocage final; reutiliser un tracking existant, remplacer seulement un tracking confirme absent/annule, autoriser `abandoned`, bloquer les autres fins metier` |
 
 Une decision manquante ne doit bloquer que l'etape concernee. Les tests,
 refactorings internes et corrections independantes peuvent avancer sans
@@ -1297,6 +1314,65 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   en `[~]` uniquement jusqu'au redeploiement et aux deux preuves live : tracking
   supprime affiche dans le site/Sheet, puis clic « Abandonnée » affiche dans le
   Sheet.
+
+### Entree 24 — 2026-08-06 — Reemission apres suppression DHD ou abandon
+
+- Etapes : 1, 2, 3, 4, 6 et 8. Anomalies : B-015 et B-017.
+- Preuves utilisateur : un colis supprime manuellement reste affiche avec son
+  ancien etat; apres passage local a `abandoned`, le clic bleu retourne HTTP
+  409 « tracking et statut final » au lieu de permettre sa reprise.
+- Contrat relu : `GET /api/v1/get/orders/status` recherche jusqu'a 100
+  trackings; `GET /api/v1/get/orders` accepte un filtre `tracking`;
+  `DELETE /api/v1/delete/order` supprime avant validation. La collection
+  documente aussi `POST /api/v1/update/order`, mais ses noms de champs sont
+  contradictoires entre la requete principale et ses exemples; aucun appel de
+  modification n'est invente sans preuve supplementaire.
+- Diagnostic live en lecture seule, sans identifiant ni donnee client : un
+  tracking fictif absent retourne HTTP 200 avec `data: []`. Parmi vingt
+  commandes DHD recentes, dix-sept trackings ne sont plus retournes; seize ont
+  bien converge vers l'etat local supprime et un garde un ancien etat. Il n'y
+  a aucune erreur Google Sheet sur ces seize convergences.
+- Verification live complementaire avec un tracking fictif : la recherche
+  ciblee `GET /api/v1/get/orders` retourne HTTP 200, une structure paginee et
+  `data: []`; le parseur strict ajoute correspond donc a la reponse reelle
+  d'une absence sans exposer ni modifier une commande.
+- Cause confirmee : le blocage `isFinalBusinessStatus` intervient avant la
+  verification DHD. De plus, un tracking absent est reutilise par le flux
+  d'envoi et son ancien statut sert de fallback.
+- Decision D-009 : avant toute reemission, verifier le tracking existant. Une
+  absence doit etre confirmee par la lecture groupee puis la recherche ciblee;
+  sur panne ou reponse ambigue, ne jamais recreer. Archiver l'ancien tracking
+  avant remplacement. `abandoned` est reactuable; livraison et retour finaux
+  restent bloques.
+- Fichiers touches : `back/src/orders/ecotrack.client.ts`,
+  `back/src/orders/orderStatus.ts`, `back/src/orders/order.model.ts`,
+  `back/src/orders/orderApi.controller.ts`, `front/src/pages/Orders.tsx`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modifications : ajout d'une recherche ciblee stricte `get/orders` lorsque la
+  lecture groupee ne retrouve pas l'ancien tracking. Un tracking confirme
+  absent ou officiellement annule est archive (vingt entrees maximum), ses
+  metadonnees actives sont effacees, puis un nouveau colis est cree. Un
+  `abandoned` dont le tracking existe encore est reactualise depuis son statut
+  DHD. Les fins livraison/retour restent bloquees et toute erreur de lecture
+  interrompt la reemission avant `create/order`. L'archivage reconcilie aussi
+  le stock vers l'etat restaure avant la nouvelle creation; une recreation
+  reussie le redebite via la meme machine d'etat idempotente, tandis qu'un
+  echec de creation ne laisse plus le stock debite pour un tracking supprime.
+- Tests ajoutes : parseur strict de recherche ciblee, matrice des etats
+  reemissibles, ordre verification avant garde finale, archivage et indicateur
+  de recreation. Premiere execution `npm test` : build backend reussi, puis
+  echec d'une ancienne assertion de position qui selectionnait desormais la
+  lecture prealable au lieu de la lecture post-creation. L'assertion a ete
+  rendue explicite en cherchant la lecture post-validation; relance complete
+  effectuee avec succes.
+- Tests/commandes executes : `npm test` a la racine reussi apres la correction
+  du test (build TypeScript backend, tests contractuels, typecheck frontend et
+  build Vite de production). L'avertissement Vite sur les chunks superieurs a
+  500 kB est non bloquant et sans rapport avec ce flux.
+- Controle final : `git diff --check` reussi; sept fichiers suivis modifies,
+  tous limites au client/statuts/commande frontend, tests et cette reference.
+- Etat : implementation et validation locale terminees; redeploiement et
+  reemission d'un colis de test restent necessaires.
 
 ### Modele pour les prochaines entrees
 

@@ -33,6 +33,28 @@ const normalize = (value: string): string =>
     .trim()
     .toLowerCase();
 
+export const isAbandonedBusinessStatus = (status: unknown): boolean =>
+  typeof status === 'string' &&
+  ['abandoned', 'annule', 'annulee', 'canceled', 'cancelled'].includes(
+    normalize(status)
+  );
+
+export const canRecreateMissingCarrierOrder = (status: unknown): boolean => {
+  if (isMissingCarrierBusinessStatus(status)) return true;
+  if (typeof status !== 'string' || !status.trim()) return true;
+  return [
+    'new',
+    'ready to ship',
+    'prete a expedier',
+    'pret a expedier',
+    'abandoned',
+    'annule',
+    'annulee',
+    'canceled',
+    'cancelled',
+  ].includes(normalize(status));
+};
+
 export const OFFICIAL_SYNC_TERMINAL_STATUSES = [
   'returned',
   'retours',

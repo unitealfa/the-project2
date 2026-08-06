@@ -12,6 +12,9 @@ import {
 import { reconcileOrderStock } from './orderStockReconciliation.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
 import {
+  canRecreateMissingCarrierOrder,
+  getMissingCarrierBusinessStatus,
+  isAbandonedBusinessStatus,
   isFinalBusinessStatus,
   mapCarrierStatus,
   normalizeCarrierIdentifier,
@@ -219,19 +222,118 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
           'Cette commande possede deja un tracking chez un autre transporteur. Changez le transporteur uniquement apres verification manuelle.',
       });
     }
-    if (
-      isValidStoredTracking(existing?.tracking) &&
-      isFinalBusinessStatus(existing?.status)
-    ) {
-      return res.status(409).json({
-        success: false,
-        message: 'Cette commande possede deja un tracking et un statut final.',
-      });
-    }
     let tracking = isValidStoredTracking(existing?.tracking)
       ? existing.tracking
       : '';
     let reused = Boolean(tracking);
+    let recreated = false;
+    let preflightCarrierStatus = '';
+
+    if (tracking) {
+      const normalizedTracking = normalizeCarrierIdentifier(tracking);
+      const statuses = await client.getStatuses([tracking]);
+      const statusEntry = statuses.get(normalizedTracking);
+      preflightCarrierStatus = stringValue(statusEntry?.status);
+
+      let carrierOrderExists = Boolean(preflightCarrierStatus);
+      if (!carrierOrderExists) {
+        // Une collection de statuts vide peut signifier que le colis a ete
+        // supprime. La recherche ciblee officielle confirme l'absence avant
+        // toute creation afin d'eviter un doublon pendant une latence DHD.
+        const carrierOrder = await client.findOrder(tracking);
+        carrierOrderExists = Boolean(carrierOrder);
+        preflightCarrierStatus = stringValue(carrierOrder?.status);
+        if (carrierOrderExists && !preflightCarrierStatus) {
+          throw new EcotrackApiError(
+            'ECOTRACK retourne la commande sans statut exploitable.'
+          );
+        }
+      }
+
+      const carrierCancelled =
+        mapCarrierStatus(preflightCarrierStatus) === 'abandoned';
+      if (!carrierOrderExists || carrierCancelled) {
+        if (!canRecreateMissingCarrierOrder(existing?.status)) {
+          return res.status(409).json({
+            success: false,
+            message:
+              'Cette commande a atteint un statut final qui ne peut pas etre reemis automatiquement.',
+          });
+        }
+
+        const previousTracking = tracking;
+        const endedAt = new Date();
+        const replacementState = carrierCancelled
+          ? 'abandoned'
+          : getMissingCarrierBusinessStatus(deliveryType);
+        const archived = await Order.findOneAndUpdate(
+          { rowId, tracking: previousTracking },
+          {
+            $set: {
+              status: replacementState,
+              lastSyncAttemptAt: endedAt,
+              lastSyncError: carrierCancelled ? '' : 'tracking_not_found',
+            },
+            $unset: {
+              tracking: 1,
+              carrierStatus: 1,
+              carrierStatusUpdatedAt: 1,
+              carrierValidatedAt: 1,
+            },
+            $push: {
+              carrierTrackingHistory: {
+                $each: [{
+                  tracking: previousTracking,
+                  deliveryType,
+                  carrierStatus: stringValue(existing?.carrierStatus) || undefined,
+                  endedAt,
+                  reason: carrierCancelled
+                    ? 'carrier_cancelled'
+                    : 'missing_at_carrier',
+                }],
+                $slice: -20,
+              },
+            },
+          },
+          { new: true }
+        );
+        if (!archived) {
+          return res.status(409).json({
+            success: false,
+            message:
+              'La commande a change pendant la verification. Rechargez puis reessayez.',
+          });
+        }
+        try {
+          await reconcileOrderStock(rowId, replacementState);
+        } catch (error) {
+          await Order.updateOne(
+            { rowId },
+            {
+              $set: {
+                lastSyncError: `Stock: ${
+                  error instanceof Error ? error.message : 'Erreur inconnue'
+                }`.slice(0, 500),
+              },
+            }
+          );
+        }
+        existing = archived;
+        tracking = '';
+        reused = false;
+        recreated = true;
+        preflightCarrierStatus = '';
+      } else if (
+        isFinalBusinessStatus(existing?.status) &&
+        !isAbandonedBusinessStatus(existing?.status)
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            'Cette commande possede deja un tracking et un statut final non reactuable.',
+        });
+      }
+    }
 
     if (!tracking) {
       const created = await client.createOrder(orderPayload);
@@ -255,7 +357,13 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
               ? 'Validation ECOTRACK en attente.'
               : '',
           },
-          $unset: { deliveryPersonId: 1, deliveryPersonName: 1 },
+          $unset: {
+            deliveryPersonId: 1,
+            deliveryPersonName: 1,
+            carrierStatus: 1,
+            carrierStatusUpdatedAt: 1,
+            carrierValidatedAt: 1,
+          },
         },
         { upsert: true, new: true }
       );
@@ -296,10 +404,11 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       }
     }
 
-    let latestCarrierStatus = stringValue(existing?.carrierStatus);
+    let latestCarrierStatus =
+      preflightCarrierStatus || stringValue(existing?.carrierStatus);
     let latestCarrierStatusUpdatedAt = existing?.carrierStatusUpdatedAt;
     let statusSyncWarning = '';
-    if (tracking) {
+    if (tracking && !latestCarrierStatus) {
       try {
         const statuses = await client.getStatuses([tracking]);
         const normalizedTracking = normalizeCarrierIdentifier(tracking);
@@ -326,7 +435,9 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
     const mappedOfficialStatus = mapCarrierStatus(latestCarrierStatus);
     const targetStatus =
       mappedOfficialStatus ||
-      (previousStatus && previousStatus !== 'new'
+      (carrierCreated
+        ? 'ready_to_ship'
+        : previousStatus && previousStatus !== 'new'
         ? previousStatus
         : 'ready_to_ship');
     const now = new Date();
@@ -404,6 +515,7 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       success: true,
       tracking,
       reused,
+      recreated,
       validated: carrierValidated,
       status: targetStatus,
       carrierStatus: saved.carrierStatus,

@@ -13,6 +13,11 @@ export interface EcotrackStatusEntry {
   [key: string]: unknown;
 }
 
+export interface EcotrackOrderLookup {
+  tracking: string;
+  status?: string;
+}
+
 interface EcotrackConfig {
   type: DeliveryApiType;
   baseUrl: string;
@@ -217,6 +222,11 @@ export const chunkTrackings = (
   return chunks;
 };
 
+const normalizeTrackingKey = (value: unknown): string =>
+  typeof value === 'string'
+    ? value.trim().replace(/\s+/g, '').toUpperCase()
+    : '';
+
 export const parseStatusResponse = (
   payload: unknown
 ): Map<string, EcotrackStatusEntry> => {
@@ -247,9 +257,40 @@ export const parseStatusResponse = (
 
   Object.entries(data as Record<string, unknown>).forEach(([tracking, entry]) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;
-    result.set(tracking.trim().toUpperCase(), entry as EcotrackStatusEntry);
+    const normalizedTracking = normalizeTrackingKey(tracking);
+    if (!normalizedTracking) return;
+    result.set(normalizedTracking, entry as EcotrackStatusEntry);
   });
   return result;
+};
+
+export const parseOrderSearchResponse = (
+  payload: unknown,
+  requestedTracking: string
+): EcotrackOrderLookup | null => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: liste des commandes absente.'
+    );
+  }
+  const data = (payload as Record<string, unknown>).data;
+  if (!Array.isArray(data)) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: format de la liste des commandes inattendu.'
+    );
+  }
+
+  const expected = normalizeTrackingKey(requestedTracking);
+  for (const item of data) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const record = item as Record<string, unknown>;
+    const tracking = normalizeTrackingKey(record.tracking);
+    if (!tracking || tracking !== expected) continue;
+    const status =
+      typeof record.status === 'string' ? record.status.trim() : '';
+    return { tracking, ...(status ? { status } : {}) };
+  }
+  return null;
 };
 
 export const parseTrackingActivity = (payload: unknown): unknown[] => {
@@ -328,6 +369,30 @@ export class EcotrackClient {
       assertEcotrackSuccess(payload);
     }
     return parseStatusResponse(payload);
+  }
+
+  async findOrder(tracking: string): Promise<EcotrackOrderLookup | null> {
+    const normalizedTracking = normalizeTrackingKey(tracking);
+    if (!normalizedTracking) {
+      throw new EcotrackApiError('Tracking ECOTRACK invalide.');
+    }
+    const payload = await request<unknown>(this.config, {
+      method: 'GET',
+      url: '/api/v1/get/orders',
+      params: {
+        api_token: this.config.token,
+        tracking: normalizedTracking,
+        page: 1,
+      },
+    });
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      (payload as Record<string, unknown>).success === false
+    ) {
+      assertEcotrackSuccess(payload);
+    }
+    return parseOrderSearchResponse(payload, normalizedTracking);
   }
 
   async getTrackingActivity(tracking: string): Promise<unknown[]> {

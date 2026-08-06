@@ -1480,8 +1480,13 @@ const Orders: React.FC = () => {
           const carrierLabel =
             selectedDeliveryType === "api_sook" ? "Sook en ligne" : "BL Bébé";
 
+          const operationLabel = responseData.recreated
+            ? "recréé"
+            : responseData.reused
+              ? "réactivé et synchronisé"
+              : "créé";
           showToast(
-            `✅ Colis créé avec succès (${nom_client}) via ${carrierLabel}`,
+            `✅ Colis ${operationLabel} avec succès (${nom_client}) via ${carrierLabel}`,
             "success",
             3200
           );

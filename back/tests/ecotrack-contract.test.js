@@ -6,11 +6,14 @@ const path = require('node:path');
 const {
   assertEcotrackSuccess,
   chunkTrackings,
+  parseOrderSearchResponse,
   parseStatusResponse,
   parseTrackingActivity,
 } = require('../dist/src/orders/ecotrack.client.js');
 const {
   getMissingCarrierBusinessStatus,
+  canRecreateMissingCarrierOrder,
+  isAbandonedBusinessStatus,
   isMissingCarrierBusinessStatus,
   isFinalBusinessStatus,
   mapCarrierStatus,
@@ -225,6 +228,28 @@ test('ECOTRACK: le schema groupe data[tracking].status est parse sans heuristiqu
   );
 });
 
+test('ECOTRACK: la recherche ciblee confirme un tracking present ou absent', () => {
+  assert.deepEqual(
+    parseOrderSearchResponse(
+      { data: [{ tracking: ' eco-1 ', status: 'prete_a_expedier' }] },
+      'ECO-1'
+    ),
+    { tracking: 'ECO-1', status: 'prete_a_expedier' }
+  );
+  assert.equal(parseOrderSearchResponse({ data: [] }, 'ECO-1'), null);
+  assert.equal(
+    parseOrderSearchResponse(
+      { data: [{ tracking: 'ECO-2', status: 'prete_a_expedier' }] },
+      'ECO-1'
+    ),
+    null
+  );
+  assert.throws(
+    () => parseOrderSearchResponse({}, 'ECO-1'),
+    /format de la liste des commandes inattendu/
+  );
+});
+
 test('tracking/info: seule la liste activity est exposee comme historique', () => {
   const activity = [{ date: '2021-03-05', status: 'picked' }];
   assert.deepEqual(
@@ -263,6 +288,41 @@ test('un tracking absent devient un etat local supprime sans inventer un statut 
   assert.match(syncService, /missingForPersistence\.push\(order\)/);
   assert.match(syncService, /status:\s*getMissingCarrierBusinessStatus\(deliveryType\)/);
   assert.match(syncService, /lastSyncError:\s*'tracking_not_found'/);
+});
+
+test('la reemission est limitee aux etats annulables ou non expedies', () => {
+  assert.equal(isAbandonedBusinessStatus('abandoned'), true);
+  assert.equal(canRecreateMissingCarrierOrder('ready_to_ship'), true);
+  assert.equal(canRecreateMissingCarrierOrder('Supprimé de DHD'), true);
+  assert.equal(canRecreateMissingCarrierOrder('abandoned'), true);
+  assert.equal(canRecreateMissingCarrierOrder('SHIPPED'), false);
+  assert.equal(canRecreateMissingCarrierOrder('livrée'), false);
+  assert.equal(canRecreateMissingCarrierOrder('retours'), false);
+
+  const controller = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderApi.controller.ts'),
+    'utf8'
+  );
+  const verificationIndex = controller.indexOf('await client.getStatuses([tracking])');
+  const finalGuardIndex = controller.indexOf('isFinalBusinessStatus(existing?.status)');
+  const archiveIndex = controller.indexOf('carrierTrackingHistory');
+  const archiveStockIndex = controller.indexOf(
+    'await reconcileOrderStock(rowId, replacementState)',
+    archiveIndex
+  );
+  const recreateIndex = controller.indexOf(
+    'await client.createOrder(orderPayload)',
+    archiveIndex
+  );
+  assert.ok(verificationIndex >= 0 && finalGuardIndex > verificationIndex);
+  assert.ok(
+    archiveIndex >= 0 &&
+      archiveStockIndex > archiveIndex &&
+      recreateIndex > archiveStockIndex
+  );
+  assert.match(controller, /await client\.findOrder\(tracking\)/);
+  assert.match(controller, /carrierTrackingHistory/);
+  assert.match(controller, /recreated/);
 });
 
 test('mapping exhaustif des statuts officiels fournis par la collection', () => {
@@ -464,7 +524,10 @@ test('create/order et la validation optionnelle precedent toute ecriture du Shee
   );
   const createIndex = controller.indexOf('await client.createOrder(orderPayload)');
   const validateIndex = controller.indexOf('await client.validateOrder(tracking, askCollection)');
-  const officialStatusIndex = controller.indexOf('await client.getStatuses([tracking])');
+  const officialStatusIndex = controller.indexOf(
+    'await client.getStatuses([tracking])',
+    validateIndex
+  );
   const sheetIndex = controller.indexOf('await sheetService.updateStatus({', validateIndex);
   const stockIndex = controller.indexOf('await reconcileOrderStock(rowId, targetStatus)', sheetIndex);
   assert.ok(createIndex >= 0);
