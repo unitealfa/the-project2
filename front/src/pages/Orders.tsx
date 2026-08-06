@@ -1444,8 +1444,9 @@ const Orders: React.FC = () => {
             deliveryType: selectedDeliveryType,
             order: finalData,
             row,
-            validate: true,
-            askCollection: 0,
+            // Le premier clic cree le colis seulement. Selon le contrat DHD,
+            // valid/order l'expedie et le fait quitter "prete_a_expedier".
+            validate: false,
           }),
         });
         const responseData = await response.json().catch(() => ({}));
@@ -1468,7 +1469,7 @@ const Orders: React.FC = () => {
             selectedDeliveryType === "api_sook" ? "Sook en ligne" : "BL Bébé";
 
           showToast(
-            `✅ Commande envoyée avec succès (${nom_client}) via ${carrierLabel}`,
+            `✅ Colis créé avec succès (${nom_client}) via ${carrierLabel}`,
             "success",
             3200
           );
@@ -1663,7 +1664,7 @@ const Orders: React.FC = () => {
               className={`orders-button orders-button--primary orders-modal__action-button${submitting ? " is-loading" : ""
                 }`}
             >
-              {submitting ? "Envoi…" : "Confirmer et envoyer"}
+              {submitting ? "Traitement…" : "Confirmer"}
             </button>
             <button
               type="button"
@@ -1697,11 +1698,11 @@ const Orders: React.FC = () => {
             disabled={submitting || abandoning}
             className={`orders-button orders-button--primary orders-button--icon${submitting ? " is-loading" : ""
               }`}
-            aria-label={submitting ? "Envoi en cours…" : "Envoyer la validation"}
-            title="Envoyer la validation"
+            aria-label={submitting ? "Création en cours…" : "Créer le colis transporteur"}
+            title="Créer le colis transporteur"
           >
             {submitting ? (
-              "Envoi…"
+              "Création…"
             ) : (
               <PaperPlaneIcon
                 aria-hidden="true"
@@ -4742,7 +4743,7 @@ Zm0 14H8V7h9v12Z"
                         if (selectedIds.size === 0) return;
                         if (
                           !window.confirm(
-                            `Valider ${selectedIds.size} commande(s) ?`
+                            `Créer ou assigner ${selectedIds.size} commande(s) ?`
                           )
                         )
                           return;
@@ -4969,8 +4970,7 @@ Zm0 14H8V7h9v12Z"
                                 deliveryType: settings.deliveryType,
                                 order: payload,
                                 row,
-                                validate: true,
-                                askCollection: 0,
+                                validate: false,
                               }),
                             });
                             const data = await resp.json().catch(() => ({}));
@@ -5016,7 +5016,7 @@ Zm0 14H8V7h9v12Z"
                               );
                             }
                           } catch (err) {
-                            console.error("Erreur validation bulk:", err);
+                            console.error("Erreur création bulk:", err);
                             alert(
                               `Erreur réseau/timeout pour ${s.rawName || s.name
                               }`
@@ -5026,7 +5026,7 @@ Zm0 14H8V7h9v12Z"
                         clearSelection();
                       }}
                     >
-                      Valider sélection
+                      Créer / assigner la sélection
                     </button>
                     <button
                       type="button"

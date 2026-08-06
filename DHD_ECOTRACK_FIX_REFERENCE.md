@@ -75,7 +75,8 @@ representer uniquement la derniere valeur exacte lue chez DHD/Sook.
 
 ```text
 front/src/pages/Orders.tsx -- JWT --> back/src/orders/order.routes.ts
-                                      |-- create/order puis valid/order
+                                      |-- create/order au premier clic
+                                      |-- valid/order seulement sur demande explicite
                                       |-- get/orders/status cible/groupe
                                       |-- MongoDB (metier + statut exact)
                                       +-- Google Sheets API (statut exact)
@@ -86,7 +87,7 @@ GitHub Actions (5 minutes) -- secret --> route cron backend
 - Le frontend recharge le Google Sheet via le backend toutes les 10 secondes.
 - La creation/validation ECOTRACK est faite uniquement par le backend; aucun
   token transporteur n'est inclus dans le bundle navigateur.
-- Apres validation, le backend lit immediatement le statut du tracking cible.
+- Apres creation, le backend lit immediatement le statut du tracking cible.
 - Le bouton manuel et le cron utilisent `/api/v1/get/orders/status`, groupe par
   compte et par paquets de 100; aucun scan global de `/get/orders` ne subsiste.
 - Le scheduler Node est desactive sur Vercel; GitHub Actions appelle la route
@@ -225,13 +226,14 @@ tests de table avant son utilisation en production.
   substitut au statut groupe.
 - Validation : fixture officielle avec `activity` lue correctement.
 
-### B-005 — Critique — `valid/order` absent
+### B-005 — Critique — Semantique de `valid/order` incorrecte
 
-- Etat : `[~] ordre create/valid/lecture immediate du statut avant Sheet corrige et teste localement; flux DHD staging restant`
+- Etat : `[~] appel premature retire du premier clic apres preuve live `vers_hub`; suite locale reussie, nouvel essai DHD restant`
 - Fichiers : futur client/backend de commandes, frontend.
-- Cause : creation et expedition confondues localement.
-- Decision requise : le bouton actuel doit-il creer seulement, ou creer puis
-  valider/expedier ?
+- Cause initiale : creation et expedition confondues localement; l'appel
+  automatique de `valid/order` expedie reellement le colis.
+- Decision : le premier clic cree seulement; une future expedition doit etre
+  une action distincte et explicite.
 - Validation : le comportement du bouton correspond exactement a son libelle
   et a l'etat visible sur ECOTRACK.
 
@@ -338,7 +340,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 2 — Creation/expedition transactionnelle
 
-- Etat : `[~] ordre transactionnel corrige et teste localement; creation reelle volontairement non executee en production`
+- Etat : `[~] creation et expedition separees dans le code; nouvel essai DHD requis apres test local et redeploiement`
 - Ajouter un endpoint backend protege pour envoyer une commande.
 - Valider le payload avant ECOTRACK.
 - Rejeter `success:false`, tracking vide et format inattendu.
@@ -415,9 +417,10 @@ tests de table avant son utilisation en production.
 | HTTP 200 + `success:false` | Echec metier, aucune fausse validation | `[x] fixture locale` |
 | HTTP 422 | Champs ECOTRACK affiches proprement | `[ ]` |
 | Adresse Sheet vide | Commune validee utilisee comme adresse, adresse detaillee preservee | `[x] test contractuel + suite racine` |
-| Creation puis validation | Etat ECOTRACK conforme au bouton | `[~] code, test staging restant` |
+| Premier clic de creation | `create/order` sans `valid/order`; statut initial officiel conserve | `[~] contrat/source/suite locale reussis; nouvel essai live restant` |
+| Validation/expedition explicite | `valid/order` uniquement sur demande distincte | `[~] backend disponible, aucune action UI exposee` |
 | Echec de `valid/order` | Aucun `ready_to_ship` ecrit dans le Sheet | `[~] ordre code teste, integration staging restante` |
-| Lecture immediate apres validation | Statut exact DHD lu puis persiste; echec non bloquant repris par cron | `[x] ordre code et fixture source testes; integration DHD restante` |
+| Lecture immediate apres creation/validation explicite | Statut exact DHD lu puis persiste; echec non bloquant repris par cron | `[x] ordre code et fixture source testes; integration DHD restante` |
 | Stock local insuffisant/introuvable | Envoi DHD non bloque; avertissement stock separe | `[~] code et build, integration DB/DHD restante` |
 | Lot partiellement reussi | Chaque commande garde son propre resultat | `[~] code, test staging restant` |
 | 1 tracking | Une synchro ciblee, aucune pagination globale | `[x] test de decoupage local` |
@@ -461,7 +464,7 @@ Le chantier n'est termine que si :
 
 | ID | Question | Etat |
 |---|---|---|
-| D-001 | « Confirmer et envoyer » doit-il appeler automatiquement `valid/order` ? | `[x] oui, conforme au libelle; parametre backend desactivable` |
+| D-001 | Le premier clic doit-il appeler automatiquement `valid/order` ? | `[x] non; preuve live `vers_hub` et contrat « valider et expedier »; creation seule au premier clic` |
 | D-002 | Quelle frequence de synchro souhaitee : 1, 2, 5 ou 10 minutes ? | `[x] 5 minutes, reprise du comportement UI existant` |
 | D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] colonne dediee si elle existe; sinon la colonne etat actuelle recoit le statut DHD exact` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
@@ -1094,6 +1097,9 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 
 ### Entree 20 — 2026-08-06 — Flux complet du bouton DHD et statut exact dans le Sheet
 
+> La decision create puis valid de cette entree est remplacee par l'entree 22
+> apres la preuve Production `vers_hub` fournie par l'utilisateur.
+
 - Etapes : 2, 3, 4, 5, 6 et 8. Anomalies surveillees : B-002, B-005,
   B-009, B-010, B-013 et B-014. Objectif : garantir que le bouton bleu cree
   puis valide le colis chez DHD avec les donnees officielles et que chaque
@@ -1186,6 +1192,35 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   --check` reussi.
 - Etat : implementation locale validee; redeploiement frontend et backend puis
   essai d'une commande sans adresse encore requis pour la preuve Production.
+
+### Entree 22 — 2026-08-06 — Premier clic limite a la creation DHD
+
+- Etape : 2. Anomalie : B-005. Preuve Production utilisateur : le premier clic
+  place immediatement le colis en `vers_hub` et dans l'onglet « En station ».
+- Contrat relu dans `ECOTRACK API.postman_collection.json` :
+  `create/order` ajoute la commande au compte; `valid/order` est nomme
+  « Expedier une commande », sert a « valider et expedier » et rend ensuite les
+  informations non modifiables. `ask_collection=0` signifie uniquement ne pas
+  demander de ramassage; il n'annule pas l'expedition.
+- Cause confirmee dans le code actif : les flux individuel et groupe envoyaient
+  `validate:true`; le backend considerait aussi une valeur absente comme vraie.
+- Fichiers touches : `front/src/pages/Orders.tsx`,
+  `back/src/orders/orderApi.controller.ts`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modification : les deux flux passent `validate:false`; le backend exige
+  desormais `validate === true` pour appeler `valid/order`. Il lit le statut
+  officiel juste apres `create/order`, persiste tracking/statut dans
+  Mongo/Sheet et conserve `valid/order` uniquement pour une future action
+  d'expedition explicite. Les libelles individuels et groupes parlent
+  desormais de creation/traitement et non de validation ou d'expedition.
+- Test ajoute : le contrat officiel de `valid/order` est relu depuis la
+  collection, les deux payloads frontend doivent rester a `false`, et aucun
+  appel implicite n'est permis par le backend. `npm test` a la racine reussi :
+  build TypeScript backend, test contractuel, typecheck frontend et build Vite
+  de production. `git diff --check` reussi.
+- Etat : implementation locale validee; redeploiement frontend/backend et
+  creation d'un nouveau colis de test requis pour confirmer
+  `prete_a_expedier` sur DHD.
 
 ### Modele pour les prochaines entrees
 

@@ -294,6 +294,47 @@ test('la collection Postman officielle ne contient aucun statut non mappe', () =
   }
 });
 
+test("le premier clic cree le colis sans appeler l'endpoint officiel d'expedition", () => {
+  const collection = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, '../../ECOTRACK API.postman_collection.json'),
+      'utf8'
+    )
+  );
+  const requests = [];
+  const walk = (items) => {
+    for (const item of items || []) {
+      if (item.request) requests.push(item);
+      if (item.item) walk(item.item);
+    }
+  };
+  walk(collection.item);
+  const validationRequest = requests.find(
+    (item) =>
+      `/${(item.request.url?.path || []).join('/')}` ===
+      '/api/v1/valid/order'
+  );
+  assert.ok(validationRequest, 'endpoint officiel valid/order absent');
+  assert.match(
+    String(validationRequest.request.description || ''),
+    /valider et exp.dier une commande/i
+  );
+
+  const ordersPage = fs.readFileSync(
+    path.resolve(__dirname, '../../front/src/pages/Orders.tsx'),
+    'utf8'
+  );
+  assert.equal((ordersPage.match(/validate:\s*false/g) || []).length, 2);
+  assert.doesNotMatch(ordersPage, /validate:\s*true/);
+
+  const controller = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderApi.controller.ts'),
+    'utf8'
+  );
+  assert.match(controller, /req\.body\?\.validate\s*===\s*true/);
+  assert.doesNotMatch(controller, /req\.body\?\.validate\s*!==\s*false/);
+});
+
 test('une remarque ou un statut inconnu ne devient jamais un statut metier', () => {
   assert.equal(mapCarrierStatus('Livraison avant 17h, appeler le client'), null);
   assert.equal(mapCarrierStatus('nouveau_statut_non_documente'), null);
@@ -382,7 +423,7 @@ test('les journaux de diagnostic de la page commandes ignorent leurs details', (
   assert.doesNotMatch(backendLogger, /console\.log\([^\n]*\.\.\./);
 });
 
-test('create/order et valid/order precedent toute ecriture du Sheet et du stock', () => {
+test('create/order et la validation optionnelle precedent toute ecriture du Sheet et du stock', () => {
   const controller = fs.readFileSync(
     path.resolve(__dirname, '../src/orders/orderApi.controller.ts'),
     'utf8'

@@ -165,7 +165,9 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
   }
 
   const row = sanitizeOrderRow(req.body?.row);
-  const shouldValidate = req.body?.validate !== false;
+  // valid/order expedie la commande chez ECOTRACK. Il ne doit jamais etre
+  // declenche implicitement lorsqu'un client omet le champ validate.
+  const shouldValidate = req.body?.validate === true;
   const askCollection: 0 | 1 = Number(req.body?.askCollection) === 1 ? 1 : 0;
   let carrierTracking = '';
   let carrierCreated = false;
@@ -297,7 +299,7 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
     let latestCarrierStatus = stringValue(existing?.carrierStatus);
     let latestCarrierStatusUpdatedAt = existing?.carrierStatusUpdatedAt;
     let statusSyncWarning = '';
-    if (carrierValidated) {
+    if (tracking) {
       try {
         const statuses = await client.getStatuses([tracking]);
         const normalizedTracking = normalizeCarrierIdentifier(tracking);
@@ -324,9 +326,9 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
     const mappedOfficialStatus = mapCarrierStatus(latestCarrierStatus);
     const targetStatus =
       mappedOfficialStatus ||
-      (shouldValidate && (!previousStatus || previousStatus === 'new')
-        ? 'ready_to_ship'
-        : previousStatus || (shouldValidate ? 'ready_to_ship' : 'new'));
+      (previousStatus && previousStatus !== 'new'
+        ? previousStatus
+        : 'ready_to_ship');
     const now = new Date();
     const setValues: Record<string, unknown> = {
       rowId,
@@ -347,9 +349,10 @@ export const sendOrderToCarrier = async (req: Request, res: Response) => {
       setValues.carrierStatusUpdatedAt = latestCarrierStatusUpdatedAt;
     }
 
-    // Le statut local et le Sheet ne changent qu'après les succès create/order
-    // puis valid/order. Une lecture ciblee fournit immédiatement le statut
-    // transporteur exact; le cron reprend si DHD ne le rend pas encore disponible.
+    // Le statut local et le Sheet ne changent qu'apres create/order. Si une
+    // expedition a ete explicitement demandee, valid/order doit aussi avoir
+    // reussi. Une lecture ciblee fournit ensuite le statut transporteur exact;
+    // le cron reprend si DHD ne le rend pas encore disponible.
     const saved = await Order.findOneAndUpdate(
       { rowId },
       {
