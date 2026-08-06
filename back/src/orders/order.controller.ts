@@ -15,6 +15,7 @@ import {
 } from './orderApi.controller';
 import { classifyGoogleSheetError } from './googleSheetError';
 import { normalizeCarrierIdentifier } from './orderStatus';
+import { importCarrierOrders } from './carrierOrderImport.service';
 
 const debugLog = (event: string, ..._details: unknown[]) => {
   if (process.env.DEBUG_ORDERS === 'true' && process.env.NODE_ENV !== 'production') {
@@ -627,10 +628,10 @@ export const getDeliveryPersonHistory = async (req: Request, res: Response) => {
 export const syncOfficialStatuses = async (req: Request, res: Response) => {
   const { orders, startDate, endDate } = req.body ?? {};
 
-  if (!Array.isArray(orders) || orders.length === 0) {
+  if (!Array.isArray(orders)) {
     return res.status(400).json({
       success: false,
-      message: 'Le corps de la requête doit contenir un tableau "orders" non vide.',
+      message: 'Le corps de la requête doit contenir un tableau "orders".',
     });
   }
   if (orders.length > 1000) {
@@ -649,15 +650,28 @@ export const syncOfficialStatuses = async (req: Request, res: Response) => {
         message: 'Une synchronisation des statuts est déjà en cours.',
       });
     }
+    let importResult: Awaited<ReturnType<typeof importCarrierOrders>> | undefined;
+    let importFailed = false;
+    try {
+      importResult = await importCarrierOrders({
+        carrierType: 'api_dhd',
+        maxPages: Number(process.env.ORDER_IMPORT_MANUAL_PAGES ?? 5),
+      });
+    } catch {
+      importFailed = true;
+      console.error('[DHD import] Echec de la decouverte manuelle');
+    }
     const result = await syncOfficialStatusesService({
       orders,
       startDate: typeof startDate === 'string' ? startDate : undefined,
       endDate: typeof endDate === 'string' ? endDate : undefined,
     });
 
-    return res.json({
-      success: true,
+    return res.status(importFailed ? 502 : 200).json({
+      success: !importFailed,
+      import: importResult,
       ...result,
+      ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
     });
   } catch (error) {
     const message =

@@ -6,6 +6,7 @@ const path = require('node:path');
 const {
   assertEcotrackSuccess,
   chunkTrackings,
+  parseOrdersPageResponse,
   parseOrderSearchResponse,
   parseStatusResponse,
   parseTrackingActivity,
@@ -33,6 +34,7 @@ const {
 } = require('../dist/src/orders/googleSheetError.js');
 const {
   getSheetEditUrl,
+  buildCarrierSheetRowValues,
   selectPrimarySheetStatus,
 } = require('../dist/src/orders/order.service.js');
 const {
@@ -248,6 +250,171 @@ test('ECOTRACK: la recherche ciblee confirme un tracking present ou absent', () 
     () => parseOrderSearchResponse({}, 'ECO-1'),
     /format de la liste des commandes inattendu/
   );
+});
+
+test('ECOTRACK: la liste paginee des colis DHD conserve uniquement les champs officiels exploitables', () => {
+  const page = parseOrdersPageResponse(
+    {
+      current_page: 2,
+      last_page: 7,
+      per_page: 40,
+      total: 241,
+      data: [
+        {
+          tracking: ' fixture-1 ',
+          reference: 'REF-1',
+          client: 'Client fixture',
+          phone: '0550000000',
+          phone_2: null,
+          adresse: 'Adresse fixture',
+          commune: 'Commune fixture',
+          wilaya_id: 16,
+          montant: '2500',
+          type_id: 1,
+          created_at: '2026-08-06',
+          status: 'prete_a_expedier',
+          products: 'Produit fixture',
+          champ_invente: 'ignore',
+        },
+        { tracking: '' },
+        'invalide',
+      ],
+    },
+    2
+  );
+  assert.equal(page.currentPage, 2);
+  assert.equal(page.lastPage, 7);
+  assert.equal(page.perPage, 40);
+  assert.equal(page.total, 241);
+  assert.equal(page.invalidOrders, 2);
+  assert.equal(page.orders.length, 1);
+  assert.deepEqual(page.orders[0], {
+    tracking: 'FIXTURE-1',
+    reference: 'REF-1',
+    client: 'Client fixture',
+    phone: '0550000000',
+    phone2: undefined,
+    address: 'Adresse fixture',
+    commune: 'Commune fixture',
+    wilayaId: 16,
+    amount: '2500',
+    typeId: 1,
+    createdAt: '2026-08-06',
+    status: 'prete_a_expedier',
+    products: 'Produit fixture',
+  });
+  assert.throws(
+    () => parseOrdersPageResponse({ data: {} }, 1),
+    /liste paginee des commandes inattendue/
+  );
+});
+
+test('Google Sheets: une ligne DHD importee contient le suivi sans inventer quantite ni mode de livraison', () => {
+  const headers = [
+    'ID',
+    'Nom du client',
+    'Numero',
+    'Adresse',
+    'Commune',
+    'Wilaya',
+    'Total',
+    'Produit',
+    'Quantité',
+    'Type de livraison',
+    'etat',
+    'Référence',
+    'Tracking',
+    'Statut transporteur',
+    'Transporteur',
+    'Type opération DHD',
+    'Source commande',
+    'Date',
+  ];
+  const values = buildCarrierSheetRowValues(headers, {
+    tracking: 'FIXTURE-1',
+    reference: 'REF-1',
+    client: 'Client fixture',
+    phone: '0550000000',
+    address: 'Adresse fixture',
+    commune: 'Commune fixture',
+    wilayaId: 16,
+    amount: '2500',
+    products: 'Produit fixture',
+    typeId: 1,
+    createdAt: '2026-08-06',
+    businessStatus: 'ready_to_ship',
+    carrierStatus: 'prete_a_expedier',
+    carrierType: 'api_dhd',
+    source: 'carrier_import',
+  });
+  const row = Object.fromEntries(headers.map((header, index) => [header, values[index]]));
+  assert.equal(row.Tracking, 'FIXTURE-1');
+  assert.equal(row['Statut transporteur'], 'prete_a_expedier');
+  assert.equal(row.etat, 'ready_to_ship');
+  assert.equal(row['Quantité'], '');
+  assert.equal(row['Type de livraison'], '');
+  assert.equal(row['Source commande'], 'carrier_import');
+});
+
+test("l'import DHD suit uniquement le contrat pagine officiel et protege le stock externe", () => {
+  const collection = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, '../../ECOTRACK API.postman_collection.json'),
+      'utf8'
+    )
+  );
+  const requests = [];
+  const walk = (items) => {
+    for (const item of items || []) {
+      if (item.request) requests.push(item);
+      if (item.item) walk(item.item);
+    }
+  };
+  walk(collection.item);
+  const listRequest = requests.find(
+    (item) =>
+      `/${(item.request.url?.path || []).join('/')}` === '/api/v1/get/orders'
+  );
+  assert.ok(listRequest, 'endpoint officiel get/orders absent');
+  assert.deepEqual(
+    (listRequest.request.url.query || []).map((query) => query.key),
+    ['page', 'start_date', 'end_date', 'tracking']
+  );
+  assert.match(String(listRequest.request.description), /40 commandes par page/);
+  assert.match(String(listRequest.request.description), /derniers 90 jours/);
+  assert.match(String(listRequest.request.description), /archivés sont exclut/i);
+
+  const importService = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/carrierOrderImport.service.ts'),
+    'utf8'
+  );
+  const sheetService = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/order.service.ts'),
+    'utf8'
+  );
+  const stockService = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderStockReconciliation.service.ts'),
+    'utf8'
+  );
+  const apiController = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/orderApi.controller.ts'),
+    'utf8'
+  );
+  const manualController = fs.readFileSync(
+    path.resolve(__dirname, '../src/orders/order.controller.ts'),
+    'utf8'
+  );
+  assert.match(importService, /page:\s*1/);
+  assert.match(importService, /CarrierImportState\.findById/);
+  assert.match(importService, /preferredRowIdsByTracking/);
+  assert.match(importService, /stockSyncEnabled:\s*!externallyCreated/);
+  assert.match(importService, /blockedTrackings/);
+  assert.match(sheetService, /matchType = 'reference'/);
+  assert.match(sheetService, /rowsByTracking/);
+  assert.match(sheetService, /Source commande/);
+  assert.match(stockService, /stockSyncEnabled:\s*\{ \$ne: false \}/);
+  assert.match(apiController, /ORDER_IMPORT_CRON_PAGES/);
+  assert.match(manualController, /ORDER_IMPORT_MANUAL_PAGES/);
 });
 
 test('tracking/info: seule la liste activity est exposee comme historique', () => {

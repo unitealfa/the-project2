@@ -73,6 +73,7 @@ export const reconcileOrderStock = async (
     const previous = await Order.findOneAndUpdate(
       {
         rowId,
+        stockSyncEnabled: { $ne: false },
         $or: [
           { stockAdjustmentState: { $exists: false } },
           { stockAdjustmentState: { $in: ['not_debited', 'restored'] } },
@@ -106,7 +107,11 @@ export const reconcileOrderStock = async (
   if (shouldRestore(status)) {
     const transitionAt = new Date();
     const previous = await Order.findOneAndUpdate(
-      { rowId, stockAdjustmentState: 'debited' },
+      {
+        rowId,
+        stockSyncEnabled: { $ne: false },
+        stockAdjustmentState: 'debited',
+      },
       {
         $set: {
           stockAdjustmentState: 'restored',

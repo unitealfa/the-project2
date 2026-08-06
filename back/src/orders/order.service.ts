@@ -10,6 +10,42 @@ export interface UpdateStatusPayload {
   row?: Record<string, unknown>;
 }
 
+export interface CarrierSheetOrder {
+  tracking: string;
+  reference?: string;
+  client?: string;
+  phone?: string;
+  phone2?: string;
+  address?: string;
+  commune?: string;
+  wilayaId?: number;
+  amount?: string;
+  typeId?: number;
+  createdAt?: string;
+  products?: string;
+  businessStatus: string;
+  carrierStatus?: string;
+  carrierType: 'api_dhd' | 'api_sook';
+  source?: 'site' | 'carrier_import';
+}
+
+export interface CarrierSheetMatch {
+  tracking: string;
+  rowId: string;
+  row: Record<string, unknown>;
+  matchType: 'mongo' | 'tracking' | 'reference' | 'appended';
+  externalSource: boolean;
+}
+
+export interface UpsertCarrierSheetOrdersResult {
+  matches: CarrierSheetMatch[];
+  appended: number;
+  linkedByReference: number;
+  existing: number;
+  conflicts: number;
+  ambiguousReferences: number;
+}
+
 const getSpreadsheetId = (): string => {
   const spreadsheetId = String(process.env.GOOGLE_SPREADSHEET_ID ?? '').trim();
   if (!spreadsheetId) {
@@ -97,6 +133,80 @@ const COMMUNE_HEADER_CANDIDATES = [
   'Ville',
   'ville',
 ];
+const ID_HEADER_CANDIDATES = ['ID', 'Identifiant', 'Order ID'];
+const REFERENCE_HEADER_CANDIDATES = [
+  'Référence',
+  'Reference',
+  'Ref',
+  'Référence commande',
+  'Reference commande',
+];
+const CLIENT_HEADER_CANDIDATES = [
+  'Nom du client',
+  'Nom client',
+  'Client',
+  'Nom',
+];
+const PHONE_HEADER_CANDIDATES = [
+  'Numero',
+  'Numéro',
+  'Téléphone',
+  'Telephone',
+  'Tel',
+  'Phone',
+];
+const PHONE_2_HEADER_CANDIDATES = [
+  'Téléphone 2',
+  'Telephone 2',
+  'Numero 2',
+  'Numéro 2',
+  'Phone 2',
+];
+const ADDRESS_HEADER_CANDIDATES = ['Adresse', 'Address'];
+const AMOUNT_HEADER_CANDIDATES = [
+  'Total',
+  'Montant',
+  'Montant total',
+  'Prix total',
+];
+const PRODUCT_HEADER_CANDIDATES = [
+  'Produit',
+  'Product',
+  'Article',
+  'Nom du produit',
+];
+const DATE_HEADER_CANDIDATES = ['Date', 'Date commande', 'Created at'];
+const OPERATION_TYPE_HEADER_CANDIDATES = [
+  'Type opération DHD',
+  'Type operation DHD',
+];
+const SOURCE_HEADER_CANDIDATES = [
+  'Source commande',
+  'Source',
+  'Order source',
+];
+
+const IMPORT_REQUIRED_HEADERS: Array<{
+  label: string;
+  candidates: string[];
+}> = [
+  { label: 'Nom du client', candidates: CLIENT_HEADER_CANDIDATES },
+  { label: 'Numero', candidates: PHONE_HEADER_CANDIDATES },
+  { label: 'Téléphone 2', candidates: PHONE_2_HEADER_CANDIDATES },
+  { label: 'Adresse', candidates: ADDRESS_HEADER_CANDIDATES },
+  { label: 'Commune', candidates: COMMUNE_HEADER_CANDIDATES },
+  { label: 'Wilaya', candidates: WILAYA_HEADER_CANDIDATES },
+  { label: 'Total', candidates: AMOUNT_HEADER_CANDIDATES },
+  { label: 'Produit', candidates: PRODUCT_HEADER_CANDIDATES },
+  { label: 'Date', candidates: DATE_HEADER_CANDIDATES },
+  { label: 'ID', candidates: ID_HEADER_CANDIDATES },
+  { label: 'Référence', candidates: REFERENCE_HEADER_CANDIDATES },
+  { label: 'Tracking', candidates: TRACKING_HEADER_CANDIDATES },
+  { label: 'Statut transporteur', candidates: CARRIER_STATUS_HEADER_CANDIDATES },
+  { label: 'Transporteur', candidates: CARRIER_TYPE_HEADER_CANDIDATES },
+  { label: 'Type opération DHD', candidates: OPERATION_TYPE_HEADER_CANDIDATES },
+  { label: 'Source commande', candidates: SOURCE_HEADER_CANDIDATES },
+];
 
 const HEADER_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -109,6 +219,57 @@ export const selectPrimarySheetStatus = (
   return officialStatus && !hasDedicatedCarrierStatusColumn
     ? officialStatus
     : businessStatus;
+};
+
+const normalizeHeaderForImport = (header: string): string =>
+  header
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]+/g, '')
+    .trim()
+    .toLowerCase();
+
+const findHeaderIndex = (headers: string[], candidates: string[]): number => {
+  const normalizedCandidates = new Set(
+    candidates.map(normalizeHeaderForImport)
+  );
+  return headers.findIndex((header) =>
+    normalizedCandidates.has(normalizeHeaderForImport(header))
+  );
+};
+
+const normalizedTracking = (value: unknown): string =>
+  typeof value === 'string'
+    ? value.trim().replace(/\s+/g, '').toUpperCase()
+    : '';
+
+export const buildCarrierSheetRowValues = (
+  headers: string[],
+  order: CarrierSheetOrder
+): string[] => {
+  const values = Array.from({ length: headers.length }, () => '');
+  const set = (candidates: string[], value: unknown) => {
+    if (value === undefined || value === null || String(value).trim() === '') return;
+    const index = findHeaderIndex(headers, candidates);
+    if (index >= 0) values[index] = String(value).trim();
+  };
+  set(ID_HEADER_CANDIDATES, order.reference || `DHD-${order.tracking}`);
+  set(REFERENCE_HEADER_CANDIDATES, order.reference);
+  set(CLIENT_HEADER_CANDIDATES, order.client);
+  set(PHONE_HEADER_CANDIDATES, order.phone);
+  set(PHONE_2_HEADER_CANDIDATES, order.phone2);
+  set(ADDRESS_HEADER_CANDIDATES, order.address);
+  set(COMMUNE_HEADER_CANDIDATES, order.commune);
+  set(WILAYA_HEADER_CANDIDATES, order.wilayaId);
+  set(AMOUNT_HEADER_CANDIDATES, order.amount);
+  set(PRODUCT_HEADER_CANDIDATES, order.products);
+  set(DATE_HEADER_CANDIDATES, order.createdAt);
+  set(TRACKING_HEADER_CANDIDATES, order.tracking);
+  set(STATUS_HEADER_CANDIDATES, order.businessStatus);
+  set(CARRIER_STATUS_HEADER_CANDIDATES, order.carrierStatus);
+  set(CARRIER_TYPE_HEADER_CANDIDATES, order.carrierType);
+  set(OPERATION_TYPE_HEADER_CANDIDATES, order.typeId);
+  set(SOURCE_HEADER_CANDIDATES, order.source);
+  return values;
 };
 
 const extractRowNumber = (value: unknown): number | null => {
@@ -221,6 +382,321 @@ export class SheetSyncService {
     );
     this.headerCache = { headers, fetchedAt: Date.now() };
     return headers;
+  }
+
+  private async ensureCarrierImportHeaders(): Promise<string[]> {
+    const currentHeaders = await this.getHeaderRow();
+    const additions = IMPORT_REQUIRED_HEADERS.filter(
+      ({ candidates }) => findHeaderIndex(currentHeaders, candidates) < 0
+    ).map(({ label }) => label);
+    if (additions.length === 0) return currentHeaders;
+
+    const sheets = await this.getSheetsClient();
+    const startColumn = this.columnIndexToLetter(currentHeaders.length);
+    const endColumn = this.columnIndexToLetter(
+      currentHeaders.length + additions.length - 1
+    );
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: getSpreadsheetId(),
+      range: `${sheetRangePrefix()}!${startColumn}1:${endColumn}1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [additions] },
+    });
+    this.headerCache = undefined;
+    return this.getHeaderRow();
+  }
+
+  async upsertCarrierOrders(
+    rawOrders: CarrierSheetOrder[],
+    links: {
+      preferredRowIdsByTracking?: Record<string, string>;
+      occupiedRowTrackings?: Record<string, string>;
+      externalRowIds?: string[];
+      blockedTrackings?: string[];
+    } = {}
+  ): Promise<UpsertCarrierSheetOrdersResult> {
+    if (rawOrders.length > 400) {
+      throw new Error('Un import Google Sheets ne peut pas depasser 400 colis.');
+    }
+    const uniqueOrders = Array.from(
+      new Map(
+        rawOrders
+          .map((order) => [normalizedTracking(order.tracking), order] as const)
+          .filter(([tracking]) => Boolean(tracking))
+      ).values()
+    );
+    if (uniqueOrders.length === 0) {
+      return {
+        matches: [],
+        appended: 0,
+        linkedByReference: 0,
+        existing: 0,
+        conflicts: 0,
+        ambiguousReferences: 0,
+      };
+    }
+
+    const headers = await this.ensureCarrierImportHeaders();
+    const sheets = await this.getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: getSpreadsheetId(),
+      range: sheetRangePrefix(),
+      majorDimension: 'ROWS',
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    const sheetRows = (response.data.values ?? []).slice(1).map((raw, index) => {
+      const values = Array.from({ length: headers.length }, (_, column) =>
+        String(raw[column] ?? '').trim()
+      );
+      return { rowNumber: index + 2, values };
+    });
+    const trackingIndex = findHeaderIndex(headers, TRACKING_HEADER_CANDIDATES);
+    const referenceIndex = findHeaderIndex(headers, REFERENCE_HEADER_CANDIDATES);
+    const idIndex = findHeaderIndex(headers, ID_HEADER_CANDIDATES);
+    const statusIndex = findHeaderIndex(headers, STATUS_HEADER_CANDIDATES);
+    const sourceIndex = findHeaderIndex(headers, SOURCE_HEADER_CANDIDATES);
+    if (trackingIndex < 0 || referenceIndex < 0) {
+      throw new Error('Colonnes techniques DHD introuvables apres initialisation.');
+    }
+
+    const rowsByNumber = new Map(
+      sheetRows.map((row) => [String(row.rowNumber), row])
+    );
+    const rowsByTracking = new Map<string, typeof sheetRows>();
+    const rowsByReference = new Map<string, typeof sheetRows>();
+    const addToIndex = (
+      index: Map<string, typeof sheetRows>,
+      key: string,
+      row: (typeof sheetRows)[number]
+    ) => {
+      if (!key) return;
+      const bucket = index.get(key) ?? [];
+      if (!bucket.some((candidate) => candidate.rowNumber === row.rowNumber)) {
+        bucket.push(row);
+      }
+      index.set(key, bucket);
+    };
+    for (const row of sheetRows) {
+      addToIndex(
+        rowsByTracking,
+        normalizedTracking(row.values[trackingIndex]),
+        row
+      );
+      addToIndex(
+        rowsByReference,
+        String(row.values[referenceIndex] ?? '').trim().toUpperCase(),
+        row
+      );
+      if (idIndex >= 0) {
+        addToIndex(
+          rowsByReference,
+          String(row.values[idIndex] ?? '').trim().toUpperCase(),
+          row
+        );
+      }
+    }
+
+    const preferred = new Map(
+      Object.entries(links.preferredRowIdsByTracking ?? {}).map(([key, value]) => [
+        normalizedTracking(key),
+        String(value).trim(),
+      ])
+    );
+    const occupied = new Map(
+      Object.entries(links.occupiedRowTrackings ?? {}).map(([key, value]) => [
+        String(key).trim(),
+        normalizedTracking(value),
+      ])
+    );
+    const externalRowIds = new Set(
+      (links.externalRowIds ?? []).map((value) => String(value).trim())
+    );
+    const blockedTrackings = new Set(
+      (links.blockedTrackings ?? []).map(normalizedTracking).filter(Boolean)
+    );
+    const claimedRows = new Set<number>();
+    const matches: CarrierSheetMatch[] = [];
+    const appendOrders: CarrierSheetOrder[] = [];
+    const cellUpdates: Array<{ range: string; values: string[][] }> = [];
+    let linkedByReference = 0;
+    let existing = 0;
+    let conflicts = 0;
+    let ambiguousReferences = 0;
+
+    const toRowObject = (rowNumber: number, values: string[]) => {
+      const row: Record<string, unknown> = { 'id-sheet': String(rowNumber) };
+      headers.forEach((header, index) => {
+        if (header) row[header] = values[index] ?? '';
+      });
+      return row;
+    };
+    const canUseRow = (
+      row: (typeof sheetRows)[number],
+      tracking: string
+    ) => {
+      const sheetTracking = normalizedTracking(row.values[trackingIndex]);
+      const mongoTracking = occupied.get(String(row.rowNumber));
+      return (
+        !claimedRows.has(row.rowNumber) &&
+        (!sheetTracking || sheetTracking === tracking) &&
+        (!mongoTracking || mongoTracking === tracking)
+      );
+    };
+
+    for (const order of uniqueOrders) {
+      const tracking = normalizedTracking(order.tracking);
+      if (blockedTrackings.has(tracking)) {
+        conflicts += 1;
+        continue;
+      }
+      const preferredRowId = preferred.get(tracking);
+      let matchedRow = preferredRowId
+        ? rowsByNumber.get(preferredRowId)
+        : undefined;
+      let matchType: CarrierSheetMatch['matchType'] = 'mongo';
+      if (matchedRow && !canUseRow(matchedRow, tracking)) {
+        conflicts += 1;
+        continue;
+      }
+      if (!matchedRow) {
+        const trackingRows = rowsByTracking.get(tracking) ?? [];
+        if (trackingRows.length > 1) {
+          conflicts += 1;
+          continue;
+        }
+        matchedRow = trackingRows.find((row) => canUseRow(row, tracking));
+        matchType = 'tracking';
+      }
+      if (!matchedRow && order.reference) {
+        const candidates = (rowsByReference.get(order.reference.trim().toUpperCase()) ?? [])
+          .filter((row) => canUseRow(row, tracking));
+        if (candidates.length === 1) {
+          matchedRow = candidates[0];
+          matchType = 'reference';
+          linkedByReference += 1;
+        } else if (candidates.length > 1) {
+          ambiguousReferences += 1;
+        }
+      }
+      if (!matchedRow) {
+        appendOrders.push(order);
+        continue;
+      }
+
+      claimedRows.add(matchedRow.rowNumber);
+      const externalSource =
+        externalRowIds.has(String(matchedRow.rowNumber)) ||
+        (sourceIndex >= 0 &&
+          normalizeHeaderForImport(matchedRow.values[sourceIndex]) ===
+            'carrier_import');
+      const importedValues = buildCarrierSheetRowValues(headers, {
+        ...order,
+        source: externalSource ? 'carrier_import' : 'site',
+      });
+      const metadataIndexes = new Set(
+        [
+          TRACKING_HEADER_CANDIDATES,
+          REFERENCE_HEADER_CANDIDATES,
+          STATUS_HEADER_CANDIDATES,
+          CARRIER_STATUS_HEADER_CANDIDATES,
+          CARRIER_TYPE_HEADER_CANDIDATES,
+          OPERATION_TYPE_HEADER_CANDIDATES,
+          SOURCE_HEADER_CANDIDATES,
+        ]
+          .map((candidates) => findHeaderIndex(headers, candidates))
+          .filter((index) => index >= 0)
+      );
+      importedValues.forEach((value, column) => {
+        if (!value) return;
+        if (
+          column === statusIndex &&
+          order.businessStatus === 'new' &&
+          Boolean(order.carrierStatus) &&
+          Boolean(matchedRow?.values[column])
+        ) {
+          return;
+        }
+        const shouldWrite =
+          metadataIndexes.has(column) || !matchedRow?.values[column];
+        if (!shouldWrite || matchedRow?.values[column] === value) return;
+        matchedRow.values[column] = value;
+        cellUpdates.push({
+          range: `${sheetRangePrefix()}!${this.columnIndexToLetter(column)}${matchedRow.rowNumber}`,
+          values: [[value]],
+        });
+      });
+      matches.push({
+        tracking,
+        rowId: String(matchedRow.rowNumber),
+        row: toRowObject(matchedRow.rowNumber, matchedRow.values),
+        matchType,
+        externalSource,
+      });
+      existing += matchType === 'reference' ? 0 : 1;
+    }
+
+    for (let index = 0; index < cellUpdates.length; index += 500) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: getSpreadsheetId(),
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: cellUpdates.slice(index, index + 500),
+        },
+      });
+    }
+
+    if (appendOrders.length > 0) {
+      const appendResponse = await sheets.spreadsheets.values.append({
+        spreadsheetId: getSpreadsheetId(),
+        range: sheetRangePrefix(),
+        valueInputOption: 'RAW',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: {
+          values: appendOrders.map((order) =>
+            buildCarrierSheetRowValues(headers, {
+              ...order,
+              source: 'carrier_import',
+            })
+          ),
+        },
+      });
+      const updatedRange = String(appendResponse.data.updates?.updatedRange ?? '');
+      const rangeMatch = updatedRange.match(/![A-Z]+(\d+):[A-Z]+(\d+)$/i);
+      const firstRow = Number(rangeMatch?.[1]);
+      const lastRow = Number(rangeMatch?.[2]);
+      if (
+        !Number.isSafeInteger(firstRow) ||
+        !Number.isSafeInteger(lastRow) ||
+        lastRow - firstRow + 1 !== appendOrders.length
+      ) {
+        throw new Error(
+          'Google Sheets a ajoute les colis sans retourner leurs lignes exactes; le prochain import les reliera par tracking.'
+        );
+      }
+      appendOrders.forEach((order, index) => {
+        const rowNumber = firstRow + index;
+        const values = buildCarrierSheetRowValues(headers, {
+          ...order,
+          source: 'carrier_import',
+        });
+        matches.push({
+          tracking: normalizedTracking(order.tracking),
+          rowId: String(rowNumber),
+          row: toRowObject(rowNumber, values),
+          matchType: 'appended',
+          externalSource: true,
+        });
+      });
+    }
+
+    return {
+      matches,
+      appended: appendOrders.length,
+      linkedByReference,
+      existing,
+      conflicts,
+      ambiguousReferences,
+    };
   }
 
   private async resolveColumnLetter(

@@ -11,6 +11,7 @@ import {
 } from './ecotrack.client';
 import { reconcileOrderStock } from './orderStockReconciliation.service';
 import { syncOfficialStatuses as syncOfficialStatusesService } from './orderStatusSync.service';
+import { importCarrierOrders } from './carrierOrderImport.service';
 import {
   canRecreateMissingCarrierOrder,
   getMissingCarrierBusinessStatus,
@@ -665,6 +666,18 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
   }
 
   try {
+    let importResult: Awaited<ReturnType<typeof importCarrierOrders>> | undefined;
+    let importFailed = false;
+    try {
+      importResult = await importCarrierOrders({
+        carrierType: 'api_dhd',
+        maxPages: Number(process.env.ORDER_IMPORT_CRON_PAGES ?? 2),
+      });
+    } catch {
+      importFailed = true;
+      console.error('[DHD import] Echec de la decouverte planifiee');
+    }
+
     const configuredLimit = Number(process.env.ORDER_SYNC_BATCH_LIMIT);
     const limit = Math.min(
       Math.max(
@@ -688,7 +701,13 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
       .lean();
 
     if (candidates.length === 0) {
-      return res.json({ success: true, processed: 0, updates: 0 });
+      return res.status(importFailed ? 502 : 200).json({
+        success: !importFailed,
+        processed: 0,
+        updates: 0,
+        import: importResult,
+        ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
+      });
     }
 
     const result = await syncOfficialStatusesService({
@@ -699,14 +718,16 @@ export const cronSyncOfficialStatuses = async (req: Request, res: Response) => {
         deliveryType: order.deliveryType,
       })),
     });
-    return res.json({
-      success: true,
+    return res.status(importFailed ? 502 : 200).json({
+      success: !importFailed,
       processed: candidates.length,
       updates: result.updates.length,
       notFound: result.notFound.length,
       skipped: result.skipped.length,
       errors: result.errors.length,
       requestsMade: result.requestsMade,
+      import: importResult,
+      ...(importFailed ? { message: 'Import DHD impossible.' } : {}),
     });
   } catch (error) {
     return res.status(500).json({ success: false, ...publicError(error) });

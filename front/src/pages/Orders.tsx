@@ -3849,13 +3849,6 @@ Zm0 14H8V7h9v12Z"
       .filter((order): order is NonNullable<typeof order> => order !== null)
       .slice(0, 1000);
 
-    if (ordersToSync.length === 0) {
-      setOfficialSyncMessage(
-        "Aucune commande DHD/Sook avec tracking n'est disponible à synchroniser."
-      );
-      return;
-    }
-
     setOfficialSyncLoading(true);
     setOfficialSyncMessage("");
     try {
@@ -3879,8 +3872,12 @@ Zm0 14H8V7h9v12Z"
       const updates = Array.isArray(data.updates) ? data.updates.length : 0;
       const errors = Array.isArray(data.errors) ? data.errors.length : 0;
       const notFound = Array.isArray(data.notFound) ? data.notFound.length : 0;
+      const imported = Number(data?.import?.imported ?? 0);
+      const appended = Number(data?.import?.appended ?? 0);
+      const linked = Number(data?.import?.linkedByReference ?? 0);
+      const conflicts = Number(data?.import?.conflicts ?? 0);
       setOfficialSyncMessage(
-        `Synchronisation terminée : ${updates} statut(s) lu(s), ${errors} erreur(s), ${notFound} tracking(s) introuvable(s).`
+        `Synchronisation terminée : ${imported} colis DHD découvert(s), ${appended} ajouté(s), ${linked} rattaché(s), ${updates} statut(s) lu(s), ${errors} erreur(s), ${notFound} tracking(s) introuvable(s)${conflicts ? `, ${conflicts} conflit(s) à vérifier` : ""}.`
       );
       await loadSheetData(false);
     } catch (error) {
@@ -4568,7 +4565,7 @@ Zm0 14H8V7h9v12Z"
               className="orders-link"
               disabled={officialSyncLoading}
               onClick={() => void handleRefreshOfficialStatuses()}
-              title="Lire maintenant les statuts officiels DHD/Sook et mettre à jour la feuille"
+              title="Importer les colis DHD absents, lire les statuts officiels DHD/Sook et mettre à jour la feuille"
             >
               {officialSyncLoading
                 ? "Synchronisation…"

@@ -511,7 +511,7 @@ Le chantier n'est termine que si :
 | D-002 | Quelle frequence de synchro souhaitee : 1, 2, 5 ou 10 minutes ? | `[x] 5 minutes, reprise du comportement UI existant` |
 | D-003 | Le statut exact doit-il etre ajoute dans une nouvelle colonne Sheet ou remplacer `etat` ? | `[x] colonne dediee si elle existe; sinon la colonne etat actuelle recoit le statut DHD exact` |
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
-| D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[ ] a concevoir` |
+| D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[~] implementation et tests locaux termines; deploiement et preuve d'ecriture live restants` |
 | D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; statut metier local et colonne principale Sheet, carrierStatus officiel conserve dans Mongo` |
 | D-007 | Que transmettre a DHD lorsque la colonne adresse est vide ? | `[x] utiliser la commune validee; conserver l'adresse detaillee lorsqu'elle existe` |
 | D-008 | Comment representer un colis supprime manuellement sur DHD ? | `[x] etat local `Supprimé de DHD/Sook` quand la lecture groupee reussit sans ce tracking; ne jamais l'ajouter aux 19 statuts officiels` |
@@ -1373,6 +1373,89 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   tous limites au client/statuts/commande frontend, tests et cette reference.
 - Etat : implementation et validation locale terminees; redeploiement et
   reemission d'un colis de test restent necessaires.
+
+### Entree 25 — 2026-08-06 — Import des colis crees manuellement dans DHD
+
+- Etapes : 1, 2, 3, 4, 6 et 8. Anomalie/decision : D-005.
+- Objectif : faire apparaitre dans le site et le Google Sheet les colis crees
+  directement dans DHD, y compris les colis deja `prete_a_expedier`, puis les
+  integrer au suivi officiel existant par tracking.
+- Contrat relu integralement pour ce flux : `GET /api/v1/get/orders` retourne
+  les commandes en process avec leur statut courant, quarante par page, sur
+  les quatre-vingt-dix derniers jours par defaut. Les seuls filtres documentes
+  sont `page`, `start_date`, `end_date` et `tracking`; les archives sont
+  exclues. Aucun webhook de creation DHD vers le site n'est documente dans la
+  collection, donc aucun push temps reel n'est invente.
+- Verification de la feuille active, en lecture seule et sans afficher les
+  noms de colonnes ni des donnees client : douze colonnes existent; les
+  categories tracking, reference et adresse manquent, alors que les
+  categories identite, client, telephone, commune, wilaya, montant, produit,
+  quantite, statut, mode de livraison et date existent.
+- Decision D-005 : a chaque cycle, lire la page 1 pour capter rapidement les
+  nouveaux colis, puis avancer un curseur Mongo persistant sur les pages 2 a
+  N. La synchronisation manuelle lit cinq pages au maximum et le cron deux par
+  defaut; les limites sont configurables et bornees a dix pages par appel.
+- Regle de rattachement idempotente : priorite au tracking deja lie dans
+  Mongo, puis au tracking Sheet exact, puis a une reference DHD unique egale a
+  la reference ou a l'ID Sheet. Le nom, le telephone et l'adresse ne servent
+  jamais de cle. Une reference ambigue cree une ligne DHD distincte; un
+  tracking duplique ou une ligne occupee par un autre tracking devient un
+  conflit sans ecrasement.
+- Colonnes techniques : si elles manquent, le backend les ajoute a droite de
+  la feuille avant l'import. Les valeurs historiques ne sont pas modifiees;
+  sur une ligne rattachee, seules les metadonnees transporteur et les cellules
+  client encore vides sont completees. Une colonne `Source commande` rend la
+  reprise idempotente : si l'ajout Sheet reussit puis Mongo echoue, le prochain
+  passage reconnait encore `carrier_import` et ne reactive jamais le stock.
+- Regle stock : une ligne nouvellement creee depuis un colis DHD manuel est
+  marquee `source=carrier_import` et `stockSyncEnabled=false`, car la liste
+  officielle ne fournit ni SKU ni variante fiable. Une ligne locale rattachee
+  par reference reste geree par la machine de stock existante. Aucune
+  correspondance produit n'est inventee depuis le texte libre `products`.
+- Fichiers touches a ce stade : `back/src/orders/ecotrack.client.ts`,
+  `back/src/orders/order.service.ts`, `back/src/orders/order.model.ts`,
+  `back/src/orders/carrierImportState.model.ts`,
+  `back/src/orders/carrierOrderImport.service.ts`,
+  `back/src/orders/orderStockReconciliation.service.ts`,
+  `back/src/orders/orderApi.controller.ts`, `back/src/orders/order.controller.ts`,
+  `back/src/orders/orderStatusScheduler.ts`, `front/src/pages/Orders.tsx`,
+  `.github/workflows/order-status-sync.yml`, `back/.env.example` et cette
+  reference.
+- Integration : le bouton existant « Actualiser les statuts DHD » lance aussi
+  la decouverte, meme si aucune ligne locale ne possede encore de tracking. Le
+  cron GitHub/Vercel et le scheduler Node hors Vercel effectuent la meme
+  decouverte sous le verrou global avant la synchronisation des trackings.
+- Tests/commandes executes : lecture contractuelle locale et verification
+  structurelle anonymisee de la feuille reussies. Premier
+  `npm --prefix back run build` en echec sur l'inference TypeScript du tuple
+  utilise pour dedupliquer les trackings; remplacement par une `Map` typee et
+  une boucle explicite. Deuxieme build backend reussi. Tests ajoutes pour le
+  parseur pagine, le mapping Sheet sans quantite/mode invente, les quatre
+  parametres officiels de `get/orders`, le curseur persistant, les trois cles
+  de rattachement, l'integration cron/manuelle et l'exclusion du stock externe.
+  Premiere suite complete `npm test` reussie : build backend, tests
+  contractuels, typecheck frontend et build Vite. Execution directe du fichier
+  de tests sous Node 24 : trente tests reussis. `git diff --check` reussi avant
+  la revue. La revue a ensuite ajoute la source Sheet persistante, le blocage
+  des trackings deja dupliques, la preservation du statut local si DHD renvoie
+  un futur statut inconnu et les compteurs d'import dans le resume GitHub. Une
+  relance complete reste necessaire apres ces corrections.
+- Validation finale locale : deuxieme `npm test` complet reussi apres la revue;
+  execution directe des trente tests reussie; `git diff --check` reussi; le
+  scan des journaux ne trouve aucun log de tracking ou de donnee client. Le
+  warning Vite sur deux chunks superieurs a 500 kB reste non bloquant et sans
+  lien avec l'import.
+- Verification DHD live en lecture seule, sans tracking ni donnee client dans
+  la sortie : page 1 valide, quarante colis recus, zero entree invalide,
+  pagination exploitable et tous les statuts presents mappes. La premiere
+  tentative a echoue sur la restriction reseau locale; la relance autorisee a
+  reussi. Aucune ecriture DHD, Mongo ou Sheet n'a ete executee depuis le poste.
+- Etat : `[~] implementation et preuves locales/read-only terminees; deployer
+  puis obtenir la preuve d'un ajout Sheet/Mongo reel avant de clore D-005`.
+- Prochaine action exacte : pousser et redeployer le backend puis le frontend,
+  cliquer une fois sur « Actualiser les statuts DHD », verifier les compteurs
+  sans conflit et la presence d'un colis manuel dans le site, puis lancer le
+  workflow GitHub manuellement et confirmer un HTTP 200 avec `success=true`.
 
 ### Modele pour les prochaines entrees
 

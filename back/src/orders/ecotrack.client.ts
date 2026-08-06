@@ -18,6 +18,31 @@ export interface EcotrackOrderLookup {
   status?: string;
 }
 
+export interface EcotrackListedOrder {
+  tracking: string;
+  reference?: string;
+  client?: string;
+  phone?: string;
+  phone2?: string;
+  address?: string;
+  commune?: string;
+  wilayaId?: number;
+  amount?: string;
+  typeId?: number;
+  createdAt?: string;
+  status?: string;
+  products?: string;
+}
+
+export interface EcotrackOrdersPage {
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
+  orders: EcotrackListedOrder[];
+  invalidOrders: number;
+}
+
 interface EcotrackConfig {
   type: DeliveryApiType;
   baseUrl: string;
@@ -293,6 +318,91 @@ export const parseOrderSearchResponse = (
   return null;
 };
 
+const optionalText = (value: unknown, maxLength = 500): string | undefined => {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim().slice(0, maxLength);
+  return text || undefined;
+};
+
+const nonNegativeInteger = (value: unknown, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+export const parseOrdersPageResponse = (
+  payload: unknown,
+  requestedPage: number
+): EcotrackOrdersPage => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: page des commandes absente.'
+    );
+  }
+  const record = payload as Record<string, unknown>;
+  if (!Array.isArray(record.data)) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: liste paginee des commandes inattendue.'
+    );
+  }
+
+  const currentPage = nonNegativeInteger(record.current_page, requestedPage);
+  const lastPage = Math.max(nonNegativeInteger(record.last_page, 1), 1);
+  const perPage = nonNegativeInteger(record.per_page, 40);
+  const total = nonNegativeInteger(record.total, record.data.length);
+  if (currentPage < 1) {
+    throw new EcotrackApiError(
+      'Reponse ECOTRACK invalide: numero de page inattendu.'
+    );
+  }
+
+  const orders: EcotrackListedOrder[] = [];
+  let invalidOrders = 0;
+  for (const item of record.data) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      invalidOrders += 1;
+      continue;
+    }
+    const order = item as Record<string, unknown>;
+    const tracking = normalizeTrackingKey(order.tracking);
+    if (!tracking || tracking.length > 100) {
+      invalidOrders += 1;
+      continue;
+    }
+    const wilayaId = Number(order.wilaya_id);
+    const typeId = Number(order.type_id);
+    orders.push({
+      tracking,
+      reference: optionalText(order.reference, 255),
+      client: optionalText(order.client, 255),
+      phone: optionalText(order.phone, 32),
+      phone2: optionalText(order.phone_2, 32),
+      address: optionalText(order.adresse, 500),
+      commune: optionalText(order.commune, 255),
+      wilayaId:
+        Number.isInteger(wilayaId) && wilayaId >= 1 && wilayaId <= 58
+          ? wilayaId
+          : undefined,
+      amount: optionalText(order.montant, 64),
+      typeId:
+        Number.isInteger(typeId) && typeId >= 1 && typeId <= 4
+          ? typeId
+          : undefined,
+      createdAt: optionalText(order.created_at, 32),
+      status: optionalText(order.status, 160),
+      products: optionalText(order.products, 1000),
+    });
+  }
+
+  return {
+    currentPage,
+    lastPage,
+    perPage,
+    total,
+    orders,
+    invalidOrders,
+  };
+};
+
 export const parseTrackingActivity = (payload: unknown): unknown[] => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return [];
@@ -393,6 +503,42 @@ export class EcotrackClient {
       assertEcotrackSuccess(payload);
     }
     return parseOrderSearchResponse(payload, normalizedTracking);
+  }
+
+  async listOrders(options: {
+    page: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<EcotrackOrdersPage> {
+    const page = Number(options.page);
+    if (!Number.isSafeInteger(page) || page < 1) {
+      throw new EcotrackApiError('Page ECOTRACK invalide.');
+    }
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (options.startDate && !datePattern.test(options.startDate)) {
+      throw new EcotrackApiError('Date de debut ECOTRACK invalide.');
+    }
+    if (options.endDate && !datePattern.test(options.endDate)) {
+      throw new EcotrackApiError('Date de fin ECOTRACK invalide.');
+    }
+    const payload = await request<unknown>(this.config, {
+      method: 'GET',
+      url: '/api/v1/get/orders',
+      params: {
+        api_token: this.config.token,
+        page,
+        ...(options.startDate ? { start_date: options.startDate } : {}),
+        ...(options.endDate ? { end_date: options.endDate } : {}),
+      },
+    });
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      (payload as Record<string, unknown>).success === false
+    ) {
+      assertEcotrackSuccess(payload);
+    }
+    return parseOrdersPageResponse(payload, page);
   }
 
   async getTrackingActivity(tracking: string): Promise<unknown[]> {

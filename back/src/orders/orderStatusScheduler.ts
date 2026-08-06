@@ -3,6 +3,7 @@ import Order from './order.model';
 import OrderSyncLock from './orderSyncLock.model';
 import { syncOfficialStatuses } from './orderStatusSync.service';
 import { OFFICIAL_SYNC_TERMINAL_STATUSES } from './orderStatus';
+import { importCarrierOrders } from './carrierOrderImport.service';
 
 const getIntervalMs = (): number => {
   const configuredInterval = Number(process.env.OFFICIAL_STATUS_SYNC_INTERVAL_MS);
@@ -55,6 +56,15 @@ export const startOrderStatusScheduler = () => {
       await connectDB();
       lockAcquired = await acquireSyncLock();
       if (!lockAcquired) return;
+
+      try {
+        await importCarrierOrders({
+          carrierType: 'api_dhd',
+          maxPages: Number(process.env.ORDER_IMPORT_CRON_PAGES ?? 2),
+        });
+      } catch {
+        console.error('[DHD import] Echec de la decouverte planifiee');
+      }
 
       const candidates = await Order.find({
         deliveryType: { $in: ['api_dhd', 'api_sook'] },

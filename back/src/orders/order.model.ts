@@ -20,6 +20,8 @@ export interface IOrder extends Document {
   stockRestoredAt?: Date;
   sendInProgressUntil?: Date;
   carrierTrackingHistory?: CarrierTrackingHistoryEntry[];
+  source?: 'site' | 'carrier_import';
+  stockSyncEnabled?: boolean;
 }
 
 export type StockAdjustmentState = 'not_debited' | 'debited' | 'restored';
@@ -73,7 +75,13 @@ const OrderSchema = new Schema({
       required: true,
       enum: ['missing_at_carrier', 'carrier_cancelled'],
     },
-  }]
+  }],
+  source: {
+    type: String,
+    enum: ['site', 'carrier_import'],
+    default: 'site',
+  },
+  stockSyncEnabled: { type: Boolean, default: true },
 }, {
   timestamps: true
 });
