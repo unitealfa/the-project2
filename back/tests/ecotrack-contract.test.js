@@ -279,4 +279,8 @@ test('la configuration Vercel evite les combinaisons invalides et le cron Hobby'
     workflow,
     /https:\/\/the-project2\.vercel\.app\/api\/orders\/cron\/sync-statuses/
   );
+  assert.match(workflow, /CRON_SECRET GitHub absent/);
+  assert.match(workflow, /CRON_SECRET refuse par Vercel/);
+  assert.match(workflow, /CRON_SECRET Vercel absent/);
+  assert.match(workflow, /GITHUB_STEP_SUMMARY/);
 });

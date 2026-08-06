@@ -201,7 +201,7 @@ tests de table avant son utilisation en production.
 
 ### B-002 — Critique — Aucun scheduler persistant sur Vercel
 
-- Etat : `[~] route et planification 5 minutes ajoutees; cible du nouveau backend corrigee; execution GitHub reelle a valider`
+- Etat : `[~] route et planification 5 minutes ajoutees; route Production validee par un appel autorise HTTP 200; executions GitHub #4 a #23 en echec car le secret GitHub est absent ou different; remplacement du secret et nouveau run requis`
 - Fichiers : `back/src/app.ts`, `back/src/orders/orderStatusScheduler.ts`,
   `back/vercel.json` ou configuration de deploiement.
 - Cause : `setInterval` desactive sur Vercel.
@@ -368,7 +368,7 @@ tests de table avant son utilisation en production.
 
 ### Etape 5 — Cron serverless fiable
 
-- Etat : `[~] route, secret, verrou et horaire ajoutes; execution deployee non prouvee`
+- Etat : `[~] route, secret, verrou et horaire ajoutes; route deployee prouvee par HTTP 200 autorise; scheduler GitHub bloque par son secret absent ou different`
 - Exposer une route de cron protegee par secret.
 - Configurer le scheduler de deploiement.
 - Limiter les commandes candidates et traiter par lots bornes.
@@ -432,7 +432,7 @@ tests de table avant son utilisation en production.
 | Actions manuelles livree/abandonnee | Boutons actifs; tracking et statut transporteur exact non falsifies | `[x] garde source et build local` |
 | 429 | Backoff borne, pas de boucle infinie | `[~] code borne, fixture HTTP restante` |
 | Timeout DHD | Erreur par lot/commande, prochain cron possible | `[ ]` |
-| Cron sans navigateur | Statut mis a jour | `[ ]` |
+| Cron sans navigateur | Statut mis a jour | `[~] appel autorise Production HTTP 200; prochain run GitHub apres remplacement du secret restant` |
 | Deux crons concurrents | Pas de double ecriture/stock | `[~] verrou code, test DB restant` |
 | Remarque libre | Aucun changement de statut | `[x] fixture locale` |
 | Rechargement page | Transporteur et statut conserves | `[~] hydratation code, test navigateur restant` |
@@ -1037,6 +1037,59 @@ Ajouter une entree apres chaque groupe coherent de modifications.
   demande le retour d'une commande deja expediee, la regle de choix entre les
   deux endpoints doit etre definie et testee separement.
 
+### Entree 19 — 2026-08-06 — Diagnostic des echecs GitHub Actions #4 a #23
+
+- Etape : 5. Anomalie : B-002. Objectif : expliquer les courriels repetes
+  `Synchronisation des statuts ECOTRACK` et rendre la cause du prochain echec
+  directement observable sans exposer de secret.
+- Faits GitHub verifies en lecture seule : l'execution planifiee #23 correspond
+  au commit `1c944bb`, s'est terminee en echec le 2026-08-06 et son job `sync`
+  a echoue dans l'etape d'appel en trois secondes. Les vingt executions
+  planifiees publiques consultees, #4 a #23, sont toutes en echec. Le texte
+  detaille des logs n'est pas accessible depuis cette session GitHub non
+  authentifiee; il est donc interdit d'affirmer sans preuve si le secret est
+  absent ou seulement different.
+- Contrat relu dans `ECOTRACK API.postman_collection.json` : la source groupee
+  reste `GET /api/v1/get/orders/status`, avec un maximum de 100 trackings par
+  requete. Le workflow appelle uniquement la route interne protegee qui utilise
+  ce contrat; aucun endpoint ou payload DHD n'a ete invente.
+- Recoupement Production : `back/.env` contient un `CRON_SECRET` non vide sans
+  que sa valeur ait ete affichee. Un appel autorise a
+  `https://the-project2.vercel.app/api/orders/cron/sync-statuses` avec ce secret
+  a retourne HTTP 200. Cela prouve que la valeur locale correspond a Vercel et
+  que la route de production peut executer la synchronisation. Avec les echecs
+  rapides et repetes de GitHub, la configuration fautive restante est donc le
+  coffre GitHub Actions : secret `CRON_SECRET` absent ou different.
+- Controle local de presence uniquement : les variables DHD et Google Sheets
+  requises sont renseignees dans `back/.env`, sans affichage de leur valeur;
+  le token Sook facultatif est vide. Cette presence ne prouve pas a elle seule
+  la validite de chaque acces externe.
+- Fichiers touches : `.github/workflows/order-status-sync.yml`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modification : ajout d'une etape distincte qui echoue avec une annotation
+  explicite si le secret GitHub est vide. L'appel classe maintenant sans lire
+  ni afficher la valeur du secret : `401` signifie secret GitHub refuse,
+  `503` variable absente dans Vercel, `409` execution concurrente deja couverte,
+  autre code erreur backend. Un succes publie seulement des compteurs non
+  sensibles dans le resume du job; la reponse est stockee dans un fichier
+  temporaire supprime en fin d'etape.
+- Tests : `npm test` a la racine reussi le 2026-08-06; compilation TypeScript
+  backend, test contractuel, typecheck frontend et build Vite reussis.
+  `git diff --check` reussi apres cette mise a jour.
+- Risque/limite externe : Codex n'est pas authentifie sur le compte GitHub et
+  ne peut ni lire ni ecrire la valeur d'un repository secret. Ne jamais copier
+  cette valeur dans un commit, un log ou la conversation.
+- Decision : ecraser le repository secret GitHub Actions `CRON_SECRET` avec
+  exactement la valeur deja presente dans `back/.env` et dans le backend
+  Vercel, puis lancer `workflow_dispatch`. Cette action corrige a la fois le
+  cas absent et le cas different sans avoir besoin d'exposer l'ancienne valeur.
+- Etat : code de diagnostic et route Production valides; B-002 reste ouverte
+  tant qu'un run GitHub manuel puis planifie n'est pas vert.
+- Prochaine action exacte : GitHub > depot `unitealfa/the-project2` > Settings
+  > Secrets and variables > Actions > New repository secret (ou Update) > nom
+  `CRON_SECRET` > valeur identique a `back/.env`, puis Actions >
+  Synchronisation des statuts ECOTRACK > Run workflow.
+
 ### Modele pour les prochaines entrees
 
 ```text
@@ -1063,10 +1116,10 @@ Reference anti-hallucination  TERMINE
 Implementation backend       TERMINEE LOCALEMENT
 Migration frontend            TERMINEE LOCALEMENT
 Cron Vercel                   RETIRE CAR INCOMPATIBLE AVEC HOBBY
-Cron GitHub 5 minutes         CONFIGURE, SECRET ET VALIDATION LIVE RESTANTS
+Cron GitHub 5 minutes         ROUTE LIVE HTTP 200; RUNS #4-#23 EN ECHEC, SECRET GITHUB A REMPLACER
 Rotation secrets              A EFFECTUER DANS LES SERVICES
-Configuration locale          PARTIELLE; ACCES SHEET/DHD MANQUANTS
-Tests contractuels            17 SCENARIOS LOCAUX REUSSIS, STAGING RESTANT
+Configuration locale          VARIABLES DHD/SHEET PRESENTES; VALIDATION COMPLETE RESTANTE
+Tests contractuels            SUITE RACINE REUSSIE LE 2026-08-06, STAGING RESTANT
 Audit dependances              RACINE/BACK 0; AVIS RSC FRONT NON APPLICABLE
 Test securite HTTP             REUSSI LOCALEMENT
 Validation staging            TRANSACTION/RETOURS CORRIGES LOCALEMENT; FLUX AUTHENTIFIE DHD/SHEET/STOCK RESTANT
