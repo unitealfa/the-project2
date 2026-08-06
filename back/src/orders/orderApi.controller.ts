@@ -73,6 +73,12 @@ export const sanitizeOrderPayload = (payload: unknown): EcotrackOrderPayload => 
         : stringValue(source[field]).slice(0, field === 'gps_link' ? 1000 : 255);
   });
 
+  // Decision metier explicite: si le Sheet n'a pas d'adresse detaillee, la
+  // commune validee sert d'adresse minimale acceptee par ECOTRACK.
+  if (!stringValue(sanitized.adresse) && stringValue(sanitized.commune)) {
+    sanitized.adresse = stringValue(sanitized.commune);
+  }
+
   const required = [
     'nom_client',
     'telephone',

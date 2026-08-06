@@ -107,6 +107,10 @@ const firstNonEmptyRowValue = (
   return "";
 };
 
+const resolveShippingAddress = (row: OrderRow, commune: string): string =>
+  firstNonEmptyRowValue(row, ["Adresse", "adresse", "Address"]) ||
+  String(commune || "").trim();
+
 const readBooleanRowFlag = (row: OrderRow, candidates: string[]): 0 | 1 => {
   const value = normalizeTextValue(firstNonEmptyRowValue(row, candidates));
   return ["1", "true", "oui", "yes", "fragile"].includes(value) ? 1 : 0;
@@ -1268,9 +1272,7 @@ const Orders: React.FC = () => {
       // La commune resolue doit rester cohérente avec une wilaya officielle.
       const resolvedWilayaCode =
         manualWilaya ?? getWilayaIdByCommune(commune, codeW);
-      const adr = String(
-        row["Adresse"] ?? row["adresse"] ?? row["Address"] ?? ""
-      ).trim();
+      const adr = resolveShippingAddress(row, commune);
       const validationErrors: string[] = [];
       if (!rowId) validationErrors.push("identifiant de ligne");
       if (!nom_client) validationErrors.push("nom du client");
@@ -4853,12 +4855,10 @@ Zm0 14H8V7h9v12Z"
                                 )
                                 ] || ""
                               ).trim() || remarkFromSheet;
-                            const address = String(
-                              row["Adresse"] ??
-                              row["adresse"] ??
-                              row["Address"] ??
-                              ""
-                            ).trim();
+                            const address = resolveShippingAddress(
+                              row,
+                              String(communeResolved || "")
+                            );
                             const bulkValidationErrors: string[] = [];
                             if (!s.rowId) bulkValidationErrors.push("identifiant de ligne");
                             if (!(s.name || s.rawName)) {

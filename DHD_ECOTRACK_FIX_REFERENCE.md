@@ -414,6 +414,7 @@ tests de table avant son utilisation en production.
 | Creation reussie | `success:true`, tracking persiste | `[ ]` |
 | HTTP 200 + `success:false` | Echec metier, aucune fausse validation | `[x] fixture locale` |
 | HTTP 422 | Champs ECOTRACK affiches proprement | `[ ]` |
+| Adresse Sheet vide | Commune validee utilisee comme adresse, adresse detaillee preservee | `[x] test contractuel + suite racine` |
 | Creation puis validation | Etat ECOTRACK conforme au bouton | `[~] code, test staging restant` |
 | Echec de `valid/order` | Aucun `ready_to_ship` ecrit dans le Sheet | `[~] ordre code teste, integration staging restante` |
 | Lecture immediate apres validation | Statut exact DHD lu puis persiste; echec non bloquant repris par cron | `[x] ordre code et fixture source testes; integration DHD restante` |
@@ -466,6 +467,7 @@ Le chantier n'est termine que si :
 | D-004 | Faut-il afficher l'historique `activity` dans l'interface ? | `[~] endpoint backend pret; timeline UI non ajoutee faute de decision explicite` |
 | D-005 | Quelle strategie de migration pour les commandes existantes sans tracking/transporteur fiable ? | `[ ] a concevoir` |
 | D-006 | Conserver « Marquer livree » et « Abandonnee » pour tests/annulation client, y compris sur une commande API ? | `[x] oui; decision explicite utilisateur, statut metier local uniquement` |
+| D-007 | Que transmettre a DHD lorsque la colonne adresse est vide ? | `[x] utiliser la commune validee; conserver l'adresse detaillee lorsqu'elle existe` |
 
 Une decision manquante ne doit bloquer que l'etape concernee. Les tests,
 refactorings internes et corrections independantes peuvent avancer sans
@@ -1161,6 +1163,29 @@ Ajouter une entree apres chaque groupe coherent de modifications.
 - Etat : implementation locale validee par la suite automatisee. La preuve
   Production exige un colis de test autorise avec comparaison DHD, Mongo,
   colonne statut Google et interface, puis un changement livraison/retour.
+
+### Entree 21 — 2026-08-06 — Commune utilisee lorsque l'adresse est vide
+
+- Etape : 2. Anomalie surveillee : B-005. Decision D-007 explicite de
+  l'utilisateur apres le blocage frontend « adresse ».
+- Contrat verifie dans `ECOTRACK API.postman_collection.json` :
+  `POST /api/v1/create/order` accepte `adresse`, et la fixture HTTP 422 la
+  classe parmi les champs valides par ECOTRACK. Aucun endpoint ni format de
+  reponse n'est modifie.
+- Fichiers touches : `front/src/pages/Orders.tsx`,
+  `back/src/orders/orderApi.controller.ts`,
+  `back/tests/ecotrack-contract.test.js` et cette reference.
+- Modification : le flux individuel et le flux groupe utilisent l'adresse
+  detaillee lorsqu'elle existe, sinon la commune deja resolue et validee. Le
+  backend applique la meme regle avant le controle des champs obligatoires,
+  afin de proteger les appels autres que la page active.
+- Test ajoute : adresse vide vers commune, preservation d'une adresse
+  detaillee et verification que les deux flux frontend appellent le meme
+  resolver. `npm test` a la racine reussi : build TypeScript backend, test
+  contractuel, typecheck frontend et build Vite de production. `git diff
+  --check` reussi.
+- Etat : implementation locale validee; redeploiement frontend et backend puis
+  essai d'une commande sans adresse encore requis pour la preuve Production.
 
 ### Modele pour les prochaines entrees
 

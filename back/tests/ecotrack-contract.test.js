@@ -165,6 +165,35 @@ test('ECOTRACK: le payload de creation exige les champs officiels et conserve le
   assert.equal(Object.hasOwn(payload, 'champ_invente'), false);
 });
 
+test("ECOTRACK: une adresse vide reprend la commune sans ecraser une adresse detaillee", () => {
+  const basePayload = {
+    nom_client: 'Fixture',
+    telephone: '0550000000',
+    commune: 'Commune fixture',
+    code_wilaya: 16,
+    montant: 2500,
+    type: 1,
+  };
+  assert.equal(
+    sanitizeOrderPayload({ ...basePayload, adresse: '' }).adresse,
+    'Commune fixture'
+  );
+  assert.equal(
+    sanitizeOrderPayload({ ...basePayload, adresse: 'Adresse detaillee' }).adresse,
+    'Adresse detaillee'
+  );
+
+  const ordersPage = fs.readFileSync(
+    path.resolve(__dirname, '../../front/src/pages/Orders.tsx'),
+    'utf8'
+  );
+  assert.match(ordersPage, /const adr = resolveShippingAddress\(row, commune\)/);
+  assert.match(
+    ordersPage,
+    /const address = resolveShippingAddress\([\s\S]*?communeResolved/
+  );
+});
+
 test('ECOTRACK: lots de 1, 100 et 101 trackings sans depasser le contrat', () => {
   assert.deepEqual(chunkTrackings(['A']), [['A']]);
   assert.deepEqual(chunkTrackings(Array.from({ length: 100 }, (_, i) => `T${i}`)).map((x) => x.length), [100]);
